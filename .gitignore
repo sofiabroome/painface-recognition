@@ -87,3 +87,7 @@ ENV/
 
 # Rope project settings
 .ropeproject
+
+# Sofia's changes from here
+# Ignore data folder
+data/
