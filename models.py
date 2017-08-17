@@ -20,14 +20,14 @@ class Model:
         """
         self.name = name
         self.input_shape = input_shape
-        self.nb_filters = nb_conv_filters
+        self.nb_conv_filters = nb_conv_filters
         self.nb_lstm_units = nb_lstm_units
         self.kernel_size = kernel_size
         self.nb_labels = nb_labels
         self.dropout_rate = dropout_rate
 
         if self.name == 'conv_lstm':
-            model = self.conv_lstm()
+            self.model = self.conv_lstm()
 
         metrics = ['accuracy']
 
@@ -47,5 +47,3 @@ class Model:
         model.add(LSTM(self.nb_lstm_units, dropout=self.dropout_rate))
         model.add(Dense(self.nb_labels, activation='softmax'))
         return model
-
-
