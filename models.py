@@ -5,7 +5,7 @@ from keras.models import Sequential
 
 class Model:
     def __init__(self, name, input_shape, nb_conv_filters, nb_lstm_units,
-                 kernel_size, nb_labels, lr, optimizer):
+                 kernel_size, nb_labels, lr, optimizer, dropout_rate):
         """
         A class to build the preferred model.
         :param name: str | The name of the model
@@ -24,6 +24,7 @@ class Model:
         self.nb_lstm_units = nb_lstm_units
         self.kernel_size = kernel_size
         self.nb_labels = nb_labels
+        self.dropout_rate = dropout_rate
 
         if self.name == 'conv_lstm':
             model = self.conv_lstm()
@@ -43,7 +44,7 @@ class Model:
         model.add(Convolution2D(input_shape=self.input_shape, filters=self.nb_conv_filters,
                                 kernel_size=self.kernel_size))
         model.add(MaxPooling2D(pool_size=(2, 2)))
-        model.add(LSTM(self.nb_lstm_units))
+        model.add(LSTM(self.nb_lstm_units, dropout=self.dropout_rate))
         model.add(Dense(self.nb_labels, activation='softmax'))
         return model
 
