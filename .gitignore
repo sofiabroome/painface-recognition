@@ -91,3 +91,7 @@ ENV/
 # Sofia's changes from here
 # Ignore data folder
 data/
+
+# Mac-stuff
+.DS_Store
+.idea/
