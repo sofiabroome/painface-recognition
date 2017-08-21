@@ -1,6 +1,7 @@
 from keras.preprocessing.image import load_img, img_to_array
 import numpy as np
 
+
 def process_image(image, target_shape):
     """
     Process and image and return the corresponding numerical array.
