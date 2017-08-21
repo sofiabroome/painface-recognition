@@ -3,7 +3,7 @@ from matplotlib import pyplot as plt
 
 
 def train(model, args, X_train, y_train, X_val, y_val,
-          batch_size, nb_epochs, early_stopping_patience):
+          batch_size, nb_epochs, early_stopping_patience, generator=None):
     """
     Train the model.
     :param model: keras.Sequential() object | The model instance
@@ -16,6 +16,7 @@ def train(model, args, X_train, y_train, X_val, y_val,
     :param nb_epochs: int | (Maximum) number of training epochs
     :param early_stopping_patience: int | Number of epochs with no validation set
                                           improvement before early stopping.s
+    :param generator: A generator, provided if the training data can't fit into memory.
     :return: keras.Sequential() object | The (trained) model instance
     """
     print(model.summary())
@@ -31,13 +32,16 @@ def train(model, args, X_train, y_train, X_val, y_val,
     catacc_test_history = CatAccTestHistory()
     catacc_train_history = CatAccTrainHistory()
 
-    model.fit(X_train, y_train,
-              epochs=nb_epochs,
-              shuffle=False,
-              batch_size=batch_size,
-              validation_data=(X_val, y_val),
-              callbacks=[early_stopping, checkpointer,
-                         catacc_test_history, catacc_train_history])
+    if generator:
+        model.fit_generator(generator=generator)
+    else:
+        model.fit(X_train, y_train,
+                  epochs=nb_epochs,
+                  shuffle=False,
+                  batch_size=batch_size,
+                  validation_data=(X_val, y_val),
+                  callbacks=[early_stopping, checkpointer,
+                             catacc_test_history, catacc_train_history])
 
 
 def plot_training(catacc_test_history,
