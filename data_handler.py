@@ -8,17 +8,17 @@ from image_processor import process_image
 
 
 class DataHandler:
-    def __init__(self, path, image_size, batch_size, color):
+    def __init__(self, path, image_size, seq_length, color):
         """
         Constructor for the DataHandler.
         :param path: str
         :param image_size: (int, int)
-        :param batch_size: int
+        :param seq_length: int
         :param color: bool
         """
         self.path = path
         self.image_size = image_size
-        self.batch_size = batch_size
+        self.seq_length = seq_length
         self.color = color
 
     def prepare_train_test(self, df):
@@ -51,10 +51,10 @@ class DataHandler:
         # X_train = np.asarray(train_images_list, dtype=np.float32)
         # X_test = np.asarray(test_images_list, dtype=np.float32)
 
-        X_train_batch = make_batches(train_images_list, self.batch_size)
-        y_train_batch = np.asarray(make_batches(y_train, self.batch_size), dtype=np.uint8)
-        X_test_batch = make_batches(test_images_list, self.batch_size)
-        y_test_batch = np.asarray(make_batches(y_test, self.batch_size), dtype=np.uint8)
+        X_train_batch = make_even_sequences(train_images_list, self.seq_length)
+        y_train_batch = np.asarray(make_even_sequences(y_train, self.seq_length), dtype=np.uint8)
+        X_test_batch = make_even_sequences(test_images_list, self.seq_length)
+        y_test_batch = np.asarray(make_even_sequences(y_test, self.seq_length), dtype=np.uint8)
 
         X_train = X_train_batch
         X_test = X_test_batch
@@ -117,9 +117,9 @@ class DataHandler:
         return images
 
 
-def make_batches(x, batch_size):
-    x = round_to_batch_size(np.asarray(x, dtype=np.float32), batch_size)
-    num_splits = int(float(len(x))/batch_size)
+def make_even_sequences(x, seq_length):
+    x = round_to_batch_size(np.asarray(x, dtype=np.float32), seq_length)
+    num_splits = int(float(len(x)) / seq_length)
     x = np.split(np.asarray(x, dtype=np.float32), num_splits)
     return np.asarray(x)
 

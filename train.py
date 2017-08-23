@@ -50,21 +50,21 @@ def train(model_instance, args, X_train, y_train, batch_size, generator=None):
             print(y_train.shape)
 
             model_instance.model.fit(X_train, y_train,
-                               epochs=args.nb_epochs,
-                               shuffle=False,
-                               batch_size=batch_size,
-                               validation_split=VAL_FRACTION,
-                               callbacks=[early_stopping, checkpointer,
-                                 catacc_test_history, catacc_train_history])
+                                     epochs=args.nb_epochs,
+                                     shuffle=False,
+                                     batch_size=batch_size,
+                                     validation_split=VAL_FRACTION,
+                                     callbacks=[early_stopping, checkpointer,
+                                                catacc_test_history, catacc_train_history])
 
         else:
             model_instance.model.fit(X_train, y_train,
-                               epochs=args.nb_epochs,
-                               shuffle=False,
-                               batch_size=batch_size,
-                               validation_split=VAL_FRACTION,
-                               callbacks=[early_stopping, checkpointer,
-                                 catacc_test_history, catacc_train_history])
+                                     epochs=args.nb_epochs,
+                                     shuffle=False,
+                                     batch_size=batch_size,
+                                     validation_split=VAL_FRACTION,
+                                     callbacks=[early_stopping, checkpointer,
+                                                catacc_test_history, catacc_train_history])
 
 
 def val_split(X_train, y_train, val_fraction, batch_size, round_to_batch=True):
@@ -108,22 +108,22 @@ def create_best_model_path(model, args):
 
 
 class CatAccTestHistory(Callback):
-    def __init__(self):
-        self.cataccs = []
-
-    # def on_train_begin(self, logs={}):
+    # def __init__(self):
     #     self.cataccs = []
+
+    def on_train_begin(self, logs={}):
+        self.cataccs = []
 
     def on_epoch_end(self, epoch, logs={}):
         self.cataccs.append(logs.get('val_categorical_accuracy'))
 
 
 class CatAccTrainHistory(Callback):
-    def __init__(self):
-        self.cataccs = []
-
-    # def on_train_begin(self, logs={}):
+    # def __init__(self):
     #     self.cataccs = []
+
+    def on_train_begin(self, logs={}):
+        self.cataccs = []
 
     def on_epoch_end(self, epoch, logs={}):
         self.cataccs.append(logs.get('categorical_accuracy'))

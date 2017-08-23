@@ -31,14 +31,18 @@ class Model:
         if self.name == 'conv_lstm':
             self.model = self.conv_lstm()
 
-        metrics = ['accuracy']
-        # Compile the network.
+        if self.name == 'conv_lstm_stateful':
+            self.model = self.conv_lstm_stateful()
+
         if optimizer == 'adam':
             optimizer = Adam(lr=lr)
         else:
             optimizer = Adagrad(lr=lr)
-        self.model.compile(loss='categorical_crossentropy', optimizer=optimizer,
-                           metrics=metrics)
+
+        # Compile the network.
+        self.model.compile(loss='categorical_crossentropy',
+                           optimizer=optimizer,
+                           metrics=['categorical_accuracy'])
 
     def conv_lstm(self):
         model = Sequential()
@@ -48,6 +52,26 @@ class Model:
                                   batch_input_shape=(None, self.seq_length, self.input_shape[0], self.input_shape[1], 3)))
         model.add(TimeDistributed(MaxPooling2D()))
         model.add(TimeDistributed(Flatten()))
-        model.add((LSTM(self.nb_lstm_units, dropout=self.dropout_rate, input_shape=(None, self.seq_length, None), return_sequences=True)))
+        model.add((LSTM(self.nb_lstm_units,
+                        stateful=False,
+                        dropout=self.dropout_rate,
+                        input_shape=(None, self.seq_length, None),
+                        return_sequences=True)))
+        model.add(TimeDistributed(Dense(self.nb_labels, activation='softmax')))
+        return model
+
+    def conv_lstm_stateful(self):
+        model = Sequential()
+        model.add(TimeDistributed(Convolution2D(filters=self.nb_conv_filters,
+                                                kernel_size=self.kernel_size),
+                                  input_shape=(self.seq_length, self.input_shape[0], self.input_shape[1], 3),
+                                  batch_input_shape=(1, self.seq_length, self.input_shape[0], self.input_shape[1], 3)))
+        model.add(TimeDistributed(MaxPooling2D()))
+        model.add(TimeDistributed(Flatten()))
+        model.add((LSTM(self.nb_lstm_units,
+                        stateful=True,
+                        dropout=self.dropout_rate,
+                        input_shape=(None, self.seq_length, None),
+                        return_sequences=True)))
         model.add(TimeDistributed(Dense(self.nb_labels, activation='softmax')))
         return model

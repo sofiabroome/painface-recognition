@@ -1,13 +1,13 @@
 import sys
 
 from test_and_eval import Evaluator
-from data_handler import DataHandler, make_batches
+from data_handler import DataHandler
 from train import train
 import arg_parser
 import models
 
 TARGET_NAMES = ['NO_PAIN', 'PAIN']
-BATCH_SIZE = 100
+BATCH_SIZE = 1
 COLOR = True
 
 
@@ -16,7 +16,7 @@ def run(args):
     model = models.Model(args.model, (args.input_width, args.input_height), seq_length, args.optimizer,
                          args.lr, args.nb_lstm_units, args.nb_conv_filters, args.kernel_size,
                          args.nb_labels, args.dropout_rate)
-    dh = DataHandler(args.data_path, (args.input_width, args.input_height), BATCH_SIZE, COLOR)
+    dh = DataHandler(args.data_path, (args.input_width, args.input_height), seq_length, COLOR)
     ev = Evaluator('cr', TARGET_NAMES)
 
     # dh.folders_to_csv()
