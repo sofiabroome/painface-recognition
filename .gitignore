@@ -91,6 +91,7 @@ ENV/
 # Sofia's changes from here
 # Ignore data folder
 data/
+models/
 
 # Mac-stuff
 .DS_Store
