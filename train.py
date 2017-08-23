@@ -37,7 +37,9 @@ def train(model_instance, args, X_train, y_train, batch_size, generator=None):
         model_instance.model.fit_generator(generator=generator)
     else:
         if args.round_to_batch:
-            # X_train, y_train, X_val, y_val = val_split(X_train, y_train, VAL_FRACTION, batch_size)
+            X_train, y_train, X_val, y_val = val_split(X_train, y_train, VAL_FRACTION, batch_size)
+            X_train = round_to_batch_size(X_train, batch_size)
+            y_train = round_to_batch_size(y_train, batch_size)
 
             # model_instance.model.fit(X_train, y_train,
             #                    epochs=args.nb_epochs,
@@ -53,7 +55,7 @@ def train(model_instance, args, X_train, y_train, batch_size, generator=None):
                                      epochs=args.nb_epochs,
                                      shuffle=False,
                                      batch_size=batch_size,
-                                     validation_split=VAL_FRACTION,
+                                     validation_data=(X_val, y_val),
                                      callbacks=[early_stopping, checkpointer,
                                                 catacc_test_history, catacc_train_history])
 
@@ -77,6 +79,7 @@ def val_split(X_train, y_train, val_fraction, batch_size, round_to_batch=True):
 
         X_train = X_train[:-num_val, :]
         y_train = y_train[:-num_val:]
+        import ipdb;ipdb.set_trace()
 
         # If pre-divided into batches...temp thing
         # X_val = X_train[-1:]
@@ -85,6 +88,13 @@ def val_split(X_train, y_train, val_fraction, batch_size, round_to_batch=True):
         # y_train = y_train[:-1]
 
     return X_train, y_train, X_val, y_val
+
+
+def round_to_batch_size(data_array, batch_size):
+    num_rows = data_array.shape[0]
+    surplus = num_rows % batch_size
+    data_array_rounded = data_array[:num_rows-surplus]
+    return data_array_rounded
 
 
 def plot_training(catacc_test_history,

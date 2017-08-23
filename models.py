@@ -3,6 +3,7 @@ from keras.layers.wrappers import TimeDistributed
 from keras.optimizers import Adam, Adagrad
 from keras.models import Sequential
 
+batch_size = 50
 
 class Model:
     def __init__(self, name, input_shape, seq_length, optimizer, lr, nb_lstm_units,
@@ -29,15 +30,19 @@ class Model:
         self.seq_length = seq_length
 
         if self.name == 'conv2d_timedist_lstm':
-            print("Conv2d-lstm model")
+            print("Conv2d-lstm model timedist")
             self.model = self.conv2d_timedist_lstm()
 
-        if self.name == 'conv3d_lstm':
-            print("Conv3d-lstm model")
+        if self.name == 'conv2d_timedist_lstm_stateful':
+            print("Stateful timedist conv2d-lstm model")
+            self.model = self.conv2d_timedist_lstm_stateful()
+
+        if self.name == 'conv2d_lstm':
+            print("Conv2d-lstm model")
             self.model = self.conv2d_lstm()
 
-        if self.name == 'conv2d_timedist_lstm_stateful':
-            print("Stateful conv2d-lstm model")
+        if self.name == 'conv2d_lstm_stateful':
+            print("Conv2d-lstm model stateful")
             self.model = self.conv2d_lstm_stateful()
 
         if optimizer == 'adam':
@@ -66,6 +71,22 @@ class Model:
         model.add(TimeDistributed(Dense(self.nb_labels, activation='softmax')))
         return model
 
+    def conv2d_timedist_lstm_stateful(self):
+        model = Sequential()
+        model.add(TimeDistributed(Convolution2D(filters=self.nb_conv_filters,
+                                                kernel_size=(self.kernel_size, self.kernel_size)),
+                                  input_shape=(self.seq_length, self.input_shape[0], self.input_shape[1], 3),
+                                  batch_input_shape=(batch_size, self.seq_length, self.input_shape[0], self.input_shape[1], 3)))
+        model.add(TimeDistributed(MaxPooling2D()))
+        model.add(TimeDistributed(Flatten()))
+        model.add((LSTM(self.nb_lstm_units,
+                        stateful=True,
+                        dropout=self.dropout_rate,
+                        input_shape=(None, self.seq_length, None),
+                        return_sequences=True)))
+        model.add(TimeDistributed(Dense(self.nb_labels, activation='softmax')))
+        return model
+
     def conv2d_lstm(self):
         model = Sequential()
         model.add(Convolution2D(filters=self.nb_conv_filters,
@@ -82,18 +103,18 @@ class Model:
         model.add(Dense(self.nb_labels, activation='softmax'))
         return model
 
-    def conv2d_timedist_lstm_stateful(self):
+    def conv2d_lstm_stateful(self):
         model = Sequential()
-        model.add(TimeDistributed(Convolution2D(filters=self.nb_conv_filters,
-                                                kernel_size=(self.kernel_size, self.kernel_size)),
-                                  input_shape=(self.seq_length, self.input_shape[0], self.input_shape[1], 3),
-                                  batch_input_shape=(1, self.seq_length, self.input_shape[0], self.input_shape[1], 3)))
-        model.add(TimeDistributed(MaxPooling2D()))
+        model.add(Convolution2D(filters=self.nb_conv_filters,
+                                kernel_size=(self.kernel_size, self.kernel_size),
+                                input_shape=(self.input_shape[0], self.input_shape[1], 3),
+                                batch_input_shape=(batch_size, self.input_shape[0], self.input_shape[1], 3)))
+        model.add(MaxPooling2D())
         model.add(TimeDistributed(Flatten()))
         model.add((LSTM(self.nb_lstm_units,
                         stateful=True,
                         dropout=self.dropout_rate,
                         input_shape=(None, self.seq_length, None),
-                        return_sequences=True)))
-        model.add(TimeDistributed(Dense(self.nb_labels, activation='softmax')))
+                        return_sequences=False)))
+        model.add(Dense(self.nb_labels, activation='softmax'))
         return model
