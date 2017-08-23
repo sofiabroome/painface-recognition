@@ -48,18 +48,18 @@ class DataHandler:
         train_images_list = self._get_images_from_df(train_df)
         test_images_list = self._get_images_from_df(test_df)
 
-        # X_train = np.asarray(train_images_list, dtype=np.float32)
-        # X_test = np.asarray(test_images_list, dtype=np.float32)
+        X_train = np.asarray(train_images_list, dtype=np.float32)
+        X_test = np.asarray(test_images_list, dtype=np.float32)
 
-        X_train_batch = make_even_sequences(train_images_list, self.seq_length)
-        y_train_batch = np.asarray(make_even_sequences(y_train, self.seq_length), dtype=np.uint8)
-        X_test_batch = make_even_sequences(test_images_list, self.seq_length)
-        y_test_batch = np.asarray(make_even_sequences(y_test, self.seq_length), dtype=np.uint8)
-
-        X_train = X_train_batch
-        X_test = X_test_batch
-        y_train = y_train_batch
-        y_test = y_test_batch
+        # X_train_batch = make_even_sequences(train_images_list, self.seq_length)
+        # y_train_batch = np.asarray(make_even_sequences(y_train, self.seq_length), dtype=np.uint8)
+        # X_test_batch = make_even_sequences(test_images_list, self.seq_length)
+        # y_test_batch = np.asarray(make_even_sequences(y_test, self.seq_length), dtype=np.uint8)
+        #
+        # X_train = X_train_batch
+        # X_test = X_test_batch
+        # y_train = y_train_batch
+        # y_test = y_test_batch
 
         return X_train, y_train, X_test, y_test
 
