@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 VAL_FRACTION = 0.2
 
 
-def train(model_instance, args, X_train, y_train, batch_size, generator=None):
+def train(model_instance, args, batch_size, generator=None, X_train=None, y_train=None):
     """
     Train the model.
     :param model_instance: Model object from my file models.py | The model instance.
@@ -34,20 +34,13 @@ def train(model_instance, args, X_train, y_train, batch_size, generator=None):
     catacc_train_history = CatAccTrainHistory()
 
     if generator:
-        model_instance.model.fit_generator(generator=generator)
+        model_instance.model.fit_generator(generator=generator, steps_per_epoch=127)
     else:
         if args.round_to_batch:
             X_train, y_train, X_val, y_val = val_split(X_train, y_train, VAL_FRACTION, batch_size)
             X_train = round_to_batch_size(X_train, batch_size)
             y_train = round_to_batch_size(y_train, batch_size)
 
-            # model_instance.model.fit(X_train, y_train,
-            #                    epochs=args.nb_epochs,
-            #                    shuffle=False,
-            #                    batch_size=batch_size,
-            #                    validation_data=(X_val, y_val),
-            #                    callbacks=[early_stopping, checkpointer,
-            #                      catacc_test_history, catacc_train_history])
             print(X_train.shape)
             print(y_train.shape)
 
