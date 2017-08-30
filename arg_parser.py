@@ -45,6 +45,10 @@ def parse_arguments():
                         help="Learning rate")
     parser.add_argument('--round-to-batch', nargs='?', type=bool,
                         help='Choose whether to round the last batch to the specified batch size')
+    parser.add_argument('--train-horses', nargs='?', type=str,
+                        help="List of horse-id:s to train on, choosing from range(0,6): ex [0,1,2,3]")
+    parser.add_argument('--test-horses', nargs='?', type=str,
+                        help="List of horse-id:s to test on, choosing from range(0,6): ex [4,5]")
     parser.add_argument('--device', nargs='?', type=str,
                         help="Name of device to run on")
     parser.add_argument('--image-identifier', nargs='?', type=str,
