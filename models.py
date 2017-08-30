@@ -3,11 +3,10 @@ from keras.layers.wrappers import TimeDistributed
 from keras.optimizers import Adam, Adagrad
 from keras.models import Sequential
 
-batch_size = 50
 
 class Model:
     def __init__(self, name, input_shape, seq_length, optimizer, lr, nb_lstm_units,
-                 nb_conv_filters, kernel_size, nb_labels, dropout_rate):
+                 nb_conv_filters, kernel_size, nb_labels, dropout_rate, batch_size):
         """
         A class to build the preferred model.
         :param name: str | The name of the model
@@ -28,6 +27,7 @@ class Model:
         self.nb_labels = nb_labels
         self.dropout_rate = dropout_rate
         self.seq_length = seq_length
+        self.batch_size = batch_size
 
         if self.name == 'conv2d_timedist_lstm':
             print("Conv2d-lstm model timedist")
@@ -76,7 +76,7 @@ class Model:
         model.add(TimeDistributed(Convolution2D(filters=self.nb_conv_filters,
                                                 kernel_size=(self.kernel_size, self.kernel_size)),
                                   input_shape=(self.seq_length, self.input_shape[0], self.input_shape[1], 3),
-                                  batch_input_shape=(batch_size, self.seq_length, self.input_shape[0], self.input_shape[1], 3)))
+                                  batch_input_shape=(self.batch_size, self.seq_length, self.input_shape[0], self.input_shape[1], 3)))
         model.add(TimeDistributed(MaxPooling2D()))
         model.add(TimeDistributed(Flatten()))
         model.add((LSTM(self.nb_lstm_units,
@@ -108,7 +108,7 @@ class Model:
         model.add(Convolution2D(filters=self.nb_conv_filters,
                                 kernel_size=(self.kernel_size, self.kernel_size),
                                 input_shape=(self.input_shape[0], self.input_shape[1], 3),
-                                batch_input_shape=(batch_size, self.input_shape[0], self.input_shape[1], 3)))
+                                batch_input_shape=(self.batch_size, self.input_shape[0], self.input_shape[1], 3)))
         model.add(MaxPooling2D())
         model.add(TimeDistributed(Flatten()))
         model.add((LSTM(self.nb_lstm_units,
