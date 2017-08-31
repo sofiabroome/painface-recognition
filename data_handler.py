@@ -1,6 +1,8 @@
 import _pickle as cp
 import pandas as pd
 import numpy as np
+import random
+import ipdb
 import os
 
 from keras.utils import np_utils
@@ -209,3 +211,14 @@ def round_to_batch_size(data_array, batch_size):
     surplus = num_rows % batch_size
     data_array_rounded = data_array[:num_rows-surplus]
     return data_array_rounded
+
+
+def shuffle_blocks(df):
+    vids = set(df['Video_ID'])
+    df_blocks = []
+    for v in vids:
+        df_block = df[df['Video_ID'] == v]
+        df_blocks.append(df_block)
+    random.shuffle(df_blocks)
+    df = pd.concat(df_blocks)
+    return df

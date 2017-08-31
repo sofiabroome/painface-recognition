@@ -1,11 +1,12 @@
 import _pickle as cp
 import pandas as pd
+import numpy as np
 import sys
 import ast
 import os
 
 from test_and_eval import Evaluator
-from data_handler import DataHandler
+from data_handler import DataHandler, shuffle_blocks
 from train import train
 import arg_parser
 import models
@@ -13,6 +14,8 @@ import models
 TARGET_NAMES = ['NO_PAIN', 'PAIN']
 BATCH_SIZE = 1000
 COLOR = True
+
+np.random.seed(100)
 
 
 def run(args):
@@ -47,6 +50,7 @@ def run(args):
 
     # Put all the separate horse-dfs into one DataFrame.
     df = pd.concat(horse_dfs)
+    df = shuffle_blocks(df)
     import ipdb;
     ipdb.set_trace()
     # Prepare the training and testing data
