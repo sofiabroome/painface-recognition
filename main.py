@@ -58,10 +58,12 @@ def run(args):
     # Put all the separate horse-dfs into one DataFrame.
     df = pd.concat(horse_dfs)
     df = shuffle_blocks(df)
-    nb_train_samples = len(df[df['Train'] == 1])
+
     import ipdb;
     ipdb.set_trace()
     df_train, df_val = df_val_split(df, val_fraction=0.1, batch_size=BATCH_SIZE, round_to_batch=True)
+    nb_train_samples = len(df_train)
+    nb_val_samples = len(df_val)
     # Prepare the training and testing data
     train_generator = dh.prepare_image_generators(df_train, train=True)
     val_generator = dh.prepare_image_generators(df_val, train=True)
@@ -71,7 +73,7 @@ def run(args):
     # X_train_batch = make_batches(X_train, BATCH_SIZE)
 
     # Train the model
-    model = train(model, args, BATCH_SIZE, nb_train_samples,
+    model = train(model, args, BATCH_SIZE, nb_train_samples, nb_val_samples,
                   generator=train_generator, val_generator=val_generator)
 
     # # Get test predictions
