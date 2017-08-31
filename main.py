@@ -67,9 +67,9 @@ def run(args):
     nb_train_samples = len(df_train)
     nb_val_samples = len(df_val)
     # Prepare the training and testing data
-    train_generator = dh.prepare_image_generators(df_train, train=True, val=False, test=False)
-    val_generator = dh.prepare_image_generators(df_val, train=False, val=True, test=False)
-    test_generator = dh.prepare_image_generators(df, train=False, val=False, test=True)
+    train_generator = dh.prepare_train_image_generator(df_train, train=True, val=False, test=False)
+    val_generator = dh.prepare_val_image_generator(df_val, train=False, val=True, test=False)
+    test_generator = dh.prepare_test_image_generator(df, train=False, val=False, test=True)
 
     # X_train_batch = make_batches(X_train, BATCH_SIZE)
 
