@@ -68,6 +68,7 @@ class DataHandler:
                 print("**************************************")
                 # batch_index = 0
                 X_array, y_array = datagen.flow(X_array, y_array, batch_size=self.batch_size).next()
+                batch_index = 0
                 yield (X_array, y_array)
 
     def get_image(self, path):
