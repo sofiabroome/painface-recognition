@@ -11,7 +11,7 @@ import arg_parser
 import models
 
 TARGET_NAMES = ['NO_PAIN', 'PAIN']
-BATCH_SIZE = 1000
+BATCH_SIZE = 1
 COLOR = True
 
 
@@ -44,9 +44,9 @@ def run(args):
 
     for teh in test_horses:
         horse_dfs[teh]['Train'] = 0
-
     # Put all the separate horse-dfs into one DataFrame.
     df = pd.concat(horse_dfs)
+    nb_train_samples = len(df[df['Train'] == 1])
     import ipdb;
     ipdb.set_trace()
     # Prepare the training and testing data
@@ -57,7 +57,7 @@ def run(args):
     # X_train_batch = make_batches(X_train, BATCH_SIZE)
 
     # Train the model
-    model = train(model, args, batch_size=BATCH_SIZE, generator=train_generator)
+    model = train(model, args, BATCH_SIZE, nb_train_samples, generator=train_generator)
 
     # # Get test predictions
     # y_preds = ev.test(model, X_test)
