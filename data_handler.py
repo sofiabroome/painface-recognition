@@ -12,7 +12,9 @@ from os.path import join
 from helpers import split_string_at_last_occurence_of_certain_char
 from image_processor import process_image
 
-datagen = ImageDataGenerator()
+train_datagen = ImageDataGenerator()
+val_datagen = ImageDataGenerator()
+test_datagen = ImageDataGenerator()
 
 class DataHandler:
     def __init__(self, path, image_size, seq_length, batch_size, color, nb_labels):
@@ -30,12 +32,14 @@ class DataHandler:
         self.color = color
         self.nb_labels = nb_labels
 
-    def prepare_image_generators(self, df, train):
+    def prepare_image_generators(self, df, train, val, test):
         """
         Prepare the frames into labeled train and test sets, with help from the
         DataFrame with .jpg-paths and labels for train and pain.
         :param df: pd.DataFrame
         :param train: Boolean
+        :param val: Boolean
+        :param test: Boolean
         :return: np.ndarray, np.ndarray, np.ndarray, np.ndarray
         """
         if train:
@@ -69,7 +73,12 @@ class DataHandler:
                 print(y_array.shape)
                 print("**************************************")
                 # batch_index = 0
-                X_array, y_array = datagen.flow(X_array, y_array, batch_size=self.batch_size).next()
+                if train:
+                    X_array, y_array = train_datagen.flow(X_array, y_array, batch_size=self.batch_size).next()
+                if val:
+                    X_array, y_array = val_datagen.flow(X_array, y_array, batch_size=self.batch_size).next()
+                if test:
+                    X_array, y_array = test_datagen.flow(X_array, y_array, batch_size=self.batch_size).next()
                 yield (X_array, y_array)
 
     def get_image(self, path):
