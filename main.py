@@ -81,8 +81,11 @@ def run(args):
     # # Get test predictions
     y_preds = ev.test(model, test_generator, nb_test_samples)
     #
-    # # Evaluate the model's performance
-    ev.evaluate(model, df[df['Train'] == 0]['Pain'].values, y_preds, args)
+
+    y_test = df[df['Train'] == 0]['Pain'].values
+
+    # Evaluate the model's performance
+    ev.evaluate(model, y_test , y_preds, args)
 
 if __name__ == '__main__':
 
