@@ -24,7 +24,8 @@ class Evaluator:
         file_identifier = args.image_identifier
         import pdb; pdb.set_trace()
         y_test = np_utils.to_categorical(y_test, num_classes=args.nb_labels)
-        y_pred = np_utils.to_categorical(y_pred, num_classes=args.nb_labels)
+        y_preds = np.argmax(y_pred, axis=1)
+        y_pred = np_utils.to_categorical(y_preds, num_classes=args.nb_labels)
         nb_preds = len(y_pred)
         y_test = y_test[:nb_preds]
         if self.method == 'cr':
