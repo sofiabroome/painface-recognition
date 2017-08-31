@@ -15,7 +15,7 @@ from image_processor import process_image
 datagen = ImageDataGenerator()
 
 class DataHandler:
-    def __init__(self, path, image_size, seq_length, batch_size, color):
+    def __init__(self, path, image_size, seq_length, batch_size, color, nb_labels):
         """
         Constructor for the DataHandler.
         :param path: str
@@ -28,6 +28,7 @@ class DataHandler:
         self.seq_length = seq_length
         self.batch_size = batch_size
         self.color = color
+        self.nb_labels = nb_labels
 
     def prepare_image_generators(self, df, train):
         """
@@ -41,7 +42,8 @@ class DataHandler:
             df = df.loc[df['Train'] == 1]
         else:
             df = df.loc[df['Train'] == 0]
-
+        print("LEN DF:")
+        print(len(df))
         batch_index = 0
 
         for index, row in df.iterrows():
@@ -63,7 +65,7 @@ class DataHandler:
                 print(X_array.shape)
                 print("y array shape:")
                 print(y_array.shape)
-                y_array = np_utils.to_categorical(y_array, num_classes=2)
+                y_array = np_utils.to_categorical(y_array, num_classes=self.nb_labels)
                 print(y_array.shape)
                 print("**************************************")
                 # batch_index = 0
