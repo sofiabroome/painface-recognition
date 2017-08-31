@@ -3,6 +3,9 @@ from matplotlib import pyplot as plt
 
 VAL_FRACTION = 0.2
 
+config = tf.ConfigProto(log_device_placement=True)
+config.gpu_options.allow_growth = True
+sess = tf.Session(config=config)
 
 def train(model_instance, args, batch_size, generator=None, X_train=None, y_train=None):
     """
