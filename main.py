@@ -31,10 +31,12 @@ def df_val_split(df, val_fraction, batch_size, round_to_batch=True):
 
 def run(args):
     seq_length = 50
-    model = models.Model(args.model, (args.input_width, args.input_height), seq_length, args.optimizer,
-                         args.lr, args.nb_lstm_units, args.nb_conv_filters, args.kernel_size,
+    model = models.Model(args.model, (args.input_width, args.input_height),
+                         seq_length, args.optimizer, args.lr, args.nb_lstm_units,
+                         args.nb_conv_filters, args.kernel_size,
                          args.nb_labels, args.dropout_rate, BATCH_SIZE)
-    dh = DataHandler(args.data_path, (args.input_width, args.input_height), seq_length, BATCH_SIZE, COLOR)
+    dh = DataHandler(args.data_path, (args.input_width, args.input_height),
+                     seq_length, BATCH_SIZE, COLOR, args.nb_labels)
     ev = Evaluator('cr', TARGET_NAMES)
 
     # dh.folders_to_csv()
