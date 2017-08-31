@@ -12,8 +12,9 @@ class Evaluator:
         self.method = method
         self.target_names = target_names
 
-    def test(self, model, X_test):
+    def test(self, model, test_generator, nb_test_samples, X_test=None):
         y_pred = model.predict_classes(X_test, batch_size=model.batch_size)
+        y_pred = model.predict_generator(test_generator, nb_test_samples)
         return y_pred
 
     def evaluate(self, model, y_test, y_pred, eval_args):

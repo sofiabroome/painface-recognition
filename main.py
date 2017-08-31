@@ -66,6 +66,7 @@ def run(args):
     df_train, df_val = df_val_split(df, val_fraction=0.1, batch_size=BATCH_SIZE, round_to_batch=True)
     nb_train_samples = len(df_train)
     nb_val_samples = len(df_val)
+    nb_test_samples = len(df[df['Train'] == 0])
     # Prepare the training and testing data
     train_generator = dh.prepare_train_image_generator(df_train, train=True, val=False, test=False)
     val_generator = dh.prepare_val_image_generator(df_val, train=False, val=True, test=False)
@@ -78,7 +79,7 @@ def run(args):
                   generator=train_generator, val_generator=val_generator)
 
     # # Get test predictions
-    # y_preds = ev.test(model, X_test)
+    y_preds = ev.test(model, test_generator, nb_test_samples)
     #
     # # Evaluate the model's performance
     # ev.evaluate(model, y_preds, y_test, eval_args)
