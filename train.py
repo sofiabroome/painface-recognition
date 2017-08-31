@@ -41,6 +41,7 @@ def train(model_instance, args, batch_size, nb_train_samples, nb_val_samples,
     if generator:
         val_steps = int(nb_val_samples / batch_size)
         train_steps = int(nb_train_samples/batch_size)
+        train_steps = 5
         print("TRAIN STEPS:")
         print(train_steps)
         print("VAL STEPS:")
