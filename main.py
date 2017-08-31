@@ -21,8 +21,8 @@ def df_val_split(df, val_fraction, batch_size, round_to_batch=True):
     if round_to_batch:
         ns = len(df)
         num_val = int(val_fraction * ns - val_fraction * ns % batch_size)
-        df_val = df.ix[-num_val, :]
-        df_train = df.ix[:-num_val, :]
+        df_val = df.iloc[-num_val, :]
+        df_train = df.iloc[:-num_val, :]
 
     return df_train, df_val
 
