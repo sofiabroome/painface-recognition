@@ -93,6 +93,8 @@ class DataHandler:
         """
         if train:
             df = df.loc[df['Train'] == 1]
+        elif val:
+            df = df.loc[df['Train'] == 1]
         else:
             df = df.loc[df['Train'] == 0]
         print("LEN DF:")
