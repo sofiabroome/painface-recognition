@@ -38,7 +38,12 @@ def train(model_instance, args, batch_size, nb_train_samples, generator=None, X_
     catacc_train_history = CatAccTrainHistory()
 
     if generator:
-        model_instance.model.fit_generator(generator=generator, steps_per_epoch=int(nb_train_samples/batch_size))
+        model_instance.model.fit_generator(generator=generator,
+                                           steps_per_epoch=int(nb_train_samples/batch_size),
+                                           epochs=args.nb_epochs,
+                                           callbacks=[early_stopping, checkpointer,
+                                                      catacc_test_history, catacc_train_history],
+                                           validation_split=VAL_FRACTION)
     else:
         if args.round_to_batch:
             X_train, y_train, X_val, y_val = val_split(X_train, y_train, VAL_FRACTION, batch_size)
