@@ -1,10 +1,14 @@
 from keras.callbacks import EarlyStopping, ModelCheckpoint, Callback
 from matplotlib import pyplot as plt
+import tensorflow as tf
 
 VAL_FRACTION = 0.2
 
+config = tf.ConfigProto(log_device_placement=True)
+config.gpu_options.allow_growth = True
+sess = tf.Session(config=config)
 
-def train(model_instance, args, batch_size, generator=None, X_train=None, y_train=None):
+def train(model_instance, args, batch_size, nb_train_samples, generator=None, X_train=None, y_train=None):
     """
     Train the model.
     :param model_instance: Model object from my file models.py | The model instance.
@@ -34,7 +38,7 @@ def train(model_instance, args, batch_size, generator=None, X_train=None, y_trai
     catacc_train_history = CatAccTrainHistory()
 
     if generator:
-        model_instance.model.fit_generator(generator=generator, steps_per_epoch=127)
+        model_instance.model.fit_generator(generator=generator, steps_per_epoch=int(nb_train_samples/batch_size))
     else:
         if args.round_to_batch:
             X_train, y_train, X_val, y_val = val_split(X_train, y_train, VAL_FRACTION, batch_size)
