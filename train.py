@@ -8,7 +8,8 @@ config = tf.ConfigProto(log_device_placement=True)
 config.gpu_options.allow_growth = True
 sess = tf.Session(config=config)
 
-def train(model_instance, args, batch_size, nb_train_samples, generator=None, X_train=None, y_train=None):
+def train(model_instance, args, batch_size, nb_train_samples,
+          generator=None, val_generator=None, X_train=None, y_train=None):
     """
     Train the model.
     :param model_instance: Model object from my file models.py | The model instance.
@@ -43,7 +44,7 @@ def train(model_instance, args, batch_size, nb_train_samples, generator=None, X_
                                            epochs=args.nb_epochs,
                                            callbacks=[early_stopping, checkpointer,
                                                       catacc_test_history, catacc_train_history],
-                                           validation_split=VAL_FRACTION)
+                                           validation_data=val_generator)
     else:
         if args.round_to_batch:
             X_train, y_train, X_val, y_val = val_split(X_train, y_train, VAL_FRACTION, batch_size)
