@@ -17,14 +17,17 @@ COLOR = True
 
 np.random.seed(100)
 
+
 def df_val_split(df, val_fraction, batch_size, round_to_batch=True):
+    df = df.loc[df['Train'] == 1]
     if round_to_batch:
         ns = len(df)
         num_val = int(val_fraction * ns - val_fraction * ns % batch_size)
-        df_val = df.iloc[-num_val, :]
+        df_val = df.iloc[-num_val:, :]
         df_train = df.iloc[:-num_val, :]
 
     return df_train, df_val
+
 
 def run(args):
     seq_length = 50
@@ -44,7 +47,6 @@ def run(args):
             print('Making a DataFrame for horse id: ', horse)
             hdf = dh.horse_to_df(horse)
         horse_dfs.append(hdf)
-
 
     train_horses = ast.literal_eval(args.train_horses)
     test_horses = ast.literal_eval(args.test_horses)
