@@ -12,7 +12,7 @@ import arg_parser
 import models
 
 TARGET_NAMES = ['NO_PAIN', 'PAIN']
-BATCH_SIZE = 1
+BATCH_SIZE = 500
 COLOR = True
 
 np.random.seed(100)
@@ -51,12 +51,9 @@ def run(args):
     df = pd.concat(horse_dfs)
     df = shuffle_blocks(df)
     nb_train_samples = len(df[df['Train'] == 1])
-    import ipdb;
-    ipdb.set_trace()
     # Prepare the training and testing data
     train_generator = dh.prepare_image_generators(df, train=True)
     test_generator = dh.prepare_image_generators(df, train=False)
-    import ipdb; ipdb.set_trace()
 
     # X_train_batch = make_batches(X_train, BATCH_SIZE)
 
