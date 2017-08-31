@@ -42,9 +42,9 @@ def train(model_instance, args, batch_size, nb_train_samples, nb_val_samples,
         val_steps = int(nb_val_samples / batch_size)
         train_steps = int(nb_train_samples/batch_size)
         print("TRAIN STEPS:")
-        print train_steps
+        print(train_steps)
         print("VAL STEPS:")
-        print val_steps
+        print(val_steps)
         model_instance.model.fit_generator(generator=generator,
                                            steps_per_epoch= train_steps,
                                            epochs=args.nb_epochs,
