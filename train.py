@@ -81,6 +81,7 @@ def train(model_instance, args, batch_size, nb_train_samples, nb_val_samples,
                                      validation_split=VAL_FRACTION,
                                      callbacks=[early_stopping, checkpointer,
                                                 catacc_test_history, catacc_train_history])
+    return model_instance.model
 
 
 def val_split(X_train, y_train, val_fraction, batch_size, round_to_batch=True):
@@ -126,7 +127,7 @@ def plot_training(catacc_test_history,
 
 def create_best_model_path(model, args):
     model_path = "models/BEST_MODEL_" + model.name + "_" + str(args.optimizer) +\
-                 "_WS_" + "_LSTMunits_" + str(model.nb_lstm_units) + "_CONVfilters_" + str(model.nb_conv_filters) +\
+                 "_LSTMunits_" + str(model.nb_lstm_units) + "_CONVfilters_" + str(model.nb_conv_filters) +\
                  "_" + args.image_identifier + ".h5"
     return model_path
 
