@@ -17,6 +17,14 @@ COLOR = True
 
 np.random.seed(100)
 
+def df_val_split(df, val_fraction, batch_size, round_to_batch=True):
+    if round_to_batch:
+        ns = len(df)
+        num_val = int(val_fraction * ns - val_fraction * ns % batch_size)
+        df_val = df.ix[-num_val, :]
+        df_train = df.ix[:-num_val, :]
+
+    return df_train, df_val
 
 def run(args):
     seq_length = 50
@@ -53,15 +61,18 @@ def run(args):
     nb_train_samples = len(df[df['Train'] == 1])
     import ipdb;
     ipdb.set_trace()
+    df_train, df_val = df_val_split(df, val_fraction=0.1, batch_size=BATCH_SIZE, round_to_batch=True)
     # Prepare the training and testing data
-    train_generator = dh.prepare_image_generators(df, train=True)
+    train_generator = dh.prepare_image_generators(df_train, train=True)
+    val_generator = dh.prepare_image_generators(df_val, train=True)
     test_generator = dh.prepare_image_generators(df, train=False)
     import ipdb; ipdb.set_trace()
 
     # X_train_batch = make_batches(X_train, BATCH_SIZE)
 
     # Train the model
-    model = train(model, args, BATCH_SIZE, nb_train_samples, generator=train_generator)
+    model = train(model, args, BATCH_SIZE, nb_train_samples,
+                  generator=train_generator, val_generator=val_generator)
 
     # # Get test predictions
     # y_preds = ev.test(model, X_test)
