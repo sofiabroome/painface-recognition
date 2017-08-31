@@ -27,6 +27,8 @@ def train(model_instance, args, batch_size, nb_train_samples, nb_val_samples,
     print(model_instance.model.summary())
 
     best_model_path = create_best_model_path(model_instance, args)
+    print('best model path:')
+    print(best_model_path)
     early_stopping = EarlyStopping(monitor='val_categorical_accuracy',
                                    patience=args.early_stopping)
     checkpointer = ModelCheckpoint(filepath=best_model_path,
@@ -41,7 +43,8 @@ def train(model_instance, args, batch_size, nb_train_samples, nb_val_samples,
     if generator:
         val_steps = int(nb_val_samples / batch_size)
         train_steps = int(nb_train_samples/batch_size)
-        train_steps = 5
+        train_steps = 2
+        val_steps = 2
         print("TRAIN STEPS:")
         print(train_steps)
         print("VAL STEPS:")
@@ -122,7 +125,7 @@ def plot_training(catacc_test_history,
 
 
 def create_best_model_path(model, args):
-    model_path = "models/BEST_MODEL_" + model.name + "_" + str(model.model.optimizer) +\
+    model_path = "models/BEST_MODEL_" + model.name + "_" + str(args.optimizer) +\
                  "_WS_" + "_LSTMunits_" + str(model.nb_lstm_units) + "_CONVfilters_" + str(model.nb_conv_filters) +\
                  "_" + args.image_identifier + ".h5"
     return model_path
