@@ -5,12 +5,14 @@ import random
 import ipdb
 import os
 
+from keras.preprocessing.image import ImageDataGenerator
 from keras.utils import np_utils
 from os.path import join
 
 from helpers import split_string_at_last_occurence_of_certain_char
 from image_processor import process_image
 
+datagen = ImageDataGenerator()
 
 class DataHandler:
     def __init__(self, path, image_size, seq_length, batch_size, color):
@@ -65,6 +67,7 @@ class DataHandler:
                 print(y_array.shape)
                 print("**************************************")
                 # batch_index = 0
+                X_array, y_array = datagen.flow(X_array, y_array, batch_size=self.batch_size).next()
                 yield (X_array, y_array)
 
     def get_image(self, path):
