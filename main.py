@@ -5,14 +5,14 @@ import sys
 import ast
 import os
 
-from test_and_eval import Evaluator
 from data_handler import DataHandler, shuffle_blocks
+from test_and_eval import Evaluator
 from train import train
 import arg_parser
 import models
 
 TARGET_NAMES = ['NO_PAIN', 'PAIN']
-BATCH_SIZE = 500
+BATCH_SIZE = 50
 COLOR = True
 
 np.random.seed(100)
@@ -37,7 +37,7 @@ def run(args):
                          args.nb_labels, args.dropout_rate, BATCH_SIZE)
     dh = DataHandler(args.data_path, (args.input_width, args.input_height),
                      seq_length, BATCH_SIZE, COLOR, args.nb_labels)
-    ev = Evaluator('cr', TARGET_NAMES)
+    ev = Evaluator('cr', TARGET_NAMES, BATCH_SIZE)
 
     # dh.folders_to_csv()
     horse_dfs = []
@@ -80,12 +80,11 @@ def run(args):
 
     # # Get test predictions
     y_preds = ev.test(model, test_generator, nb_test_samples)
-    #
 
     y_test = df[df['Train'] == 0]['Pain'].values
-
+    import pdb; pdb.set_trace()
     # Evaluate the model's performance
-    ev.evaluate(model, y_test , y_preds, args)
+    ev.evaluate(model, y_test, y_preds, args)
 
 if __name__ == '__main__':
 

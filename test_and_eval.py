@@ -9,15 +9,15 @@ NB_DECIMALS = 4
 
 class Evaluator:
 
-    def __init__(self, method, target_names):
+    def __init__(self, method, target_names, batch_size):
         self.method = method
         self.target_names = target_names
+        self.batch_size = batch_size
 
     def test(self, model, test_generator, nb_test_samples, X_test=None):
         # y_pred = model.predict_classes(X_test, batch_size=model.batch_size)
-        import pdb; pdb.set_trace()
-        # y_pred = model.predict_generator(test_generator, steps=int(nb_test_samples/batch_size)
-        y_pred = model.predict_generator(test_generator, steps=3)
+        y_pred = model.predict_generator(test_generator, steps=int(nb_test_samples/self.batch_size))
+        # y_pred = model.predict_generator(test_generator, steps=3)
         return y_pred
 
     def evaluate(self, model, y_test, y_pred, args):
@@ -30,7 +30,7 @@ class Evaluator:
         if self.method == 'cr':
             cr = classification_report(y_test, y_pred)
             f = open(_make_cr_filename(args, file_identifier), 'w')
-            print >> f, cr
+            print(cr, end="", file=f)
             f.close()
             print(cr)
 
@@ -38,7 +38,7 @@ class Evaluator:
             cm = confusion_matrix(y_test, y_pred)
             print(cm)
             f = open(_make_cm_filename(args, file_identifier), 'w')
-            print >> f, cm
+            print(cm, end="", file=f)
             f.close()
 
     def classification_report(self, y_test, y_pred):
