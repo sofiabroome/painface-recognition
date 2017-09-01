@@ -49,6 +49,10 @@ class Model:
             print("Conv2d-lstm model stateful")
             self.model = self.conv2d_lstm_stateful()
 
+        if self.name == 'conv3d':
+            print('Conv3D')
+            self.model = self.conv3d()
+
         if optimizer == 'adam':
             optimizer = Adam(lr=lr)
         else:
@@ -189,5 +193,5 @@ class Model:
         model.add(Dense(4096, activation='relu', name='fc7'))
         model.add(Dropout(.5))
         model.add(Dense(487, activation='softmax', name='fc8'))
-        
+
         return model
