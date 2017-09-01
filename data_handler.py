@@ -312,6 +312,7 @@ class DataHandler:
             print(path)
             for filename in files:
                 total_path = join(path, filename)
+                print(total_path)
                 vid_id = get_video_id_from_path(path)
                 csv_row = df_csv.loc[df_csv['Video_id'] == vid_id]
                 if '.jpg' in filename or '.png' in filename:
