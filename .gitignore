@@ -93,6 +93,7 @@ ENV/
 data/
 data_test/
 models/
+Logs/
 
 # Mac-stuff
 .DS_Store
