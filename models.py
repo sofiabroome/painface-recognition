@@ -57,7 +57,7 @@ class Model:
         if self.name == 'inception_lstm_5d_input':
             print('inception_lstm_5d_input')
             self.model = self.inception_lstm_5d_input()
-            
+
         if self.name == 'inception_lstm_4d_input':
             print('inception_lstm_4d_input')
             self.model = self.inception_lstm_4d_input()
@@ -208,8 +208,7 @@ class Model:
 
     def inception_lstm_4d_input(self):
         model = Sequential()
-        model.add(InceptionV3(include_top=False, input_shape=(self.seq_length,
-                                                              self.input_shape[0],
+        model.add(InceptionV3(include_top=False, input_shape=(self.input_shape[0],
                                                               self.input_shape[1],
                                                               3)))
         model.add(TimeDistributed(Flatten()))
@@ -223,7 +222,8 @@ class Model:
 
     def inception_lstm_5d_input(self):
         model = Sequential()
-        model.add(InceptionV3(include_top=False, input_shape=(self.input_shape[0],
+        model.add(InceptionV3(include_top=False, input_shape=(self.seq_length,
+                                                              self.input_shape[0],
                                                               self.input_shape[1],
                                                               3)))
         model.add(TimeDistributed()())
