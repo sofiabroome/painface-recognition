@@ -16,7 +16,7 @@ BATCH_SIZE = 50
 seq_length = 50
 COLOR = True
 
-np.random.seed(100)
+# np.random.seed(100)
 
 
 def df_val_split(df, val_fraction, batch_size, round_to_batch=True):
