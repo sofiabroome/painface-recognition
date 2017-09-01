@@ -54,6 +54,15 @@ class Model:
             print('Conv3D')
             self.model = self.conv3d()
 
+        if self.name == 'inception_lstm_5d_input':
+            print('inception_lstm_5d_input')
+            self.model = self.inception_lstm_5d_input()
+            
+        if self.name == 'inception_lstm_4d_input':
+            print('inception_lstm_4d_input')
+            self.model = self.inception_lstm_4d_input()
+
+
         if optimizer == 'adam':
             optimizer = Adam(lr=lr)
         else:
@@ -212,7 +221,7 @@ class Model:
         model.add(Dense(self.nb_labels, activation='softmax'))
         return model
 
-    def inception_lstm_5d(self):
+    def inception_lstm_5d_input(self):
         model = Sequential()
         model.add(InceptionV3(include_top=False, input_shape=(self.input_shape[0],
                                                               self.input_shape[1],
