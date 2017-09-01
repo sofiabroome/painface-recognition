@@ -17,8 +17,10 @@ class Evaluator:
     def test(self, model, test_generator, nb_test_samples, X_test=None):
         # y_pred = model.predict_classes(X_test, batch_size=model.batch_size)
         y_pred = model.predict_generator(test_generator,
-                                         steps=int(nb_test_samples/self.batch_size),
+                                         steps=int(nb_test_samples/self.batch_size)-1,
                                          verbose=1)
+        model.evaluate_generator(test_generator,
+                                 steps=int(nb_test_samples/self.batch_size)-1)
         # y_pred = model.predict_generator(test_generator, steps=3)
         return y_pred
 
