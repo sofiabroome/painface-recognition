@@ -82,7 +82,6 @@ def run(args):
     y_preds = ev.test(model, test_generator, nb_test_samples)
 
     y_test = df[df['Train'] == 0]['Pain'].values
-    import pdb; pdb.set_trace()
     # Evaluate the model's performance
     ev.evaluate(model, y_test, y_preds, args)
 

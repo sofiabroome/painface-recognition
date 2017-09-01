@@ -16,13 +16,14 @@ class Evaluator:
 
     def test(self, model, test_generator, nb_test_samples, X_test=None):
         # y_pred = model.predict_classes(X_test, batch_size=model.batch_size)
-        y_pred = model.predict_generator(test_generator, steps=int(nb_test_samples/self.batch_size))
+        y_pred = model.predict_generator(test_generator,
+                                         steps=int(nb_test_samples/self.batch_size),
+                                         verbose=1)
         # y_pred = model.predict_generator(test_generator, steps=3)
         return y_pred
 
     def evaluate(self, model, y_test, y_pred, args):
         file_identifier = args.image_identifier
-        import pdb; pdb.set_trace()
         y_test = np_utils.to_categorical(y_test, num_classes=args.nb_labels)
         y_preds = np.argmax(y_pred, axis=1)
         y_pred = np_utils.to_categorical(y_preds, num_classes=args.nb_labels)
