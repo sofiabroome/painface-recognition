@@ -42,13 +42,14 @@ def run(args):
     # dh.folders_to_csv()
     horse_dfs = []
     for horse in range(1,7):
-        horse_csv_path = 'horse_' + str(horse) + '.csv'
+        horse_csv_path = args.data_path + 'horse_' + str(horse) + '.csv'
         if os.path.isfile(horse_csv_path):
             hdf = pd.read_csv(horse_csv_path)
         else:
             print('Making a DataFrame for horse id: ', horse)
             hdf = dh.horse_to_df(horse)
-        horse_dfs.append(hdf)
+            hdf.to_csv(horse_csv_path)
+        horse_dfs.append(path_or_buf=hdf)
 
     train_horses = ast.literal_eval(args.train_horses)
     test_horses = ast.literal_eval(args.test_horses)
