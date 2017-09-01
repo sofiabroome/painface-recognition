@@ -71,6 +71,7 @@ def run(args):
     train_generator = dh.prepare_train_image_generator(df_train, train=True, val=False, test=False)
     val_generator = dh.prepare_val_image_generator(df_val, train=False, val=True, test=False)
     test_generator = dh.prepare_test_image_generator(df, train=False, val=False, test=True)
+    eval_generator = dh.prepare_test_image_generator(df, train=False, val=False, test=True)
 
     # X_train_batch = make_batches(X_train, BATCH_SIZE)
 
@@ -79,7 +80,7 @@ def run(args):
                   generator=train_generator, val_generator=val_generator)
 
     # # Get test predictions
-    y_preds = ev.test(model, test_generator, nb_test_samples)
+    y_preds = ev.test(model, test_generator, eval_generator, nb_test_samples)
 
     y_test = df[df['Train'] == 0]['Pain'].values
     # Evaluate the model's performance
