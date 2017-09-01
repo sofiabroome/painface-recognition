@@ -96,6 +96,12 @@ class Model:
         model.add(MaxPooling2D())
         model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size)))
         model.add(MaxPooling2D())
+        model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size)))
+        model.add(MaxPooling2D())
+        model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size)))
+        model.add(MaxPooling2D())
+        model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size)))
+        model.add(MaxPooling2D())
         model.add(TimeDistributed(Flatten()))
         model.add((LSTM(self.nb_lstm_units,
                         stateful=False,
