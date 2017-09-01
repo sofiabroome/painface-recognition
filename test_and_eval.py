@@ -19,12 +19,18 @@ class Evaluator:
         y_pred = model.predict_generator(test_generator,
                                          steps=int(nb_test_samples/self.batch_size)-1,
                                          verbose=1)
-        model.evaluate_generator(test_generator,
-                                 steps=int(nb_test_samples/self.batch_size)-1)
+        #y_pred = model.predict_generator(test_generator,
+        #                                 steps=10,
+        #                                 verbose=1)
+        scores = model.evaluate_generator(test_generator,
+                                          steps=int(nb_test_samples/self.batch_size)-1)
+        # scores = model.evaluate_generator(eval_generator,
+        #                          steps=10)
         # y_pred = model.predict_generator(test_generator, steps=3)
-        return y_pred
+        return y_pred, scores
 
-    def evaluate(self, model, y_test, y_pred, args):
+    def evaluate(self, model, y_test, y_pred, scores, args):
+        print('Accuracy: ', scores[1])
         file_identifier = args.image_identifier
         y_test = np_utils.to_categorical(y_test, num_classes=args.nb_labels)
         y_preds = np.argmax(y_pred, axis=1)
