@@ -13,6 +13,7 @@ import models
 
 TARGET_NAMES = ['NO_PAIN', 'PAIN']
 BATCH_SIZE = 50
+seq_length = 50
 COLOR = True
 
 np.random.seed(100)
@@ -30,7 +31,6 @@ def df_val_split(df, val_fraction, batch_size, round_to_batch=True):
 
 
 def run(args):
-    seq_length = 50
     model = models.Model(args.model, (args.input_width, args.input_height),
                          seq_length, args.optimizer, args.lr, args.nb_lstm_units,
                          args.nb_conv_filters, args.kernel_size,
