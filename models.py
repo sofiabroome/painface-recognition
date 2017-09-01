@@ -2,6 +2,7 @@ from keras.layers import Convolution2D, Convolution3D, MaxPooling2D, MaxPooling3
 from keras.layers import ZeroPadding3D, Dropout
 from keras.layers.wrappers import TimeDistributed
 from keras.optimizers import Adam, Adagrad
+from keras.applications import InceptionV3
 from keras.models import Sequential
 from keras import backend as K
 
@@ -149,7 +150,7 @@ class Model:
         model.add(Convolution3D(64, 3, 3, 3, activation='relu',
                                 border_mode='same', name='conv1',
                                 subsample=(1, 1, 1),
-                                input_shape=(self.seq_length, 112, 112, 3)))
+                                input_shape=(self.seq_length, self.input_shape[0], self.input_shape[1], 3)))
         model.add(MaxPooling3D(pool_size=(1, 2, 2), strides=(1, 2, 2),
                                border_mode='valid', name='pool1'))
         # 2nd layer group
@@ -194,4 +195,31 @@ class Model:
         model.add(Dropout(.5))
         model.add(Dense(487, activation='softmax', name='fc8'))
 
+        return model
+
+    def inception_lstm_4d_input(self):
+        model = Sequential()
+        model.add(InceptionV3(include_top=False, input_shape=(self.seq_length,
+                                                              self.input_shape[0],
+                                                              self.input_shape[1],
+                                                              3)))
+        model.add(TimeDistributed(Flatten()))
+        model.add((LSTM(self.nb_lstm_units,
+                        stateful=True,
+                        dropout=self.dropout_rate,
+                        input_shape=(None, self.seq_length, None),
+                        return_sequences=False)))
+        model.add(Dense(self.nb_labels, activation='softmax'))
+        return model
+
+    def inception_lstm_5d(self):
+        model = Sequential()
+        model.add(InceptionV3(include_top=False, input_shape=(self.input_shape[0],
+                                                              self.input_shape[1],
+                                                              3)))
+        model.add(TimeDistributed()())
+        model.add(Convolution3D(self.nb_conv_filters, 3, 3, 3))
+        model.add(Convolution3D(self.nb_of_filters, 3, 3, 3))
+        model.add(Flatten())
+        model.add(Dense(self.nb_labels, activation="softmax"))
         return model

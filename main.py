@@ -16,6 +16,7 @@ BATCH_SIZE = 50
 seq_length = 50
 COLOR = True
 
+pd.set_option('max_colwidth', 800)
 # np.random.seed(100)
 
 
