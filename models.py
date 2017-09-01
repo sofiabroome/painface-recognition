@@ -94,8 +94,8 @@ class Model:
                                 input_shape=(self.input_shape[0], self.input_shape[1], 3),
                                 batch_input_shape=(None, self.input_shape[0], self.input_shape[1], 3)))
         model.add(MaxPooling2D())
-        model.add(Convolution2D)
-        model.add(MaxPooling2D)
+        model.add(Convolution2D())
+        model.add(MaxPooling2D())
         model.add(TimeDistributed(Flatten()))
         model.add((LSTM(self.nb_lstm_units,
                         stateful=False,
