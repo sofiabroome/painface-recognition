@@ -213,7 +213,7 @@ class Model:
                                                               3)))
         model.add(TimeDistributed(Flatten()))
         model.add((LSTM(self.nb_lstm_units,
-                        stateful=True,
+                        stateful=False,
                         dropout=self.dropout_rate,
                         input_shape=(None, self.seq_length, None),
                         return_sequences=False)))
