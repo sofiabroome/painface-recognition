@@ -43,6 +43,7 @@ if __name__ == '__main__':
     path_dict = dict((fn, p) for fn, p in zip(file_names, complete_paths))
 
     # Make all the subfolders for all the separate 60 sequences, in separate horse_id folders.
+    # The horse_id folders need to be created beforehand.
     # Only need to do once. Therefore commented now... great coding practice.
     for h in range(1, 7):
         print("NEW HORSE")
@@ -94,19 +95,21 @@ if __name__ == '__main__':
 
             # REAL
             # complete_output_path = '~/Documents/EquineML/painface-recognition/' + seq_dir_path + '/frame_%06d.jp'
-            complete_output_path = seq_dir_path + '/frame_%06d.png'
+
             # TEST
             # complete_output_path = 'data_test/frame_%06d.png'
             # video_path = '~/Documents/EquineML/painface-recognition/' + str(get_path(vid[1]['Video_id']))
 
-
-            print('COMPLETE OUTPUT PATH:')
-            print(complete_output_path)
-            print('VIDEO PATH:')
             video_path = str(get_path(vid[1]['Video_id']))
-            print(video_path)
 
-            ffmpeg_command = ['ffmpeg', '-ss', start, '-i', video_path, '-vcodec', 'png', '-t', length, '-vf',
+            # CHOOSE FROM THE FOLLOWING
+            # GOOD PNG QUALITY, 5 FPS
+            # complete_output_path = seq_dir_path + '/frame_%06d.png'
+            # ffmpeg_command = ['ffmpeg', '-ss', start, '-i', video_path, '-vcodec', 'png', '-t', length, '-vf',
+            #                   'scale=320:240', '-r', str(5), '-an', complete_output_path]
+            # JPG HALFASS QUALITY, MAYBE LOSSY, 5 FPS
+            complete_output_path = seq_dir_path + '/frame_%06d.jpg'
+            ffmpeg_command = ['ffmpeg', '-ss', start, '-i', video_path, '-t', length, '-vf',
                               'scale=320:240', '-r', str(5), '-an', complete_output_path]
 
             # TEST SETTINGS, JUST 3 FRAMES PER VIDEO:
@@ -114,6 +117,10 @@ if __name__ == '__main__':
             #                   'scale=320:240', '-r', str(1), '-an', complete_output_path]
 
             print(ffmpeg_command)
+            print('COMPLETE OUTPUT PATH:')
+            print(complete_output_path)
+            print('VIDEO PATH:')
+            print(video_path)
             subprocess.call(ffmpeg_command)
 
 
