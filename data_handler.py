@@ -15,6 +15,7 @@ from image_processor import process_image
 train_datagen = ImageDataGenerator()
 val_datagen = ImageDataGenerator()
 test_datagen = ImageDataGenerator()
+eval_datagen = ImageDataGenerator()
 
 class DataHandler:
     def __init__(self, path, image_size, seq_length, batch_size, color, nb_labels):
@@ -167,6 +168,50 @@ class DataHandler:
                 # print("**************************************")
 
                 X_array, y_array = test_datagen.flow(X_array, y_array, batch_size=self.batch_size).next()
+                batch_index = 0
+                yield (X_array, y_array)
+
+    def prepare_eval_image_generator(self, df, train, val, test):
+        """
+        Prepare the frames into labeled train and test sets, with help from the
+        DataFrame with .jpg-paths and labels for train and pain.
+        :param df: pd.DataFrame
+        :param train: Boolean
+        :param val: Boolean
+        :param test: Boolean
+        :return: np.ndarray, np.ndarray, np.ndarray, np.ndarray
+        """
+        if train:
+            df = df.loc[df['Train'] == 1]
+        else:
+            df = df.loc[df['Train'] == 0]
+        print("LEN DF:")
+        print(len(df))
+        batch_index = 0
+        for index, row in df.iterrows():
+            if batch_index == 0:
+                X_list = []
+                y_list = []
+            x = self.get_image(row['Path'])
+            y = row['Pain']
+            X_list.append(x)
+            y_list.append(y)
+            batch_index += 1
+
+            if batch_index % self.batch_size == 0:
+                X_array = np.array(X_list, dtype=np.float32)
+                y_array = np.array(y_list, dtype=np.uint8)
+                # print("**************************************")
+                # print("Inside prep image test generator:")
+                # print("X array shape:")
+                # print(X_array.shape)
+                # print("y array shape:")
+                # print(y_array.shape)
+                y_array = np_utils.to_categorical(y_array, num_classes=self.nb_labels)
+                # print(y_array.shape)
+                # print("**************************************")
+
+                X_array, y_array = eval_datagen.flow(X_array, y_array, batch_size=self.batch_size).next()
                 batch_index = 0
                 yield (X_array, y_array)
 
