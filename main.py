@@ -37,7 +37,7 @@ def run(args):
                          args.nb_labels, args.dropout_rate, BATCH_SIZE)
     dh = DataHandler(args.data_path, (args.input_width, args.input_height),
                      seq_length, BATCH_SIZE, COLOR, args.nb_labels)
-    ev = Evaluator('cr', TARGET_NAMES, BATCH_SIZE)
+    ev = Evaluator(True, True, True, TARGET_NAMES, BATCH_SIZE)
 
     # dh.folders_to_csv()
     horse_dfs = []
@@ -61,7 +61,9 @@ def run(args):
         horse_dfs[teh]['Train'] = 0
     # Put all the separate horse-dfs into one DataFrame.
     df = pd.concat(horse_dfs)
+    import pdb; pdb.set_trace()
     df = shuffle_blocks(df)
+    pdb.set_trace()
 
     df_train, df_val = df_val_split(df, val_fraction=0.1, batch_size=BATCH_SIZE, round_to_batch=True)
     nb_train_samples = len(df_train)

@@ -9,8 +9,10 @@ NB_DECIMALS = 4
 
 class Evaluator:
 
-    def __init__(self, method, target_names, batch_size):
-        self.method = method
+    def __init__(self, acc, cm, cr, target_names, batch_size):
+        self.acc = acc
+        self.cr = cr
+        self.cm = cm
         self.target_names = target_names
         self.batch_size = batch_size
 
@@ -22,8 +24,9 @@ class Evaluator:
         #y_pred = model.predict_generator(test_generator,
         #                                 steps=10,
         #                                 verbose=1)
-        scores = model.evaluate_generator(test_generator,
-                                          steps=int(nb_test_samples/self.batch_size)-1)
+        if self.acc:
+            scores = model.evaluate_generator(eval_generator,
+                                              steps=int(nb_test_samples/self.batch_size)-1)
         # scores = model.evaluate_generator(eval_generator,
         #                          steps=10)
         # y_pred = model.predict_generator(test_generator, steps=3)
@@ -37,15 +40,15 @@ class Evaluator:
         y_pred = np_utils.to_categorical(y_preds, num_classes=args.nb_labels)
         nb_preds = len(y_pred)
         y_test = y_test[:nb_preds]
-        if self.method == 'cr':
+        if self.cr:
             cr = classification_report(y_test, y_pred)
             f = open(_make_cr_filename(args, file_identifier), 'w')
             print(cr, end="", file=f)
             f.close()
             print(cr)
 
-        if self.method == 'cm':
-            cm = confusion_matrix(y_test, y_pred)
+        if self.cm:
+            cm = confusion_matrix(np.argmax(y_test, axis=1), np.argmax(y_pred, axis=1))
             print(cm)
             f = open(_make_cm_filename(args, file_identifier), 'w')
             print(cm, end="", file=f)

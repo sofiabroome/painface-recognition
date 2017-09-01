@@ -2,6 +2,9 @@ from keras.layers import Convolution2D, Convolution3D, MaxPooling2D, MaxPooling3
 from keras.layers.wrappers import TimeDistributed
 from keras.optimizers import Adam, Adagrad
 from keras.models import Sequential
+from keras import backend as K
+
+# K.set_image_dim_ordering('th')
 
 
 class Model:
@@ -101,7 +104,9 @@ class Model:
         model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size)))
         model.add(MaxPooling2D())
         model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size)))
-        model.add(MaxPooling2D())
+        # model.add(MaxPooling2D())
+        model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(3, 3)))
+        model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(3, 3)))
         model.add(TimeDistributed(Flatten()))
         model.add((LSTM(self.nb_lstm_units,
                         stateful=False,
