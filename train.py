@@ -2,13 +2,12 @@ from keras.callbacks import EarlyStopping, ModelCheckpoint, Callback
 from matplotlib import pyplot as plt
 import tensorflow as tf
 
-VAL_FRACTION = 0.2
 
 config = tf.ConfigProto(log_device_placement=True)
 config.gpu_options.allow_growth = True
 sess = tf.Session(config=config)
 
-def train(model_instance, args, batch_size, nb_train_samples, nb_val_samples,
+def train(model_instance, args, batch_size, nb_train_samples, nb_val_samples, val_fraction,
           generator=None, val_generator=None, X_train=None, y_train=None):
     """
     Train the model.
@@ -41,24 +40,25 @@ def train(model_instance, args, batch_size, nb_train_samples, nb_val_samples,
     catacc_train_history = CatAccTrainHistory()
 
     if generator:
-        val_steps = int(nb_val_samples / batch_size)
-        train_steps = int(nb_train_samples/batch_size)
-        train_steps = 2
-        val_steps = 2
-#        print("TRAIN STEPS:")
-#        print(train_steps)
-#        print("VAL STEPS:")
-#        print(val_steps)
+        val_steps = int(nb_val_samples / batch_size) - 10
+        train_steps = int(nb_train_samples/batch_size) - 10
+        # train_steps = 2
+        # val_steps = 2
+        print("TRAIN STEPS:")
+        print(train_steps)
+        print("VAL STEPS:")
+        print(val_steps)
         model_instance.model.fit_generator(generator=generator,
                                            steps_per_epoch= train_steps,
                                            epochs=args.nb_epochs,
                                            callbacks=[early_stopping, checkpointer,
                                                       catacc_test_history, catacc_train_history],
                                            validation_data=val_generator,
-                                           validation_steps=val_steps)
+                                           validation_steps=val_steps,
+                                           verbose=1)
     else:
         if args.round_to_batch:
-            X_train, y_train, X_val, y_val = val_split(X_train, y_train, VAL_FRACTION, batch_size)
+            X_train, y_train, X_val, y_val = val_split(X_train, y_train, val_fraction, batch_size)
             X_train = round_to_batch_size(X_train, batch_size)
             y_train = round_to_batch_size(y_train, batch_size)
 
@@ -78,7 +78,7 @@ def train(model_instance, args, batch_size, nb_train_samples, nb_val_samples,
                                      epochs=args.nb_epochs,
                                      shuffle=False,
                                      batch_size=batch_size,
-                                     validation_split=VAL_FRACTION,
+                                     validation_split=val_fraction,
                                      callbacks=[early_stopping, checkpointer,
                                                 catacc_test_history, catacc_train_history])
     return model_instance.model

@@ -17,19 +17,18 @@ class Evaluator:
         self.batch_size = batch_size
 
     def test(self, model, test_generator, eval_generator, nb_test_samples, X_test=None):
-        # y_pred = model.predict_classes(X_test, batch_size=model.batch_size)
+        ## y_pred = model.predict_classes(X_test, batch_size=model.batch_size)
         y_pred = model.predict_generator(test_generator,
-                                         steps=int(nb_test_samples/self.batch_size)-1,
+                                         steps=int(nb_test_samples/self.batch_size)-10,
                                          verbose=1)
-        #y_pred = model.predict_generator(test_generator,
-        #                                 steps=10,
-        #                                 verbose=1)
+        # y_pred = model.predict_generator(test_generator,
+        #                                  steps=10,
+        #                                  verbose=1)
         if self.acc:
             scores = model.evaluate_generator(eval_generator,
-                                              steps=int(nb_test_samples/self.batch_size)-1)
-        # scores = model.evaluate_generator(eval_generator,
-        #                          steps=10)
-        # y_pred = model.predict_generator(test_generator, steps=3)
+                                              steps=int(nb_test_samples/self.batch_size)-10)
+            # scores = model.evaluate_generator(eval_generator,
+            #                                   steps=10)
         return y_pred, scores
 
     def evaluate(self, model, y_test, y_pred, scores, args):
@@ -40,6 +39,10 @@ class Evaluator:
         y_pred = np_utils.to_categorical(y_preds, num_classes=args.nb_labels)
         nb_preds = len(y_pred)
         y_test = y_test[:nb_preds]
+        print('y_test:')
+        print(y_test)
+        print('y_pred:')
+        print(y_pred)
         if self.cr:
             cr = classification_report(y_test, y_pred)
             f = open(_make_cr_filename(args, file_identifier), 'w')

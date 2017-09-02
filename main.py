@@ -13,6 +13,7 @@ import models
 
 TARGET_NAMES = ['NO_PAIN', 'PAIN']
 BATCH_SIZE = 50
+VAL_FRACTION = 0.1
 seq_length = 50
 COLOR = True
 
@@ -54,6 +55,8 @@ def run(args):
 
     train_horses = ast.literal_eval(args.train_horses)
     test_horses = ast.literal_eval(args.test_horses)
+    print('Horses to train on: ', train_horses)
+    print('Horses to test on: ', test_horses)
 
     # Set the train-column to 1 (yes) or 0 (no).
     for trh in train_horses:
@@ -64,10 +67,13 @@ def run(args):
     # Put all the separate horse-dfs into one DataFrame.
     df = pd.concat(horse_dfs)
     import pdb; pdb.set_trace()
+    # Shuffle the different sequences (like 1_1a_1) so that they don't always
+    # appear in the same order.
     df = shuffle_blocks(df)
-    pdb.set_trace()
+    # pdb.set_trace()
 
-    df_train, df_val = df_val_split(df, val_fraction=0.1, batch_size=BATCH_SIZE, round_to_batch=True)
+    df_train, df_val = df_val_split(df, val_fraction=VAL_FRACTION,
+                                    batch_size=BATCH_SIZE, round_to_batch=True)
     nb_train_samples = len(df_train)
     nb_val_samples = len(df_val)
     nb_test_samples = len(df[df['Train'] == 0])
@@ -77,10 +83,8 @@ def run(args):
     test_generator = dh.prepare_test_image_generator(df, train=False, val=False, test=True)
     eval_generator = dh.prepare_eval_image_generator(df, train=False, val=False, test=True)
 
-    # X_train_batch = make_batches(X_train, BATCH_SIZE)
-
     # Train the model
-    model = train(model, args, BATCH_SIZE, nb_train_samples, nb_val_samples,
+    model = train(model, args, BATCH_SIZE, nb_train_samples, nb_val_samples, VAL_FRACTION,
                   generator=train_generator, val_generator=val_generator)
 
     # # Get test predictions
