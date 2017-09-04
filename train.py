@@ -41,6 +41,7 @@ def train(model_instance, args, batch_size, nb_train_samples, nb_val_samples, va
     catacc_train_history = CatAccTrainHistory()
     binacc_train_history = BinAccTrainHistory()
     binacc_test_history = BinAccTestHistory()
+    pb = PrintBatch()
 
     if generator:
         val_steps = int(nb_val_samples / batch_size)
@@ -55,7 +56,7 @@ def train(model_instance, args, batch_size, nb_train_samples, nb_val_samples, va
                                            steps_per_epoch= train_steps,
                                            epochs=args.nb_epochs,
                                            callbacks=[early_stopping, checkpointer,
-                                                      binacc_test_history, binacc_train_history],
+                                                      binacc_test_history, binacc_train_history, pb],
                                            validation_data=val_generator,
                                            validation_steps=val_steps,
                                            verbose=1)
@@ -177,3 +178,8 @@ class BinAccTrainHistory(Callback):
 
     def on_epoch_end(self, epoch, logs={}):
         self.binaccs.append(logs.get('binary_accuracy'))
+
+
+class PrintBatch(Callback):
+    def on_batch_end(self, epoch, logs={}):
+        print(logs)
