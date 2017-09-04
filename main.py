@@ -12,7 +12,7 @@ import arg_parser
 import models
 
 TARGET_NAMES = ['NO_PAIN', 'PAIN']
-BATCH_SIZE = 50
+BATCH_SIZE = 1
 VAL_FRACTION = 0.1
 seq_length = 50
 COLOR = True
@@ -44,6 +44,7 @@ def run(args):
     # dh.folders_to_csv()
     horse_dfs = []
     for horse in range(1,7):
+        print(args.data_path)
         horse_csv_path = args.data_path + 'horse_' + str(horse) + '.csv'
         if os.path.isfile(horse_csv_path):
             hdf = pd.read_csv(horse_csv_path)
@@ -66,7 +67,6 @@ def run(args):
         horse_dfs[teh]['Train'] = 0
     # Put all the separate horse-dfs into one DataFrame.
     df = pd.concat(horse_dfs)
-    import pdb; pdb.set_trace()
     # Shuffle the different sequences (like 1_1a_1) so that they don't always
     # appear in the same order.
     df = shuffle_blocks(df)
@@ -77,11 +77,18 @@ def run(args):
     nb_train_samples = len(df_train)
     nb_val_samples = len(df_val)
     nb_test_samples = len(df[df['Train'] == 0])
-    # Prepare the training and testing data
-    train_generator = dh.prepare_train_image_generator(df_train, train=True, val=False, test=False)
-    val_generator = dh.prepare_val_image_generator(df_val, train=False, val=True, test=False)
-    test_generator = dh.prepare_test_image_generator(df, train=False, val=False, test=True)
-    eval_generator = dh.prepare_eval_image_generator(df, train=False, val=False, test=True)
+    # Prepare the training and testing data 4D
+    # train_generator = dh.prepare_train_image_generator(df_train, train=True, val=False, test=False)
+    # val_generator = dh.prepare_val_image_generator(df_val, train=False, val=True, test=False)
+    # test_generator = dh.prepare_test_image_generator(df, train=False, val=False, test=True)
+    # eval_generator = dh.prepare_eval_image_generator(df, train=False, val=False, test=True)
+
+    # Prepare the training and testing data 5D
+    train_generator = dh.prepare_image_generator_5D(df_train, train=True, val=False, test=False, eval=False)
+    val_generator = dh.prepare_image_generator_5D(df_val, train=False, val=True, test=False, eval=False)
+    test_generator = dh.prepare_image_generator_5D(df, train=False, val=False, test=True, eval=False)
+    eval_generator = dh.prepare_image_generator_5D(df, train=False, val=False, test=False, eval=True)
+
 
     # Train the model
     model = train(model, args, BATCH_SIZE, nb_train_samples, nb_val_samples, VAL_FRACTION,
