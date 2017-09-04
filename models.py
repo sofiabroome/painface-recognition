@@ -69,9 +69,13 @@ class Model:
             optimizer = Adagrad(lr=lr)
 
         # Compile the network.
-        self.model.compile(loss='categorical_crossentropy',
+        # self.model.compile(loss='categorical_crossentropy',
+        #                    optimizer=optimizer,
+        #                    metrics=['categorical_accuracy'])
+
+        self.model.compile(loss='binary_crossentropy',
                            optimizer=optimizer,
-                           metrics=['categorical_accuracy'])
+                           metrics=['binary_accuracy'])
 
     def conv2d_timedist_lstm(self):
         model = Sequential()
