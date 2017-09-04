@@ -40,8 +40,8 @@ def train(model_instance, args, batch_size, nb_train_samples, nb_val_samples, va
     catacc_train_history = CatAccTrainHistory()
 
     if generator:
-        val_steps = int(nb_val_samples / batch_size) - 10
-        train_steps = int(nb_train_samples/batch_size) - 10
+        val_steps = int(nb_val_samples / batch_size)
+        train_steps = int(nb_train_samples/batch_size)
         # train_steps = 2
         # val_steps = 2
         print("TRAIN STEPS:")
