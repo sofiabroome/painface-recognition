@@ -89,7 +89,8 @@ class Model:
                         stateful=False,
                         dropout=self.dropout_rate,
                         input_shape=(None, self.seq_length, None),
-                        return_sequences=True)))
+                        return_sequences=True,
+                        implementation=2)))
         model.add(TimeDistributed(Dense(self.nb_labels, activation='softmax')))
         return model
 
@@ -105,7 +106,8 @@ class Model:
                         stateful=True,
                         dropout=self.dropout_rate,
                         input_shape=(None, self.seq_length, None),
-                        return_sequences=True)))
+                        return_sequences=True,
+                        implementation=2)))
         model.add(TimeDistributed(Dense(self.nb_labels, activation='softmax')))
         return model
 
@@ -129,7 +131,8 @@ class Model:
                         stateful=False,
                         dropout=self.dropout_rate,
                         input_shape=(None, self.seq_length, None),
-                        return_sequences=False)))
+                        return_sequences=False,
+                        implementation=2)))
         model.add(Dense(self.nb_labels, activation='softmax'))
         return model
 
@@ -153,7 +156,8 @@ class Model:
                         stateful=True,
                         dropout=self.dropout_rate,
                         input_shape=(None, self.seq_length, None),
-                        return_sequences=False)))
+                        return_sequences=False,
+                        implementation=2)))
         model.add(Dense(self.nb_labels, activation='softmax'))
         return model
 
@@ -220,7 +224,9 @@ class Model:
                         stateful=False,
                         dropout=self.dropout_rate,
                         input_shape=(None, self.seq_length, None),
-                        return_sequences=False)))
+                        return_sequences=False,
+                        implementation=2
+                        )))
         model.add(Dense(self.nb_labels, activation='softmax'))
         return model
 
