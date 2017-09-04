@@ -28,16 +28,19 @@ def train(model_instance, args, batch_size, nb_train_samples, nb_val_samples, va
     best_model_path = create_best_model_path(model_instance, args)
     print('best model path:')
     print(best_model_path)
-    early_stopping = EarlyStopping(monitor='val_categorical_accuracy',
+    # Think about: choose between binary or categorical accuracy.
+    early_stopping = EarlyStopping(monitor='val_binary_accuracy',
                                    patience=args.early_stopping)
     checkpointer = ModelCheckpoint(filepath=best_model_path,
-                                   monitor="val_categorical_accuracy",
+                                   monitor="val_binary_accuracy",
                                    verbose=1,
                                    save_best_only=True,
                                    mode='max')
 
     catacc_test_history = CatAccTestHistory()
     catacc_train_history = CatAccTrainHistory()
+    binacc_train_history = BinAccTrainHistory()
+    binacc_test_history = BinAccTestHistory()
 
     if generator:
         val_steps = int(nb_val_samples / batch_size)
@@ -52,7 +55,7 @@ def train(model_instance, args, batch_size, nb_train_samples, nb_val_samples, va
                                            steps_per_epoch= train_steps,
                                            epochs=args.nb_epochs,
                                            callbacks=[early_stopping, checkpointer,
-                                                      catacc_test_history, catacc_train_history],
+                                                      binacc_test_history, binacc_train_history],
                                            validation_data=val_generator,
                                            validation_steps=val_steps,
                                            verbose=1)
@@ -152,3 +155,25 @@ class CatAccTrainHistory(Callback):
 
     def on_epoch_end(self, epoch, logs={}):
         self.cataccs.append(logs.get('categorical_accuracy'))
+
+
+class BinAccTestHistory(Callback):
+    # def __init__(self):
+    #     self.cataccs = []
+
+    def on_train_begin(self, logs={}):
+        self.binaccs = []
+
+    def on_epoch_end(self, epoch, logs={}):
+        self.binaccs.append(logs.get('val_binary_accuracy'))
+
+
+class BinAccTrainHistory(Callback):
+    # def __init__(self):
+    #     self.cataccs = []
+
+    def on_train_begin(self, logs={}):
+        self.binaccs = []
+
+    def on_epoch_end(self, epoch, logs={}):
+        self.binaccs.append(logs.get('binary_accuracy'))
