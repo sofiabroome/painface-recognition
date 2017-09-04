@@ -77,18 +77,19 @@ def run(args):
     nb_train_samples = len(df_train)
     nb_val_samples = len(df_val)
     nb_test_samples = len(df[df['Train'] == 0])
-    # Prepare the training and testing data 4D
-    # train_generator = dh.prepare_train_image_generator(df_train, train=True, val=False, test=False)
-    # val_generator = dh.prepare_val_image_generator(df_val, train=False, val=True, test=False)
-    # test_generator = dh.prepare_test_image_generator(df, train=False, val=False, test=True)
-    # eval_generator = dh.prepare_eval_image_generator(df, train=False, val=False, test=True)
 
     # Prepare the training and testing data 5D
-    train_generator = dh.prepare_image_generator_5D(df_train, train=True, val=False, test=False, eval=False)
-    val_generator = dh.prepare_image_generator_5D(df_val, train=False, val=True, test=False, eval=False)
-    test_generator = dh.prepare_image_generator_5D(df, train=False, val=False, test=True, eval=False)
-    eval_generator = dh.prepare_image_generator_5D(df, train=False, val=False, test=False, eval=True)
+    if 'timedist' in args.model or '5d' in args.model:
+        train_generator = dh.prepare_image_generator_5D(df_train, train=True, val=False, test=False, eval=False)
+        val_generator = dh.prepare_image_generator_5D(df_val, train=False, val=True, test=False, eval=False)
+        test_generator = dh.prepare_image_generator_5D(df, train=False, val=False, test=True, eval=False)
+        eval_generator = dh.prepare_image_generator_5D(df, train=False, val=False, test=False, eval=True)
 
+    else:        
+        train_generator = dh.prepare_train_image_generator(df_train, train=True, val=False, test=False)
+        val_generator = dh.prepare_val_image_generator(df_val, train=False, val=True, test=False)
+        test_generator = dh.prepare_test_image_generator(df, train=False, val=False, test=True)
+        eval_generator = dh.prepare_eval_image_generator(df, train=False, val=False, test=True)
 
     # Train the model
     model = train(model, args, BATCH_SIZE, nb_train_samples, nb_val_samples, VAL_FRACTION,
