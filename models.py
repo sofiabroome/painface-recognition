@@ -159,7 +159,8 @@ class Model:
         model.add(Convolution3D(64, 3, 3, 3, activation='relu',
                                 border_mode='same', name='conv1',
                                 subsample=(1, 1, 1),
-                                input_shape=(self.seq_length, self.input_shape[0], self.input_shape[1], 3)))
+                                input_shape=(self.seq_length, self.input_shape[0], self.input_shape[1], 3),
+                                batch_input_shape=(None, self.seq_length, self.input_shape[0], self.input_shape[1], 3)))
         model.add(MaxPooling3D(pool_size=(1, 2, 2), strides=(1, 2, 2),
                                border_mode='valid', name='pool1'))
         # 2nd layer group
