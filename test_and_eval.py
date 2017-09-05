@@ -34,9 +34,11 @@ class Evaluator:
     def evaluate(self, model, y_test, y_pred, scores, args):
         print('Accuracy: ', scores[1])
         file_identifier = args.image_identifier
-        y_test = np_utils.to_categorical(y_test, num_classes=args.nb_labels)
-        y_preds = np.argmax(y_pred, axis=1)
-        y_pred = np_utils.to_categorical(y_preds, num_classes=args.nb_labels)
+        if args.nb_labels != 2:
+            y_test = np_utils.to_categorical(y_test, num_classes=args.nb_labels)
+        y_pred = np.argmax(y_pred, axis=1)
+        if args.nb_labels != 2:
+            y_pred = np_utils.to_categorical(y_pred, num_classes=args.nb_labels)
         nb_preds = len(y_pred)
         y_test = y_test[:nb_preds]
         print('y_test:')

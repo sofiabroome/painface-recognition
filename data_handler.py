@@ -79,8 +79,9 @@ class DataHandler:
                     # print('Batch shapes:')
                     # print(X_array.shape)
                     # print(y_array.shape)
-                    y_array = np_utils.to_categorical(y_array, num_classes=self.nb_labels)
-                    y_array = np.reshape(y_array, (self.batch_size, -1, self.nb_labels))
+                    if self.nb_labels != 2:
+                        y_array = np_utils.to_categorical(y_array, num_classes=self.nb_labels)
+                        y_array = np.reshape(y_array, (self.batch_size, -1, self.nb_labels))
                     # print('y array shape after reshape')
                     # print(y_array.shape)
                     # if train:
