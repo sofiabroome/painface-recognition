@@ -65,6 +65,8 @@ class Evaluator:
                                      digits=NB_DECIMALS)
 
     def confusion_matrix(self, y_test, y_pred):
+        y_test = np_utils.to_categorical(y_test, num_classes=2)
+        y_pred = np_utils.to_categorical(y_pred, num_classes=2)
         return confusion_matrix(np.argmax(y_test, axis=1), y_pred)
 
 
