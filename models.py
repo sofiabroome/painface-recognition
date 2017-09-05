@@ -133,7 +133,11 @@ class Model:
                         input_shape=(None, self.seq_length, None),
                         return_sequences=False,
                         implementation=2)))
-        model.add(Dense(self.nb_labels, activation='softmax'))
+        if self.nb_labels == 2:
+            print("2 labels, using sigmoid activation instead of softmax.")
+            model.add(Dense(self.nb_labels, activation='sigmoid'))
+        else:
+            model.add(Dense(self.nb_labels, activation='softmax'))
         return model
 
     def conv2d_lstm_stateful(self):
