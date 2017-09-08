@@ -85,21 +85,27 @@ class Model:
         model.add(Convolution2D(filters=self.nb_conv_filters,
                                 kernel_size=(self.kernel_size, self.kernel_size),
                                 input_shape=(self.input_shape[0], self.input_shape[1], 3),
-                                batch_input_shape=(None, self.input_shape[0], self.input_shape[1], 3)))
+                                batch_input_shape=(None, self.input_shape[0], self.input_shape[1], 3),
+                                activation='relu'))
         model.add(MaxPooling2D())
         model.add(BatchNormalization())
-        model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size)))
+        model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size),
+                                activation='relu'))
         model.add(MaxPooling2D())
         model.add(BatchNormalization())
-        model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size)))
+        model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size),
+                                activation='relu'))
         model.add(MaxPooling2D())
         model.add(BatchNormalization())
-        model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size)))
+        model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size),
+                                activation='relu'))
         model.add(MaxPooling2D())
         model.add(BatchNormalization())
-        model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size)))
+        model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size),
+                                activation='relu'))
         model.add(BatchNormalization())
-        model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(3, 3)))
+        model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(3, 3),
+                                activation='relu'))
         model.add(BatchNormalization())
         model.add(TimeDistributed(Flatten()))
         model.add((LSTM(self.nb_lstm_units,
@@ -122,14 +128,20 @@ class Model:
                                 input_shape=(self.input_shape[0], self.input_shape[1], 3),
                                 batch_input_shape=(self.batch_size, self.input_shape[0], self.input_shape[1], 3)))
         model.add(MaxPooling2D())
+        model.add(BatchNormalization())
         model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size)))
         model.add(MaxPooling2D())
+        model.add(BatchNormalization())
         model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size)))
         model.add(MaxPooling2D())
+        model.add(BatchNormalization())
         model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size)))
         model.add(MaxPooling2D())
+        model.add(BatchNormalization())
         model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size)))
+        model.add(BatchNormalization())
         model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(3, 3)))
+        model.add(BatchNormalization())
         model.add(TimeDistributed(Flatten()))
         model.add((LSTM(self.nb_lstm_units,
                         stateful=True,
