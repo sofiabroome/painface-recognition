@@ -12,7 +12,7 @@ import arg_parser
 import models
 
 TARGET_NAMES = ['NO_PAIN', 'PAIN']
-BATCH_SIZE = 10
+BATCH_SIZE = 50
 VAL_FRACTION = 0.1
 seq_length = 50
 COLOR = True
