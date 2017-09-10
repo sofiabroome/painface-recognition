@@ -87,7 +87,6 @@ class Model:
                                 input_shape=(self.input_shape[0], self.input_shape[1], 3),
                                 batch_input_shape=(None, self.input_shape[0], self.input_shape[1], 3),
                                 activation='relu'))
-                                activation='relu'))
         model.add(MaxPooling2D())
         model.add(BatchNormalization())
         model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size),
