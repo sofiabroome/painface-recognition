@@ -1,5 +1,5 @@
 from keras.layers import Convolution2D, Convolution3D, MaxPooling2D, MaxPooling3D, LSTM, Dense, Flatten
-from keras.layers import ZeroPadding3D, Dropout
+from keras.layers import ZeroPadding3D, Dropout, BatchNormalization
 from keras.layers.wrappers import TimeDistributed
 from keras.optimizers import Adam, Adagrad
 from keras.applications import InceptionV3
@@ -87,20 +87,27 @@ class Model:
                                 input_shape=(self.input_shape[0], self.input_shape[1], 3),
                                 batch_input_shape=(None, self.input_shape[0], self.input_shape[1], 3),
                                 activation='relu'))
+                                activation='relu'))
         model.add(MaxPooling2D())
+        model.add(BatchNormalization())
         model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size),
                                 activation='relu'))
         model.add(MaxPooling2D())
+        model.add(BatchNormalization())
         model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size),
                                 activation='relu'))
         model.add(MaxPooling2D())
+        model.add(BatchNormalization())
         model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size),
                                 activation='relu'))
         model.add(MaxPooling2D())
+        model.add(BatchNormalization())
         model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size),
                                 activation='relu'))
+        model.add(BatchNormalization())
         model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(3, 3),
                                 activation='relu'))
+        model.add(BatchNormalization())
         model.add(TimeDistributed(Flatten()))
         model.add((LSTM(self.nb_lstm_units,
                         stateful=False,
@@ -123,15 +130,19 @@ class Model:
                                 batch_input_shape=(self.batch_size, self.input_shape[0], self.input_shape[1], 3),
                                 activation='relu'))
         model.add(MaxPooling2D())
+        model.add(BatchNormalization())
         model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size),
                                 activation='relu'))
         model.add(MaxPooling2D())
+        model.add(BatchNormalization())
         model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size),
                                 activation='relu'))
         model.add(MaxPooling2D())
+        model.add(BatchNormalization())
         model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size),
                                 activation='relu'))
         model.add(MaxPooling2D())
+        model.add(BatchNormalization())
         model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size),
                                 activation='relu'))
         model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(3, 3),
@@ -189,7 +200,8 @@ class Model:
         model.add(Convolution3D(64, 3, 3, 3, activation='relu',
                                 border_mode='same', name='conv1',
                                 subsample=(1, 1, 1),
-                                input_shape=(self.seq_length, self.input_shape[0], self.input_shape[1], 3)))
+                                input_shape=(self.seq_length, self.input_shape[0], self.input_shape[1], 3),
+                                batch_input_shape=(None, self.seq_length, self.input_shape[0], self.input_shape[1], 3)))
         model.add(MaxPooling3D(pool_size=(1, 2, 2), strides=(1, 2, 2),
                                border_mode='valid', name='pool1'))
         # 2nd layer group
