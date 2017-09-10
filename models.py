@@ -70,7 +70,7 @@ class Model:
             optimizer = Adagrad(lr=lr)
 
         # Compile the network.
-        print("Using categorical crossentropy and categorical accuracy metrics.")
+        # print("Using categorical crossentropy and categorical accuracy metrics.")
         # self.model.compile(loss='categorical_crossentropy',
         #                    optimizer=optimizer,
         #                    metrics=['categorical_accuracy'])
