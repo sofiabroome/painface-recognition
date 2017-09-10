@@ -56,7 +56,7 @@ def train(model_instance, args, batch_size, nb_train_samples, nb_val_samples, va
                                            steps_per_epoch= train_steps,
                                            epochs=args.nb_epochs,
                                            callbacks=[early_stopping, checkpointer,
-                                                      binacc_test_history, binacc_train_history, pb],
+                                                      binacc_test_history, binacc_train_history],
                                            validation_data=val_generator,
                                            validation_steps=val_steps,
                                            verbose=1)
