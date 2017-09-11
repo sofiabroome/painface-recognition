@@ -36,7 +36,7 @@ def run(args):
     model = models.Model(args.model, (args.input_width, args.input_height),
                          seq_length, args.optimizer, args.lr, args.nb_lstm_units,
                          args.nb_conv_filters, args.kernel_size,
-                         args.nb_labels, args.dropout_rate, BATCH_SIZE)
+                         args.nb_labels, args.dropout_rate, BATCH_SIZE, args.nb_lstm_layers)
     dh = DataHandler(args.data_path, (args.input_width, args.input_height),
                      seq_length, BATCH_SIZE, COLOR, args.nb_labels)
     ev = Evaluator(True, True, True, TARGET_NAMES, BATCH_SIZE)
