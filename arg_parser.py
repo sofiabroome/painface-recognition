@@ -45,6 +45,8 @@ def parse_arguments():
                         help="Choice of optimizer (can choose from Keras' different default optimizers)")
     parser.add_argument('--lr', nargs='?', type=float,
                         help="Learning rate")
+    parser.add_argument('--batch-size', nargs='?', type=int,
+                        help="Batch size")
     parser.add_argument('--round-to-batch', nargs='?', type=bool,
                         help='Choose whether to round the last batch to the specified batch size')
     parser.add_argument('--train-horses', nargs='?', type=str,

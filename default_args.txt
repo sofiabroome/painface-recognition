@@ -12,6 +12,7 @@
 --early-stopping,50, Early stopping patience
 --optimizer,'rmsprop',Choice of optimizer (can choose from Keras' different default optimizers)
 --lr,0.01,Learning rate
+--batch-size,50,Batch size
 --round-to-batch,false, Choose whether to round the last batch to the specified batch size.
 --train-horses,[0,1,2,3], List of horse-id:s to train on, choosing from range(0,6): ex [0,1,2,3]
 --test-horses,[4,5], List of horse-id:s to test on, choosing from range(0,6): ex [4,5]
