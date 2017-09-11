@@ -27,6 +27,8 @@ def parse_arguments():
                         help="Input image height")
     parser.add_argument('--nb-labels', nargs='?', type=int,
                         help="Number of unique labels for this dataset")
+    parser.add_argument('--nb-lstm-layers', nargs='?', type=int,
+                        help="Number of stacked LSTM layers")
     parser.add_argument('--nb-lstm-units', nargs='?', type=int,
                         help="Number of LSTM units")
     parser.add_argument('--nb-conv-filters', nargs='?', type=int,

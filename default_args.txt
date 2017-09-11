@@ -3,6 +3,7 @@
 --input-width,320,Input image width.
 --input-height,180,Input image height.
 --nb-labels,2, Number of unique labels for this dataset
+--nb-lstm-layers,2, Number of stacked LSTM layers
 --nb-lstm-units,512, Number of LSTM units
 --nb-conv-filters,32, Number of convolutional filters
 --kernel-size,5,Kernel size in convolutional filter
