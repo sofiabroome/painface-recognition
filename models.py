@@ -364,21 +364,21 @@ class Model:
         model = Sequential()
         # 1st layer group
         model.add(Convolution3D(filters=self.nb_conv_filters,
-                                kernel_size=(self.kernel_size, self.kernel_size),
+                                kernel_size=(self.kernel_size, self.kernel_size, self.kernel_size),
                                 activation='relu',
                                 input_shape=(self.seq_length, self.input_shape[0], self.input_shape[1], 3),
                                 batch_input_shape=(None, self.seq_length, self.input_shape[0], self.input_shape[1], 3)))
         model.add(Convolution3D(filters=self.nb_conv_filters,
-                                kernel_size=(self.kernel_size, self.kernel_size),
+                                kernel_size=(self.kernel_size, self.kernel_size, self.kernel_size),
                                 activation='relu'))
         model.add(MaxPooling3D())
         model.add(Dropout(self.dropout_1))
         model.add(BatchNormalization)
         model.add(Convolution3D(filters=self.nb_conv_filters,
-                                kernel_size=(self.kernel_size, self.kernel_size),
+                                kernel_size=(self.kernel_size, self.kernel_size, self.kernel_size),
                                 activation='relu'))
         model.add(Convolution3D(filters=self.nb_conv_filters,
-                                kernel_size=(self.kernel_size, self.kernel_size),
+                                kernel_size=(self.kernel_size, self.kernel_size, self.kernel_size),
                                 activation='relu'))
         model.add(MaxPooling3D())
         model.add(Dropout(self.dropout_1))
