@@ -15,19 +15,24 @@ class Evaluator:
         self.target_names = target_names
         self.batch_size = batch_size
 
-    def test(self, model, test_generator, eval_generator, nb_test_samples, X_test=None):
-        ## y_pred = model.predict_classes(X_test, batch_size=model.batch_size)
-        y_pred = model.predict_generator(test_generator,
-                                         steps=int(nb_test_samples/self.batch_size),
-                                         verbose=1)
-        # y_pred = model.predict_generator(test_generator,
-        #                                  steps=10,
-        #                                  verbose=1)
+    def test(self, model, args, test_generator, eval_generator, nb_test_samples, X_test=None):
+        ###### If not a generator:
+        #    y_pred = model.predict_classes(X_test, batch_size=model.batch_size)
+        if args.test:
+            y_pred = model.predict_generator(test_generator,
+                                             steps=2,
+                                             verbose=1)
+        else:
+            y_pred = model.predict_generator(test_generator,
+                                             steps=int(nb_test_samples / self.batch_size),
+                                             verbose=1)
         if self.acc:
-            scores = model.evaluate_generator(eval_generator,
-                                              steps=int(nb_test_samples/self.batch_size))
-            # scores = model.evaluate_generator(eval_generator,
-            #                                   steps=10)
+            if args.test:
+                scores = model.evaluate_generator(eval_generator,
+                                                  steps=2)
+            else:
+                scores = model.evaluate_generator(eval_generator,
+                                                  steps=int(nb_test_samples/self.batch_size))
         return y_pred, scores
 
     def evaluate(self, model, y_test, y_pred, scores, args):
