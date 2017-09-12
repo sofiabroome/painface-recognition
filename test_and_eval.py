@@ -18,7 +18,7 @@ class Evaluator:
     def test(self, model, args, test_generator, eval_generator, nb_test_samples, X_test=None):
         ###### If not a generator:
         #    y_pred = model.predict_classes(X_test, batch_size=model.batch_size)
-        if args.test:
+        if args.test == 1:
             y_pred = model.predict_generator(test_generator,
                                              steps=2,
                                              verbose=1)
@@ -27,7 +27,7 @@ class Evaluator:
                                              steps=int(nb_test_samples / self.batch_size),
                                              verbose=1)
         if self.acc:
-            if args.test:
+            if args.test == 1:
                 scores = model.evaluate_generator(eval_generator,
                                                   steps=2)
             else:

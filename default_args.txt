@@ -20,5 +20,5 @@
 --test-horses,[4,5], List of horse-id:s to test on, choosing from range(0,6): ex [4,5]
 --device,'/gpu:1', Name of device to run on
 --image-identifier,'5subj',Choose some string to identify the image of the training process that you will save
---test-run,False,Whether a test run or not
+--test-run,0,Whether a test run or not
 --seq-length,50,Length of sequence for LSTM and for 5D input stuff
