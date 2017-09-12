@@ -373,7 +373,7 @@ class Model:
                                 activation='relu'))
         model.add(MaxPooling3D())
         model.add(Dropout(self.dropout_1))
-        model.add(BatchNormalization)
+        model.add(BatchNormalization())
         model.add(Convolution3D(filters=self.nb_conv_filters,
                                 kernel_size=(self.kernel_size, self.kernel_size, self.kernel_size),
                                 activation='relu'))
@@ -382,7 +382,7 @@ class Model:
                                 activation='relu'))
         model.add(MaxPooling3D())
         model.add(Dropout(self.dropout_1))
-        model.add(BatchNormalization)
+        model.add(BatchNormalization())
         model.add(Flatten())
         model.add(Dense(self.nb_dense_units, activation='relu'))
         model.add(Dropout(self.dropout_2))
