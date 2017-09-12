@@ -27,6 +27,8 @@ def parse_arguments():
                         help="Input image height")
     parser.add_argument('--nb-labels', nargs='?', type=int,
                         help="Number of unique labels for this dataset")
+    parser.add_argument('--nb-lstm-layers', nargs='?', type=int,
+                        help="Number of stacked LSTM layers")
     parser.add_argument('--nb-lstm-units', nargs='?', type=int,
                         help="Number of LSTM units")
     parser.add_argument('--nb-conv-filters', nargs='?', type=int,
@@ -43,6 +45,8 @@ def parse_arguments():
                         help="Choice of optimizer (can choose from Keras' different default optimizers)")
     parser.add_argument('--lr', nargs='?', type=float,
                         help="Learning rate")
+    parser.add_argument('--batch-size', nargs='?', type=int,
+                        help="Batch size")
     parser.add_argument('--round-to-batch', nargs='?', type=bool,
                         help='Choose whether to round the last batch to the specified batch size')
     parser.add_argument('--train-horses', nargs='?', type=str,

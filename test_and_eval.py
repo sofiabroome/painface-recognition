@@ -1,5 +1,4 @@
 import numpy as np
-import sklearn
 
 from sklearn.metrics import classification_report, confusion_matrix
 from keras.utils import np_utils
@@ -41,7 +40,7 @@ class Evaluator:
             y_pred = np_utils.to_categorical(y_pred, num_classes=args.nb_labels)
         nb_preds = len(y_pred)
         nb_tests = len(y_test)
-        if nb_preds != len(nb_tests):
+        if nb_preds != nb_tests:
             print("Warning, number of predictions not the same as the length of the y_test vector.")
             print("Y test length: ", nb_tests)
             print("Y pred length: ", nb_preds)
@@ -58,7 +57,10 @@ class Evaluator:
             print(cr)
 
         if self.cm:
-            cm = confusion_matrix(np.argmax(y_test, axis=1), np.argmax(y_pred, axis=1))
+            if args.nb_labels != 2:
+                cm = confusion_matrix(np.argmax(y_test, axis=1), np.argmax(y_pred, axis=1))
+            else:
+                cm = confusion_matrix(y_test, y_pred)
             print(cm)
             f = open(_make_cm_filename(args, file_identifier), 'w')
             print(cm, end="", file=f)
@@ -70,9 +72,11 @@ class Evaluator:
                                      digits=NB_DECIMALS)
 
     def confusion_matrix(self, y_test, y_pred):
-        y_test = np_utils.to_categorical(y_test, num_classes=2)
-        y_pred = np_utils.to_categorical(y_pred, num_classes=2)
-        return confusion_matrix(np.argmax(y_test, axis=1), y_pred)
+        # y_test = np_utils.to_categorical(y_test, num_classes=2)
+        # y_pred = np_utils.to_categorical(y_pred, num_classes=2)
+        # just the below return line was before 5/9.
+        # return confusion_matrix(np.argmax(y_test, axis=1), y_pred)
+        return confusion_matrix(y_test, y_pred)
 
 
 def _make_cr_filename(args, identifier):

@@ -12,7 +12,6 @@ import arg_parser
 import models
 
 TARGET_NAMES = ['NO_PAIN', 'PAIN']
-BATCH_SIZE = 10
 VAL_FRACTION = 0.1
 seq_length = 50
 COLOR = True
@@ -33,13 +32,15 @@ def df_val_split(df, val_fraction, batch_size, round_to_batch=True):
 
 
 def run(args):
+    print('batch size:')
+    print(args.batch_size)
     model = models.Model(args.model, (args.input_width, args.input_height),
                          seq_length, args.optimizer, args.lr, args.nb_lstm_units,
                          args.nb_conv_filters, args.kernel_size,
-                         args.nb_labels, args.dropout_rate, BATCH_SIZE)
+                         args.nb_labels, args.dropout_rate, args.batch_size, args.nb_lstm_layers)
     dh = DataHandler(args.data_path, (args.input_width, args.input_height),
-                     seq_length, BATCH_SIZE, COLOR, args.nb_labels)
-    ev = Evaluator(True, True, True, TARGET_NAMES, BATCH_SIZE)
+                     seq_length, args.batch_size, COLOR, args.nb_labels)
+    ev = Evaluator(True, True, True, TARGET_NAMES, args.batch_size)
 
     # dh.folders_to_csv()
     horse_dfs = []
@@ -73,7 +74,7 @@ def run(args):
     # pdb.set_trace()
 
     df_train, df_val = df_val_split(df, val_fraction=VAL_FRACTION,
-                                    batch_size=BATCH_SIZE, round_to_batch=True)
+                                    batch_size=args.batch_size, round_to_batch=True)
     nb_train_samples = len(df_train)
     nb_val_samples = len(df_val)
     nb_test_samples = len(df[df['Train'] == 0])
@@ -92,7 +93,7 @@ def run(args):
         eval_generator = dh.prepare_eval_image_generator(df, train=False, val=False, test=True)
 
     # Train the model
-    model = train(model, args, BATCH_SIZE, nb_train_samples, nb_val_samples, VAL_FRACTION,
+    model = train(model, args, nb_train_samples, nb_val_samples, VAL_FRACTION,
                   generator=train_generator, val_generator=val_generator)
 
     # # Get test predictions
