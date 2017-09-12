@@ -32,6 +32,8 @@ def df_val_split(df, val_fraction, batch_size, round_to_batch=True):
 
 
 def run(args):
+    print('batch size:')
+    print(args.batch_size)
     model = models.Model(args.model, (args.input_width, args.input_height),
                          seq_length, args.optimizer, args.lr, args.nb_lstm_units,
                          args.nb_conv_filters, args.kernel_size,
