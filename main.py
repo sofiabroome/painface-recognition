@@ -94,7 +94,7 @@ def run(args):
                   generator=train_generator, val_generator=val_generator)
 
     # # Get test predictions
-    y_preds, scores = ev.test(model, test_generator, eval_generator, nb_test_samples)
+    y_preds, scores = ev.test(model, args, test_generator, eval_generator, nb_test_samples)
 
     y_test = df[df['Train'] == 0]['Pain'].values
     # Evaluate the model's performance
