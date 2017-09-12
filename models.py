@@ -10,7 +10,7 @@ from keras import backend as K
 
 
 class Model:
-    def __init__(self, args, seq_length):
+    def __init__(self, seq_length, args):
         """
         A class to build the preferred model.
         :param name: str | The name of the model
@@ -23,7 +23,7 @@ class Model:
         :param lr: float | The learning rate during training.
         :param optimizer: str | The name of the optimizer (Adam or Adagrad, here).
         """
-        self.name = args.name
+        self.name = args.model
         self.input_shape = (args.input_width, args.input_height)
         self.nb_conv_filters = args.nb_conv_filters
         self.nb_lstm_units = args.nb_lstm_units
@@ -33,6 +33,7 @@ class Model:
         self.dropout_1 = args.dropout_1
         self.seq_length = seq_length
         self.lr = args.lr
+        self.optimizer = args.optimizer
         self.batch_size = args.batch_size
         self.nb_lstm_layers = args.nb_lstm_layers
         self.nb_dense_units = args.nb_dense_units
@@ -49,13 +50,17 @@ class Model:
             print("Conv2d-lstm model")
             self.model = self.conv2d_lstm()
 
+        if self.name == 'conv2d_lstm_informed':
+            print("Conv2d-lstm model informed")
+            self.model = self.conv2d_lstm_informed()
+
         if self.name == 'conv2d_lstm_stateful':
             print("Conv2d-lstm model stateful")
             self.model = self.conv2d_lstm_stateful()
 
-        if self.name == 'conv3d':
-            print('Conv3D')
-            self.model = self.conv3d()
+        if self.name == 'conv3d_informed':
+            print('Conv3D Informed')
+            self.model = self.conv3d_informed()
 
         if self.name == 'inception_lstm_5d_input':
             print('inception_lstm_5d_input')
