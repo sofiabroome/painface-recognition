@@ -75,7 +75,7 @@ class Model:
             optimizer = Adam(lr=self.lr)
         else:
             print("Setting the optimizer to Adagrad.")
-            optimizer = Adagrad(lr=lr)
+            optimizer = Adagrad(lr=self.lr)
 
         # Compile the network.
         # print("Using categorical crossentropy and categorical accuracy metrics.")
