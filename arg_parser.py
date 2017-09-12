@@ -61,6 +61,8 @@ def parse_arguments():
                         help="Name of device to run on")
     parser.add_argument('--image-identifier', nargs='?', type=str,
                         help='Choose some string to identify the image of the training process')
+    parser.add_argument('--test', nargs='?', type=bool,
+                        help='Whether to run as a quick test or not.')
     return parser.parse_args()
 
 
