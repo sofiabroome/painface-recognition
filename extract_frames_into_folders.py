@@ -45,25 +45,25 @@ if __name__ == '__main__':
     # Make all the subfolders for all the separate 60 sequences, in separate horse_id folders.
     # The horse_id folders need to be created beforehand.
     # Only need to do once. Therefore commented now... great coding practice.
-    for h in range(1, 7):
-        print("NEW HORSE")
-        counter = 1  # Counter of non-unique videos.
-        output_dir = 'horse_' + str(h)
-        horse_df = df.loc[df['Horse'] == h]
-        for vid in horse_df['Video_id']:
-            path = get_path(vid)
-            occurences = check_if_unique_in_df(vid, df)
-            if occurences == 1:
-                seq_dir_path = 'data/' + output_dir + '/' + vid
-            elif occurences > 1:
-                seq_dir_path = 'data/' + output_dir + '/' + vid + '_' + str(counter)
-                if counter == occurences:
-                    counter = 1
-                else:
-                    counter += 1
-            else:
-                print('WARNING 0 occurences')
-            subprocess.call(['mkdir', seq_dir_path])
+    # for h in range(1, 7):
+    #     print("NEW HORSE")
+    #     counter = 1  # Counter of non-unique videos.
+    #     output_dir = 'horse_' + str(h)
+    #     horse_df = df.loc[df['Horse'] == h]
+    #     for vid in horse_df['Video_id']:
+    #         path = get_path(vid)
+    #         occurences = check_if_unique_in_df(vid, df)
+    #         if occurences == 1:
+    #             seq_dir_path = 'data/' + output_dir + '/' + vid
+    #         elif occurences > 1:
+    #             seq_dir_path = 'data/' + output_dir + '/' + vid + '_' + str(counter)
+    #             if counter == occurences:
+    #                 counter = 1
+    #             else:
+    #                 counter += 1
+    #         else:
+    #             print('WARNING 0 occurences')
+    #         subprocess.call(['mkdir', seq_dir_path])
 
     # Extract frames
     for h in range(1, 7):
@@ -100,27 +100,45 @@ if __name__ == '__main__':
             # complete_output_path = 'data_test/frame_%06d.png'
             # video_path = '~/Documents/EquineML/painface-recognition/' + str(get_path(vid[1]['Video_id']))
 
+            complete_output_path = seq_dir_path + '/frame_%06d.jpg'
             video_path = str(get_path(vid[1]['Video_id']))
 
+            print('COMPLETE OUTPUT PATH:')
+            print(complete_output_path)
+            print('VIDEO PATH:')
+            print(video_path)
+
+
+            if not os.path.exists(complete_output_path):
+                print("comp path not exists")
+
+            if not os.path.exists(seq_dir_path):
+                print("seq path not exists")
+
+            if not os.path.exists(video_path):
+                print("video path not exists")
+
+            print(os.environ['PATH'])
+
             # CHOOSE FROM THE FOLLOWING
+
             # GOOD PNG QUALITY, 5 FPS
             # complete_output_path = seq_dir_path + '/frame_%06d.png'
             # ffmpeg_command = ['ffmpeg', '-ss', start, '-i', video_path, '-vcodec', 'png', '-t', length, '-vf',
             #                   'scale=320:240', '-r', str(5), '-an', complete_output_path]
+
             # JPG HALFASS QUALITY, MAYBE LOSSY, 5 FPS
-            complete_output_path = seq_dir_path + '/frame_%06d.jpg'
+
+
             ffmpeg_command = ['ffmpeg', '-ss', start, '-i', video_path, '-t', length, '-vf',
-                              'scale=320:240', '-r', str(5), '-an', complete_output_path]
+                              'scale=320:240', '-r', str(1), '-an', complete_output_path]
+
+            print(ffmpeg_command)
 
             # TEST SETTINGS, JUST 3 FRAMES PER VIDEO:
             # ffmpeg_command = ['ffmpeg', '-ss', start, '-i', video_path, '-vcodec', 'png', '-t', '00:00:03', '-vf',
             #                   'scale=320:240', '-r', str(1), '-an', complete_output_path]
 
-            print(ffmpeg_command)
-            print('COMPLETE OUTPUT PATH:')
-            print(complete_output_path)
-            print('VIDEO PATH:')
-            print(video_path)
             subprocess.call(ffmpeg_command)
 
 
