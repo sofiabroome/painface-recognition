@@ -34,10 +34,7 @@ def df_val_split(df, val_fraction, batch_size, round_to_batch=True):
 def run(args):
     print('batch size:')
     print(args.batch_size)
-    model = models.Model(args.model, (args.input_width, args.input_height),
-                         seq_length, args.optimizer, args.lr, args.nb_lstm_units,
-                         args.nb_conv_filters, args.kernel_size,
-                         args.nb_labels, args.dropout_rate, args.batch_size, args.nb_lstm_layers)
+    model = models.Model(seq_length, args)
     dh = DataHandler(args.data_path, (args.input_width, args.input_height),
                      seq_length, args.batch_size, COLOR, args.nb_labels)
     ev = Evaluator(True, True, True, TARGET_NAMES, args.batch_size)

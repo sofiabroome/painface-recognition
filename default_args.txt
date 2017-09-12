@@ -6,8 +6,10 @@
 --nb-lstm-layers,2, Number of stacked LSTM layers
 --nb-lstm-units,512, Number of LSTM units
 --nb-conv-filters,32, Number of convolutional filters
+--nb-dense-units,512, Number of dense units
 --kernel-size,5,Kernel size in convolutional filter
---dropout-rate,0.0,Probability of dropout
+--dropout-1,0.0,Probability of dropout 1
+--dropout-2,0.0,Probability of dropout 2
 --nb-epochs,150, Number of epochs
 --early-stopping,50, Early stopping patience
 --optimizer,'rmsprop',Choice of optimizer (can choose from Keras' different default optimizers)

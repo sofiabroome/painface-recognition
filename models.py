@@ -10,9 +10,7 @@ from keras import backend as K
 
 
 class Model:
-    def __init__(self, name, input_shape, seq_length, optimizer, lr, nb_lstm_units,
-                 nb_conv_filters, kernel_size, nb_labels, dropout_rate, batch_size,
-                 nb_lstm_layers):
+    def __init__(self, args, seq_length):
         """
         A class to build the preferred model.
         :param name: str | The name of the model
@@ -25,16 +23,19 @@ class Model:
         :param lr: float | The learning rate during training.
         :param optimizer: str | The name of the optimizer (Adam or Adagrad, here).
         """
-        self.name = name
-        self.input_shape = input_shape
-        self.nb_conv_filters = nb_conv_filters
-        self.nb_lstm_units = nb_lstm_units
-        self.kernel_size = kernel_size
-        self.nb_labels = nb_labels
-        self.dropout_rate = dropout_rate
+        self.name = args.name
+        self.input_shape = (args.input_width, args.input_height)
+        self.nb_conv_filters = args.nb_conv_filters
+        self.nb_lstm_units = args.nb_lstm_units
+        self.kernel_size = args.kernel_size
+        self.nb_labels = args.nb_labels
+        self.dropout_2 = args.dropout_2
+        self.dropout_1 = args.dropout_1
         self.seq_length = seq_length
-        self.batch_size = batch_size
-        self.nb_lstm_layers = nb_lstm_layers
+        self.lr = args.lr
+        self.batch_size = args.batch_size
+        self.nb_lstm_layers = args.nb_lstm_layers
+        self.nb_dense_units = args.nb_dense_units
 
         if self.name == 'conv2d_timedist_lstm':
             print("Conv2d-lstm model timedist")
@@ -65,8 +66,8 @@ class Model:
             self.model = self.inception_lstm_4d_input()
 
 
-        if optimizer == 'adam':
-            optimizer = Adam(lr=lr)
+        if self.optimizer == 'adam':
+            optimizer = Adam(lr=self.lr)
         else:
             print("Setting the optimizer to Adagrad.")
             optimizer = Adagrad(lr=lr)
@@ -113,67 +114,168 @@ class Model:
         if self.nb_lstm_layers == 1:
             model.add((LSTM(self.nb_lstm_units,
                             stateful=False,
-                            dropout=self.dropout_rate,
+                            dropout=self.dropout_2,
                             input_shape=(None, self.seq_length, None),
                             return_sequences=False,
                             implementation=2)))
         if self.nb_lstm_layers == 2:
             model.add((LSTM(self.nb_lstm_units,
                             stateful=False,
-                            dropout=self.dropout_rate,
+                            dropout=self.dropout_2,
                             input_shape=(None, self.seq_length, None),
                             return_sequences=True,
                             implementation=2)))
             model.add((LSTM(self.nb_lstm_units,
                             stateful=False,
-                            dropout=self.dropout_rate,
+                            dropout=self.dropout_2,
                             input_shape=(None, self.seq_length, None),
                             return_sequences=False,
                             implementation=2)))
         if self.nb_lstm_layers == 3:
             model.add((LSTM(self.nb_lstm_units,
                             stateful=False,
-                            dropout=self.dropout_rate,
+                            dropout=self.dropout_2,
                             input_shape=(None, self.seq_length, None),
                             return_sequences=True,
                             implementation=2)))
             model.add((LSTM(self.nb_lstm_units,
                             stateful=False,
-                            dropout=self.dropout_rate,
+                            dropout=self.dropout_2,
                             input_shape=(None, self.seq_length, None),
                             return_sequences=True,
                             implementation=2)))
             model.add((LSTM(self.nb_lstm_units,
                             stateful=False,
-                            dropout=self.dropout_rate,
+                            dropout=self.dropout_2,
                             input_shape=(None, self.seq_length, None),
                             return_sequences=False,
                             implementation=2)))
         if self.nb_lstm_layers == 4:
             model.add((LSTM(self.nb_lstm_units,
                             stateful=False,
-                            dropout=self.dropout_rate,
+                            dropout=self.dropout_2,
                             input_shape=(None, self.seq_length, None),
                             return_sequences=True,
                             implementation=2)))
             model.add((LSTM(self.nb_lstm_units,
                             stateful=False,
-                            dropout=self.dropout_rate,
+                            dropout=self.dropout_2,
                             input_shape=(None, self.seq_length, None),
                             return_sequences=True,
                             implementation=2)))
             model.add((LSTM(self.nb_lstm_units,
                             stateful=False,
-                            dropout=self.dropout_rate,
+                            dropout=self.dropout_2,
                             input_shape=(None, self.seq_length, None),
                             return_sequences=True,
                             implementation=2)))
             model.add((LSTM(self.nb_lstm_units,
                             stateful=False,
-                            dropout=self.dropout_rate,
+                            dropout=self.dropout_2,
                             input_shape=(None, self.seq_length, None),
                             return_sequences=False,
                             implementation=2)))
+        if self.nb_labels == 2:
+            print("2 labels, using sigmoid activation instead of softmax.")
+            model.add(Dense(self.nb_labels, activation='sigmoid'))
+        else:
+            model.add(Dense(self.nb_labels, activation='softmax'))
+        return model
+
+    def conv2d_lstm_informed(self):
+        model = Sequential()
+        model.add(Convolution2D(filters=self.nb_conv_filters,
+                                kernel_size=(self.kernel_size, self.kernel_size),
+                                input_shape=(self.input_shape[0], self.input_shape[1], 3),
+                                batch_input_shape=(None, self.input_shape[0], self.input_shape[1], 3),
+                                activation='relu'))
+        model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size),
+                                activation='relu'))
+        model.add(MaxPooling2D())
+        model.add(Dropout(self.dropout_1))
+        model.add(BatchNormalization())
+        model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size),
+                                activation='relu'))
+        model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size),
+                                activation='relu'))
+        model.add(MaxPooling2D())
+        model.add(Dropout(self.dropout_1))
+        model.add(BatchNormalization())
+        model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size),
+                                activation='relu'))
+        model.add(MaxPooling2D())
+        model.add(Dropout(self.dropout_1))
+        model.add(BatchNormalization())
+        model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size),
+                                activation='relu'))
+        model.add(BatchNormalization())
+        model.add(TimeDistributed(Flatten()))
+        if self.nb_lstm_layers == 1:
+            model.add((LSTM(self.nb_lstm_units,
+                            stateful=False,
+                            dropout=self.dropout_2,
+                            input_shape=(None, self.seq_length, None),
+                            return_sequences=False,
+                            implementation=2)))
+        if self.nb_lstm_layers == 2:
+            model.add((LSTM(self.nb_lstm_units,
+                            stateful=False,
+                            dropout=self.dropout_2,
+                            input_shape=(None, self.seq_length, None),
+                            return_sequences=True,
+                            implementation=2)))
+            model.add((LSTM(self.nb_lstm_units,
+                            stateful=False,
+                            dropout=self.dropout_2,
+                            input_shape=(None, self.seq_length, None),
+                            return_sequences=False,
+                            implementation=2)))
+        if self.nb_lstm_layers == 3:
+            model.add((LSTM(self.nb_lstm_units,
+                            stateful=False,
+                            dropout=self.dropout_2,
+                            input_shape=(None, self.seq_length, None),
+                            return_sequences=True,
+                            implementation=2)))
+            model.add((LSTM(self.nb_lstm_units,
+                            stateful=False,
+                            dropout=self.dropout_2,
+                            input_shape=(None, self.seq_length, None),
+                            return_sequences=True,
+                            implementation=2)))
+            model.add((LSTM(self.nb_lstm_units,
+                            stateful=False,
+                            dropout=self.dropout_2,
+                            input_shape=(None, self.seq_length, None),
+                            return_sequences=False,
+                            implementation=2)))
+        if self.nb_lstm_layers == 4:
+            model.add((LSTM(self.nb_lstm_units,
+                            stateful=False,
+                            dropout=self.dropout_2,
+                            input_shape=(None, self.seq_length, None),
+                            return_sequences=True,
+                            implementation=2)))
+            model.add((LSTM(self.nb_lstm_units,
+                            stateful=False,
+                            dropout=self.dropout_2,
+                            input_shape=(None, self.seq_length, None),
+                            return_sequences=True,
+                            implementation=2)))
+            model.add((LSTM(self.nb_lstm_units,
+                            stateful=False,
+                            dropout=self.dropout_2,
+                            input_shape=(None, self.seq_length, None),
+                            return_sequences=True,
+                            implementation=2)))
+            model.add((LSTM(self.nb_lstm_units,
+                            stateful=False,
+                            dropout=self.dropout_2,
+                            input_shape=(None, self.seq_length, None),
+                            return_sequences=False,
+                            implementation=2)))
+            model.add(Dense(self.nb_dense_units, activation='relu'))
+            model.add(Dropout(self.dropout_2))
         if self.nb_labels == 2:
             print("2 labels, using sigmoid activation instead of softmax.")
             model.add(Dense(self.nb_labels, activation='sigmoid'))
@@ -209,7 +311,7 @@ class Model:
         model.add(TimeDistributed(Flatten()))
         model.add((LSTM(self.nb_lstm_units,
                         stateful=True,
-                        dropout=self.dropout_rate,
+                        dropout=self.dropout_2,
                         input_shape=(None, self.seq_length, None),
                         return_sequences=False,
                         implementation=2)))
@@ -228,7 +330,7 @@ class Model:
         model.add(TimeDistributed(Flatten()))
         model.add((LSTM(self.nb_lstm_units,
                         stateful=False,
-                        dropout=self.dropout_rate,
+                        dropout=self.dropout_2,
                         input_shape=(None, self.seq_length, None),
                         return_sequences=False,
                         implementation=2
@@ -253,57 +355,33 @@ class Model:
         model.add(Dense(self.nb_labels, activation="softmax"))
         return model
 
-    def conv3d(self):
+    def conv3d_informed(self):
         model = Sequential()
         # 1st layer group
-        model.add(Convolution3D(64, 3, 3, 3, activation='relu',
-                                border_mode='same', name='conv1',
-                                subsample=(1, 1, 1),
+        model.add(Convolution3D(filters=self.nb_conv_filters,
+                                kernel_size=(self.kernel_size, self.kernel_size),
+                                activation='relu',
                                 input_shape=(self.seq_length, self.input_shape[0], self.input_shape[1], 3),
                                 batch_input_shape=(None, self.seq_length, self.input_shape[0], self.input_shape[1], 3)))
-        model.add(MaxPooling3D(pool_size=(1, 2, 2), strides=(1, 2, 2),
-                               border_mode='valid', name='pool1'))
-        # 2nd layer group
-        model.add(Convolution3D(128, 3, 3, 3, activation='relu',
-                                border_mode='same', name='conv2',
-                                subsample=(1, 1, 1)))
-        model.add(MaxPooling3D(pool_size=(2, 2, 2), strides=(2, 2, 2),
-                               border_mode='valid', name='pool2'))
-        # 3rd layer group
-        model.add(Convolution3D(256, 3, 3, 3, activation='relu',
-                                border_mode='same', name='conv3a',
-                                subsample=(1, 1, 1)))
-        model.add(Convolution3D(256, 3, 3, 3, activation='relu',
-                                border_mode='same', name='conv3b',
-                                subsample=(1, 1, 1)))
-        model.add(MaxPooling3D(pool_size=(2, 2, 2), strides=(2, 2, 2),
-                               border_mode='valid', name='pool3'))
-        # 4th layer group
-        model.add(Convolution3D(512, 3, 3, 3, activation='relu',
-                                border_mode='same', name='conv4a',
-                                subsample=(1, 1, 1)))
-        model.add(Convolution3D(512, 3, 3, 3, activation='relu',
-                                border_mode='same', name='conv4b',
-                                subsample=(1, 1, 1)))
-        model.add(MaxPooling3D(pool_size=(2, 2, 2), strides=(2, 2, 2),
-                               border_mode='valid', name='pool4'))
-        # 5th layer group
-        model.add(Convolution3D(512, 3, 3, 3, activation='relu',
-                                border_mode='same', name='conv5a',
-                                subsample=(1, 1, 1)))
-        model.add(Convolution3D(512, 3, 3, 3, activation='relu',
-                                border_mode='same', name='conv5b',
-                                subsample=(1, 1, 1)))
-        model.add(ZeroPadding3D(padding=(0, 1, 1)))
-        model.add(MaxPooling3D(pool_size=(2, 2, 2), strides=(2, 2, 2),
-                               border_mode='valid', name='pool5'))
+        model.add(Convolution3D(filters=self.nb_conv_filters,
+                                kernel_size=(self.kernel_size, self.kernel_size),
+                                activation='relu'))
+        model.add(MaxPooling3D())
+        model.add(Dropout(self.dropout_1))
+        model.add(BatchNormalization)
+        model.add(Convolution3D(filters=self.nb_conv_filters,
+                                kernel_size=(self.kernel_size, self.kernel_size),
+                                activation='relu'))
+        model.add(Convolution3D(filters=self.nb_conv_filters,
+                                kernel_size=(self.kernel_size, self.kernel_size),
+                                activation='relu'))
+        model.add(MaxPooling3D())
+        model.add(Dropout(self.dropout_1))
+        model.add(BatchNormalization)
         model.add(Flatten())
-        # FC layers group
-        model.add(Dense(4096, activation='relu', name='fc6'))
-        model.add(Dropout(.5))
-        model.add(Dense(4096, activation='relu', name='fc7'))
-        model.add(Dropout(.5))
-        model.add(Dense(487, activation='softmax', name='fc8'))
+        model.add(Dense(self.nb_dense_units, activation='relu'))
+        model.add(Dropout(self.dropout_2))
+        model.add(Dense(self.nb_labels, activation="softmax"))
 
         return model
 
@@ -322,7 +400,7 @@ class Model:
         model.add(TimeDistributed(Flatten()))
         model.add((LSTM(self.nb_lstm_units,
                         stateful=False,
-                        dropout=self.dropout_rate,
+                        dropout=self.dropout_2,
                         input_shape=(None, self.seq_length, None),
                         return_sequences=True,
                         implementation=2)))
@@ -345,7 +423,7 @@ class Model:
         model.add(TimeDistributed(Flatten()))
         model.add((LSTM(self.nb_lstm_units,
                         stateful=True,
-                        dropout=self.dropout_rate,
+                        dropout=self.dropout_2,
                         input_shape=(None, self.seq_length, None),
                         return_sequences=True,
                         implementation=2)))

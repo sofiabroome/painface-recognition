@@ -33,10 +33,14 @@ def parse_arguments():
                         help="Number of LSTM units")
     parser.add_argument('--nb-conv-filters', nargs='?', type=int,
                         help="Number of convolutional filters")
+    parser.add_argument('--nb-dense-units', nargs='?', type=int,
+                        help="Number of dense/fully connected units")
     parser.add_argument('--kernel-size', nargs='?', type=int,
                         help="Kernel size of convolutional filter")
-    parser.add_argument('--dropout-rate', nargs='?', type=float,
-                        help="Probability of dropout")
+    parser.add_argument('--dropout-1', nargs='?', type=float,
+                        help="Probability of dropout 1")
+    parser.add_argument('--dropout-2', nargs='?', type=float,
+                        help="Probability of dropout 2")
     parser.add_argument('--nb-epochs', nargs='?', type=int,
                         help="Number of training epochs")
     parser.add_argument('--early-stopping', nargs='?', type=int,
