@@ -159,7 +159,8 @@ class DataHandler:
         print(len(df))
         batch_index = 0
         while True:
-            df = shuffle_blocks(df)    
+            # Need not shuffle val gen right
+            # df = shuffle_blocks(df)
             for index, row in df.iterrows():
                 if batch_index == 0:
                     X_list = []
@@ -196,7 +197,8 @@ class DataHandler:
         print(len(df))
         batch_index = 0
         while True:
-            df = shuffle_blocks(df)    
+            # Need not shuffle test gen right
+            # df = shuffle_blocks(df)
             for index, row in df.iterrows():
                 if batch_index == 0:
                     X_list = []
@@ -244,7 +246,8 @@ class DataHandler:
         print(len(df))
         batch_index = 0
         while True:
-            df = shuffle_blocks(df)    
+            # Need not shuffle eval right
+            # df = shuffle_blocks(df)
             for index, row in df.iterrows():
                 if batch_index == 0:
                     X_list = []
