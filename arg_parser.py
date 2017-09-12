@@ -61,7 +61,7 @@ def parse_arguments():
                         help="Name of device to run on")
     parser.add_argument('--image-identifier', nargs='?', type=str,
                         help='Choose some string to identify the image of the training process')
-    parser.add_argument('--test', nargs='?', type=bool,
+    parser.add_argument('--test-run', nargs='?', type=bool,
                         help='Whether to run as a quick test or not.')
     parser.add_argument('--seq-length', nargs='?', type=int,
                         help="Length of sequence for LSTM and for 5D input stuff")
