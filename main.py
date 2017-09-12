@@ -13,7 +13,6 @@ import models
 
 TARGET_NAMES = ['NO_PAIN', 'PAIN']
 VAL_FRACTION = 0.1
-seq_length = 50
 COLOR = True
 
 pd.set_option('max_colwidth', 800)
@@ -34,9 +33,9 @@ def df_val_split(df, val_fraction, batch_size, round_to_batch=True):
 def run(args):
     print('batch size:')
     print(args.batch_size)
-    model = models.Model(seq_length, args)
+    model = models.Model(args)
     dh = DataHandler(args.data_path, (args.input_width, args.input_height),
-                     seq_length, args.batch_size, COLOR, args.nb_labels)
+                     args.seq_length, args.batch_size, COLOR, args.nb_labels)
     ev = Evaluator(True, True, True, TARGET_NAMES, args.batch_size)
 
     # dh.folders_to_csv()

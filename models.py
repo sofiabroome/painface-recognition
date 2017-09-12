@@ -10,7 +10,7 @@ from keras import backend as K
 
 
 class Model:
-    def __init__(self, seq_length, args):
+    def __init__(self, args):
         """
         A class to build the preferred model.
         :param name: str | The name of the model
@@ -31,7 +31,7 @@ class Model:
         self.nb_labels = args.nb_labels
         self.dropout_2 = args.dropout_2
         self.dropout_1 = args.dropout_1
-        self.seq_length = seq_length
+        self.seq_length = args.seq_length
         self.lr = args.lr
         self.optimizer = args.optimizer
         self.batch_size = args.batch_size

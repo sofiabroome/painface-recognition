@@ -63,6 +63,8 @@ def parse_arguments():
                         help='Choose some string to identify the image of the training process')
     parser.add_argument('--test', nargs='?', type=bool,
                         help='Whether to run as a quick test or not.')
+    parser.add_argument('--seq-length', nargs='?', type=int,
+                        help="Length of sequence for LSTM and for 5D input stuff")
     return parser.parse_args()
 
 
