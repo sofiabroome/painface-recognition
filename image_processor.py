@@ -10,7 +10,8 @@ def process_image(image_path, target_shape):
     :return: np.ndarray
     """
     # Load the image
-    h, w, _ = target_shape
+    w, h, c = target_shape
+    target_shape = (h, w, c)
     img = load_img(image_path, target_size=target_shape)
 
     return img_to_array(img).astype(np.float32)
