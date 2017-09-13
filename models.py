@@ -193,26 +193,26 @@ class Model:
                                 kernel_size=(self.kernel_size, self.kernel_size),
                                 input_shape=(self.input_shape[0], self.input_shape[1], 3),
                                 batch_input_shape=(None, self.input_shape[0], self.input_shape[1], 3),
-                                activation='relu'))
+                                activation='relu', kernel_initializer='he_uniform'))
         model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size),
-                                activation='relu'))
+                                activation='relu', kernel_initializer='he_uniform'))
         model.add(MaxPooling2D())
         model.add(Dropout(self.dropout_1))
         model.add(BatchNormalization())
         model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size),
-                                activation='relu'))
+                                activation='relu', kernel_initializer='he_uniform'))
         model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size),
-                                activation='relu'))
+                                activation='relu', kernel_initializer='he_uniform'))
         model.add(MaxPooling2D())
         model.add(Dropout(self.dropout_1))
         model.add(BatchNormalization())
         model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size),
-                                activation='relu'))
+                                activation='relu', kernel_initializer='he_uniform'))
         model.add(MaxPooling2D())
         model.add(Dropout(self.dropout_1))
         model.add(BatchNormalization())
         model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size),
-                                activation='relu'))
+                                activation='relu', kernel_initializer='he_uniform'))
         model.add(BatchNormalization())
         model.add(TimeDistributed(Flatten()))
         if self.nb_lstm_layers == 1:
@@ -279,7 +279,7 @@ class Model:
                             input_shape=(None, self.seq_length, None),
                             return_sequences=False,
                             implementation=2)))
-            model.add(Dense(self.nb_dense_units, activation='relu'))
+            model.add(Dense(self.nb_dense_units, activation='relu', kernel_initializer='he_uniform'))
             model.add(Dropout(self.dropout_2))
         if self.nb_labels == 2:
             print("2 labels, using sigmoid activation instead of softmax.")
