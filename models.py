@@ -383,10 +383,10 @@ class Model:
         model.add(MaxPooling3D())
         model.add(Dropout(self.dropout_1))
         model.add(BatchNormalization())
-        model.add(Flatten())
-        model.add(Dense(self.nb_dense_units, activation='relu'))
+        model.add(TimeDistributed(Flatten()))
+        model.add(TimeDistributed(Dense(self.nb_dense_units, activation='relu')))
         model.add(Dropout(self.dropout_2))
-        model.add(Dense(self.nb_labels, activation="softmax"))
+        model.add(TimeDistributed(Dense(self.nb_labels, activation="softmax")))
 
         return model
 
