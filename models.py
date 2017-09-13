@@ -24,7 +24,7 @@ class Model:
         :param optimizer: str | The name of the optimizer (Adam or Adagrad, here).
         """
         self.name = args.model
-        self.input_shape = (args.input_width, args.input_height)
+        self.input_shape = (args.input_height, args.input_width)
         self.nb_conv_filters = args.nb_conv_filters
         self.nb_lstm_units = args.nb_lstm_units
         self.kernel_size = args.kernel_size
