@@ -93,7 +93,6 @@ ENV/
 data/
 data_test/
 models/
-results/
 Logs/
 
 # Mac-stuff
