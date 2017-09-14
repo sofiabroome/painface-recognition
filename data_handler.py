@@ -33,7 +33,7 @@ class DataHandler:
         self.color = color
         self.nb_labels = nb_labels
 
-    def prepare_image_generator_5D(self, df, train, val, test, eval):
+    def prepare_generator_2stream(self, df_rgb, df_of, train, val, test, eval):
         """
         Prepare the frames into labeled train and test sets, with help from the
         DataFrame with .jpg-paths and labels for train and pain.
@@ -44,10 +44,7 @@ class DataHandler:
         :param eval: Boolean
         :return: np.ndarray, np.ndarray, np.ndarray, np.ndarray
         """
-        if train or val:
-            df = df.loc[df['Train'] == 1]
-        else:
-            df = df.loc[df['Train'] == 0]
+
         print("LEN DF:")
         print(len(df))
         while True:
@@ -76,22 +73,55 @@ class DataHandler:
                 if batch_index % self.batch_size == 0 and not batch_index == 0:
                     X_array = np.array(X_batch_list, dtype=np.float32)
                     y_array = np.array(y_batch_list, dtype=np.uint8)
-                    # print('Batch shapes:')
-                    # print(X_array.shape)
-                    # print(y_array.shape)
                     if self.nb_labels != 2:
                         y_array = np_utils.to_categorical(y_array, num_classes=self.nb_labels)
                         y_array = np.reshape(y_array, (self.batch_size, -1, self.nb_labels))
-                    # print('y array shape after reshape')
-                    # print(y_array.shape)
-                    # if train:
-                    #     X_array, y_array = train_datagen.flow(X_array, y_array, batch_size=self.batch_size).next()
-                    # if val:
-                    #     X_array, y_array = val_datagen.flow(X_array, y_array, batch_size=self.batch_size).next()
-                    # if test:
-                    #     X_array, y_array = test_datagen.flow(X_array, y_array, batch_size=self.batch_size).next()
-                    # if eval:
-                    #     X_array, y_array = eval_datagen.flow(X_array, y_array, batch_size=self.batch_size).next()
+                    batch_index = 0
+                    yield (X_array, y_array)
+
+    def prepare_image_generator_5D(self, df, train, val, test, eval):
+        """
+        Prepare the frames into labeled train and test sets, with help from the
+        DataFrame with .jpg-paths and labels for train and pain.
+        :param df: pd.DataFrame
+        :param train: Boolean
+        :param val: Boolean
+        :param test: Boolean
+        :param eval: Boolean
+        :return: np.ndarray, np.ndarray, np.ndarray, np.ndarray
+        """
+
+        print("LEN DF:")
+        print(len(df))
+        while True:
+            # Shuffle blocks between epochs.
+            df = shuffle_blocks(df)
+            batch_index = 0
+            seq_index = 0
+            for index, row in df.iterrows():
+                if seq_index == 0:
+                    X_seq_list = []
+                    y_seq_list = []
+                x = self.get_image(row['Path'])
+                y = row['Pain']
+                X_seq_list.append(x)
+                y_seq_list.append(y)
+                seq_index += 1
+                if seq_index % self.seq_length == 0:
+                    if batch_index == 0:
+                        X_batch_list = []
+                        y_batch_list = []
+                    X_batch_list.append(X_seq_list)
+                    y_batch_list.append(y_seq_list)
+                    seq_index = 0
+                    batch_index += 1
+
+                if batch_index % self.batch_size == 0 and not batch_index == 0:
+                    X_array = np.array(X_batch_list, dtype=np.float32)
+                    y_array = np.array(y_batch_list, dtype=np.uint8)
+                    if self.nb_labels != 2:
+                        y_array = np_utils.to_categorical(y_array, num_classes=self.nb_labels)
+                        y_array = np.reshape(y_array, (self.batch_size, -1, self.nb_labels))
                     batch_index = 0
                     yield (X_array, y_array)
 
@@ -126,16 +156,11 @@ class DataHandler:
                 batch_index += 1
 
                 if batch_index % self.batch_size == 0:
+                    # TODO Test normalization here (divide X-array by 255).
                     X_array = np.array(X_list, dtype=np.float32)
                     y_array = np.array(y_list, dtype=np.uint8)
                     y_array = np_utils.to_categorical(y_array, num_classes=self.nb_labels)
                     X_array, y_array = train_datagen.flow(X_array, y_array, batch_size=self.batch_size).next()
-                    # if train:
-                    #     X_array, y_array = train_datagen.flow(X_array, y_array, batch_size=self.batch_size).next()
-                    # if val:
-                    #     X_array, y_array = val_datagen.flow(X_array, y_array, batch_size=self.batch_size).next()
-                    # if test:
-                    #     X_array, y_array = test_datagen.flow(X_array, y_array, batch_size=self.batch_size).next()
                     batch_index = 0
                     yield (X_array, y_array)
 
@@ -212,18 +237,7 @@ class DataHandler:
                 if batch_index % self.batch_size == 0:
                     X_array = np.array(X_list, dtype=np.float32)
                     y_array = np.array(y_list, dtype=np.uint8)
-                    # print("**************************************")
-                    # print("Inside prep image test generator:")
-                    # print("X array shape:")
-                    # print(X_array.shape)
-                    # print("y array shape:")
-                    # print(y_array.shape)
                     y_array = np_utils.to_categorical(y_array, num_classes=self.nb_labels)
-#                     print('y_array test  after to categorical:')
-#                     print(y_array)
-                    #pp print(y_array.shape)
-                    # print("**************************************")
-
                     X_array, y_array = test_datagen.flow(X_array, y_array, batch_size=self.batch_size).next()
                     batch_index = 0
                     yield (X_array, y_array)
@@ -253,8 +267,6 @@ class DataHandler:
                     X_list = []
                     y_list = []
                 x = self.get_image(row['Path'])
-                # print('image from path: ', row['Path'])
-                # print(x)
                 y = row['Pain']
                 X_list.append(x)
                 y_list.append(y)
@@ -263,16 +275,7 @@ class DataHandler:
                 if batch_index % self.batch_size == 0:
                     X_array = np.array(X_list, dtype=np.float32)
                     y_array = np.array(y_list, dtype=np.uint8)
-                    # print("**************************************")
-                    # print("Inside prep image test generator:")
-                    # print("X array shape:")
-                    # print(X_array.shape)
-                    # print("y array shape:")
-                    # print(y_array.shape)
                     y_array = np_utils.to_categorical(y_array, num_classes=self.nb_labels)
-                    # print(y_array.shape)
-                    # print("**************************************")
-
                     X_array, y_array = eval_datagen.flow(X_array, y_array, batch_size=self.batch_size).next()
                     batch_index = 0
                     yield (X_array, y_array)
@@ -361,6 +364,7 @@ class DataHandler:
         df = df[df['FileName'] != '.jpg']
         return df
 
+    # TODO Merge the two below functions (horse_to_df and save_OF_paths_to_df, same functionality)
     def horse_to_df(self, horse_id):
         """
         Create a DataFrame with all the frames with annotations from a csv-file.
@@ -385,6 +389,31 @@ class DataHandler:
                     horse_df.loc[c] = [vid_id, total_path, pain_field, observer_field, train_field]
                     c += 1
         return horse_df
+
+    def save_OF_paths_to_df(self, horse_id):
+        """
+        Create a DataFrame with all the optical flow paths with annotations from a csv-file.
+        :param horse_id: int
+        :return: pd.DataFrame
+        """
+        df_csv = pd.read_csv('videos_overview_missingremoved.csv', sep=';')
+        OF_path_df = pd.DataFrame(columns=['Video_ID', 'Path', 'Pain', 'Observer', 'Train'])
+        c = 0
+        horse_path = 'data/jpg_320_180_1fps_OF/horse_' + str(horse_id) + '/'
+        for path, dirs, files in os.walk(horse_path):
+            print(path)
+            for filename in files:
+                total_path = join(path, filename)
+                print(total_path)
+                vid_id = get_video_id_from_path(path)
+                csv_row = df_csv.loc[df_csv['Video_id'] == vid_id]
+                if '.npy' in filename:
+                    train_field = -1
+                    pain_field = csv_row.iloc[0]['Pain']
+                    observer_field = csv_row.iloc[0]['Observer']
+                    OF_path_df.loc[c] = [vid_id, total_path, pain_field, observer_field, train_field]
+                    c += 1
+        return OF_path_df
 
     def _get_images_from_df(self, df):
         """
