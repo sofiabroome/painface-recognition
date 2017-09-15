@@ -30,6 +30,47 @@ def df_val_split(df, val_fraction, batch_size, round_to_batch=True):
     return df_train, df_val
 
 
+def read_or_create_horse_dfs(dh):
+    # Read or create the per-horse dataframes listing all the frame paths and labels.
+    horse_dfs = []
+    for horse in range(1,7):
+        print(args.data_path)
+        horse_csv_path = args.data_path + 'horse_' + str(horse) + '.csv'
+        if os.path.isfile(horse_csv_path):
+            hdf = pd.read_csv(horse_csv_path)
+        else:
+            print('Making a DataFrame for horse id: ', horse)
+            hdf = dh.horse_to_df(horse)
+            hdf.to_csv(path_or_buf=horse_csv_path)
+        horse_dfs.append(hdf)
+    return horse_dfs
+
+
+def read_or_create_horse_rgb_and_OF_dfs(dh, horse_dfs):
+    # Read or create the per-horse optical flow files listing all the frame paths and labels.
+    horse_rgb_OF_dfs = []
+    for horse_id in range(1, 7):
+        print(args.data_path)
+        horse_of_csv_path = 'data/jpg_320_180_1fps_OF/horse_' + str(horse_id) + '.csv'
+        if os.path.isfile(horse_of_csv_path):
+            hdf = pd.read_csv(horse_of_csv_path)
+        else:
+            print('Making a DataFrame for horse id: ', horse_id)
+            hdf = dh.save_OF_paths_to_df(horse_id, horse_dfs[horse_id])
+            hdf.to_csv(path_or_buf=horse_of_csv_path)
+        horse_rgb_OF_dfs.append(hdf)
+    return horse_rgb_OF_dfs
+
+
+def set_train_test_in_df(train_horses, test_horses, dfs):
+    for trh in train_horses:
+        dfs[trh]['Train'] = 1
+
+    for teh in test_horses:
+        dfs[teh]['Train'] = 0
+    return dfs
+
+
 def run():
 
     # Some initial print outs to keep track of the training mode,
@@ -51,24 +92,10 @@ def run():
     ev = Evaluator(True, True, True, TARGET_NAMES, args.batch_size)
 
     # Read or create the per-horse dataframes listing all the frame paths and labels.
-    horse_dfs = []
-    for horse in range(1,7):
-        print(args.data_path)
-        horse_csv_path = args.data_path + 'horse_' + str(horse) + '.csv'
-        if os.path.isfile(horse_csv_path):
-            hdf = pd.read_csv(horse_csv_path)
-        else:
-            print('Making a DataFrame for horse id: ', horse)
-            hdf = dh.horse_to_df(horse)
-            hdf.to_csv(path_or_buf=horse_csv_path)
-        horse_dfs.append(hdf)
+    horse_dfs = read_or_create_horse_dfs(dh)
 
     # Set the train-column to 1 (yes) or 0 (no).
-    for trh in train_horses:
-        horse_dfs[trh]['Train'] = 1
-
-    for teh in test_horses:
-        horse_dfs[teh]['Train'] = 0
+    horse_dfs = set_train_test_in_df(train_horses, test_horses, horse_dfs)
 
     # Put all the separate horse-dfs into one DataFrame.
     df = pd.concat(horse_dfs)
@@ -97,18 +124,9 @@ def run():
 
     elif '2stream' in args.model:
         # Read or create the per-horse optical flow files listing all the frame paths and labels.
-        horse_dfs = []
-        for horse in range(1, 7):
-            print(args.data_path)
-            horse_of_csv_path = 'data/jpg_320_180_1fps_OF/horse_' + str(horse) + '.csv'
-            if os.path.isfile(horse_of_csv_path):
-                hdf = pd.read_csv(horse_of_csv_path)
-            else:
-                print('Making a DataFrame for horse id: ', horse)
-                hdf = dh.save_OF_paths_to_df(horse)
-                hdf.to_csv(path_or_buf=horse_of_csv_path)
-            horse_dfs.append(hdf)
-        df_of = None
+        horse_rgb_OF_dfs = read_or_create_horse_rgb_and_OF_dfs(dh, horse_dfs)
+        horse_rgb_OF_dfs = set_train_test_in_df(train_horses, test_horses, horse_rgb_OF_dfs)
+        df_of = pd.concat(horse_rgb_OF_dfs)
         train_generator = dh.prepare_generator_2stream(df_train, df_of, train=True, val=False, test=False, eval=False)
         val_generator = dh.prepare_generator_2stream(df_val, df_of, train=False, val=True, test=False, eval=False)
         test_generator = dh.prepare_generator_2stream(df[df['Train'] == 0], df_of, train=False, val=False, test=True, eval=False)
