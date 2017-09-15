@@ -398,17 +398,18 @@ class DataHandler:
                     c += 1
         return horse_df
 
-    def save_OF_paths_to_df(self, horse_id):
+    def save_OF_paths_to_df(self, horse_id, horse_df):
         """
-        Create a DataFrame with all the optical flow paths with annotations from a csv-file.
+        Create a DataFrame with all the optical flow paths with annotations from a csv-file,
+        then join it with the existing horse df with rgb paths.
         :param horse_id: int
         :return: pd.DataFrame
         """
         df_csv = pd.read_csv('videos_overview_missingremoved.csv', sep=';')
-        OF_path_df = pd.DataFrame(columns=['Video_ID', 'Path', 'Pain', 'Observer', 'Train'])
+        OF_path_df = pd.DataFrame(columns=['OF_Path'])
         c = 0
-        horse_path = 'data/jpg_320_180_1fps_OF/horse_' + str(horse_id) + '/'
-        for path, dirs, files in os.walk(horse_path):
+        root_of_path = 'data/jpg_320_180_1fps_OF/horse_' + str(horse_id) + '/'
+        for path, dirs, files in os.walk(root_of_path):
             print(path)
             for filename in files:
                 total_path = join(path, filename)
@@ -416,12 +417,13 @@ class DataHandler:
                 vid_id = get_video_id_from_path(path)
                 csv_row = df_csv.loc[df_csv['Video_id'] == vid_id]
                 if '.npy' in filename:
-                    train_field = -1
-                    pain_field = csv_row.iloc[0]['Pain']
-                    observer_field = csv_row.iloc[0]['Observer']
-                    OF_path_df.loc[c] = [vid_id, total_path, pain_field, observer_field, train_field]
+                    OF_path_df.loc[c] = [total_path]
                     c += 1
-        return OF_path_df
+        # Now extend horse_df to contain both rgb and OF paths, return whole thing.
+        if len(horse_df) != len(OF_path_df):
+            horse_df = horse_df[:-1]
+        horse_df['OF_Path'] = pd.Series(OF_path_df['OF_Path'])
+        return horse_df
 
     def _get_images_from_df(self, df):
         """
