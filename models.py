@@ -1,15 +1,15 @@
 from keras.layers import Convolution2D, Convolution3D, MaxPooling2D, MaxPooling3D, LSTM, Dense, Flatten
-from keras.layers import ZeroPadding3D, Dropout, BatchNormalization
+from keras.layers import ZeroPadding3D, Dropout, BatchNormalization, concatenate, Input
 from keras.layers.wrappers import TimeDistributed
 from keras.optimizers import Adam, Adagrad
 from keras.applications import InceptionV3
-from keras.models import Sequential
+from keras.models import Sequential, Model
 from keras import backend as K
 
 # K.set_image_dim_ordering('th')
 
 
-class Model:
+class MyModel:
     def __init__(self, args):
         """
         A class to build the preferred model.
@@ -48,7 +48,7 @@ class Model:
 
         if self.name == 'conv2d_lstm':
             print("Conv2d-lstm model")
-            self.model = self.conv2d_lstm()
+            self.model = self.conv2d_lstm(channels=3)
 
         if self.name == 'conv2d_lstm_informed':
             print("Conv2d-lstm model informed")
@@ -70,6 +70,10 @@ class Model:
             print('inception_lstm_4d_input')
             self.model = self.inception_lstm_4d_input()
 
+        if self.name == '2stream':
+            print('2stream')
+            self.model = self.two_stream()
+
 
         if self.optimizer == 'adam':
             optimizer = Adam(lr=self.lr)
@@ -88,12 +92,33 @@ class Model:
                            optimizer=optimizer,
                            metrics=['binary_accuracy'])
 
-    def conv2d_lstm(self):
+    def two_stream(self):
+        # Functional API
+        rgb_model = self.conv2d_lstm_without_top_layer(channels=3)
+        # rgb_model = Convolution2D(64, activation='relu')(inputs)
+        image_input = Input(shape=(self.input_shape[0], self.input_shape[1], 3))
+        encoded_image = rgb_model(image_input)
+
+        of_model = self.conv2d_lstm_without_top_layer(channels=3)
+        of_input = Input(shape=(self.input_shape[0], self.input_shape[1], 3))
+        encoded_of = of_model(of_input)
+
+        merged = concatenate([encoded_image, encoded_of], axis=-1)
+
+        if self.nb_labels == 2:
+            output = Dense(self.nb_labels, activation='sigmoid')(merged)
+        else:
+            output = Dense(self.nb_labels, activation='softmax')(merged)
+
+        two_stream_model = Model(inputs=[image_input, of_input], output=[output])
+        return two_stream_model
+
+    def conv2d_lstm(self, channels):
         model = Sequential()
         model.add(Convolution2D(filters=self.nb_conv_filters,
                                 kernel_size=(self.kernel_size, self.kernel_size),
-                                input_shape=(self.input_shape[0], self.input_shape[1], 3),
-                                batch_input_shape=(None, self.input_shape[0], self.input_shape[1], 3),
+                                input_shape=(self.input_shape[0], self.input_shape[1], channels),
+                                batch_input_shape=(None, self.input_shape[0], self.input_shape[1], channels),
                                 activation='relu', kernel_initializer='he_uniform'))
         model.add(MaxPooling2D())
         model.add(BatchNormalization())
@@ -185,6 +210,100 @@ class Model:
             model.add(Dense(self.nb_labels, activation='sigmoid'))
         else:
             model.add(Dense(self.nb_labels, activation='softmax'))
+        return model
+
+    def conv2d_lstm_without_top_layer(self, channels):
+        model = Sequential()
+        model.add(Convolution2D(filters=self.nb_conv_filters,
+                                kernel_size=(self.kernel_size, self.kernel_size),
+                                input_shape=(self.input_shape[0], self.input_shape[1], channels),
+                                batch_input_shape=(None, self.input_shape[0], self.input_shape[1], channels),
+                                activation='relu', kernel_initializer='he_uniform'))
+        model.add(MaxPooling2D())
+        model.add(BatchNormalization())
+        model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size),
+                                activation='relu', kernel_initializer='he_uniform'))
+        model.add(MaxPooling2D())
+        model.add(BatchNormalization())
+        model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size),
+                                activation='relu', kernel_initializer='he_uniform'))
+        model.add(MaxPooling2D())
+        model.add(BatchNormalization())
+        model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size),
+                                activation='relu', kernel_initializer='he_uniform'))
+        model.add(MaxPooling2D())
+        model.add(BatchNormalization())
+        model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size),
+                                activation='relu', kernel_initializer='he_uniform'))
+        model.add(BatchNormalization())
+        model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(3, 3),
+                                activation='relu', kernel_initializer='he_uniform'))
+        model.add(BatchNormalization())
+        model.add(TimeDistributed(Flatten()))
+        if self.nb_lstm_layers == 1:
+            model.add((LSTM(self.nb_lstm_units,
+                            stateful=False,
+                            dropout=self.dropout_2,
+                            input_shape=(None, self.seq_length, None),
+                            return_sequences=False,
+                            implementation=2)))
+        if self.nb_lstm_layers == 2:
+            model.add((LSTM(self.nb_lstm_units,
+                            stateful=False,
+                            dropout=self.dropout_2,
+                            input_shape=(None, self.seq_length, None),
+                            return_sequences=True,
+                            implementation=2)))
+            model.add((LSTM(self.nb_lstm_units,
+                            stateful=False,
+                            dropout=self.dropout_2,
+                            input_shape=(None, self.seq_length, None),
+                            return_sequences=False,
+                            implementation=2)))
+        if self.nb_lstm_layers == 3:
+            model.add((LSTM(self.nb_lstm_units,
+                            stateful=False,
+                            dropout=self.dropout_2,
+                            input_shape=(None, self.seq_length, None),
+                            return_sequences=True,
+                            implementation=2)))
+            model.add((LSTM(self.nb_lstm_units,
+                            stateful=False,
+                            dropout=self.dropout_2,
+                            input_shape=(None, self.seq_length, None),
+                            return_sequences=True,
+                            implementation=2)))
+            model.add((LSTM(self.nb_lstm_units,
+                            stateful=False,
+                            dropout=self.dropout_2,
+                            input_shape=(None, self.seq_length, None),
+                            return_sequences=False,
+                            implementation=2)))
+        if self.nb_lstm_layers == 4:
+            model.add((LSTM(self.nb_lstm_units,
+                            stateful=False,
+                            dropout=self.dropout_2,
+                            input_shape=(None, self.seq_length, None),
+                            return_sequences=True,
+                            implementation=2)))
+            model.add((LSTM(self.nb_lstm_units,
+                            stateful=False,
+                            dropout=self.dropout_2,
+                            input_shape=(None, self.seq_length, None),
+                            return_sequences=True,
+                            implementation=2)))
+            model.add((LSTM(self.nb_lstm_units,
+                            stateful=False,
+                            dropout=self.dropout_2,
+                            input_shape=(None, self.seq_length, None),
+                            return_sequences=True,
+                            implementation=2)))
+            model.add((LSTM(self.nb_lstm_units,
+                            stateful=False,
+                            dropout=self.dropout_2,
+                            input_shape=(None, self.seq_length, None),
+                            return_sequences=False,
+                            implementation=2)))
         return model
 
     def conv2d_lstm_informed(self):
