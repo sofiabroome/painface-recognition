@@ -146,6 +146,7 @@ class DataHandler:
                     X_list = []
                     y_list = []
                 x = self.get_image(row['Path'])
+                x /= 255
                 y = row['Pain']
                 X_list.append(x)
                 y_list.append(y)
@@ -189,6 +190,7 @@ class DataHandler:
                     X_list = []
                     y_list = []
                 x = self.get_image(row['Path'])
+                x /= 255
                 y = row['Pain']
                 X_list.append(x)
                 y_list.append(y)
@@ -229,6 +231,7 @@ class DataHandler:
                     X_list = []
                     y_list = []
                 x = self.get_image(row['Path'])
+                x /= 255
                 y = row['Pain']
                 X_list.append(x)
                 y_list.append(y)
@@ -269,6 +272,7 @@ class DataHandler:
                     X_list = []
                     y_list = []
                 x = self.get_image(row['Path'])
+                x /= 255
                 y = row['Pain']
                 X_list.append(x)
                 y_list.append(y)
@@ -384,7 +388,7 @@ class DataHandler:
             for filename in files:
                 total_path = join(path, filename)
                 print(total_path)
-                vid_id = get_video_id_from_path(path)
+                vid_id = get_video_id_stem_from_path(path)
                 csv_row = df_csv.loc[df_csv['Video_id'] == vid_id]
                 if '.jpg' in filename or '.png' in filename:
                     train_field = -1
@@ -403,12 +407,19 @@ class DataHandler:
         """
         OF_path_df = pd.DataFrame(columns=['OF_Path'])
         c = 0
+        old_path = 'NoPath'
         root_of_path = 'data/jpg_320_180_1fps_OF/horse_' + str(horse_id) + '/'
         for path, dirs, files in os.walk(root_of_path):
             print(path)
+            # import ipdb; ipdb.set_trace()
+            if old_path != path and c != 0:
+                horse_df.drop(c, inplace=True)
+                horse_df.reset_index(drop=True, inplace=True)
+            old_path = path
             for filename in files:
                 total_path = join(path, filename)
-                print(total_path)
+                # import ipdb; ipdb.set_trace()
+                # print(total_path)
                 if '.npy' in filename:
                     OF_path_df.loc[c] = [total_path]
                     c += 1
@@ -422,7 +433,8 @@ class DataHandler:
             horse_df = horse_df[:-diff]
         # Add column (concatenate)
         try:
-            horse_df['OF_Path'] = pd.Series(OF_path_df['OF_Path'], index=horse_df.index)
+            # horse_df = horse_df.assign()
+            horse_df.loc[:, 'OF_Path'] = pd.Series(OF_path_df['OF_Path'])
         except AssertionError:
             print('Horse df and OF_df were not the same length and could not be concatenated.')
             print('Despite having removed the last element of horse df which should be 1 longer.')
@@ -446,11 +458,16 @@ class DataHandler:
         return images
 
 
-def get_video_id_from_path(path):
+def get_video_id_stem_from_path(path):
     _, vid_id = split_string_at_last_occurence_of_certain_char(path, '/')
     nb_underscore = vid_id.count('_')
     if nb_underscore > 1:
         vid_id, _ = split_string_at_last_occurence_of_certain_char(vid_id, '_')
+    return vid_id
+
+def get_video_id_from_path(path):
+    _, vid_id = split_string_at_last_occurence_of_certain_char(path, '/')
+    nb_underscore = vid_id.count('_')
     return vid_id
 
 
