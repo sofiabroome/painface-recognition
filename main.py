@@ -56,7 +56,7 @@ def read_or_create_horse_rgb_and_OF_dfs(dh, horse_dfs):
             hdf = pd.read_csv(horse_of_csv_path)
         else:
             print('Making a DataFrame for horse id: ', horse_id)
-            hdf = dh.save_OF_paths_to_df(horse_id, horse_dfs[horse_id])
+            hdf = dh.save_OF_paths_to_df(horse_id, horse_dfs[horse_id-1])
             hdf.to_csv(path_or_buf=horse_of_csv_path)
         horse_rgb_OF_dfs.append(hdf)
     return horse_rgb_OF_dfs
@@ -86,7 +86,7 @@ def run():
     print('Horses to train on: ', train_horses)
     print('Horses to test on: ', test_horses)
 
-    model = models.Model(args)
+    model = models.MyModel(args)
     dh = DataHandler(args.data_path, (args.input_width, args.input_height),
                      args.seq_length, args.batch_size, COLOR, args.nb_labels)
     ev = Evaluator(True, True, True, TARGET_NAMES, args.batch_size)
@@ -101,7 +101,8 @@ def run():
     df = pd.concat(horse_dfs)
 
     # Shuffle the different sequences (like 1_1a_1) so that they don't always
-    # appear in the same order.
+    # appear in the same order. Also done in generator but we do it here so that
+    # the validation set is more random as well.
     df = shuffle_blocks(df)
 
     # Split training data so there is a held out validation set.
@@ -126,11 +127,21 @@ def run():
         # Read or create the per-horse optical flow files listing all the frame paths and labels.
         horse_rgb_OF_dfs = read_or_create_horse_rgb_and_OF_dfs(dh, horse_dfs)
         horse_rgb_OF_dfs = set_train_test_in_df(train_horses, test_horses, horse_rgb_OF_dfs)
-        df_of = pd.concat(horse_rgb_OF_dfs)
-        train_generator = dh.prepare_generator_2stream(df_train, df_of, train=True, val=False, test=False, eval=False)
-        val_generator = dh.prepare_generator_2stream(df_val, df_of, train=False, val=True, test=False, eval=False)
-        test_generator = dh.prepare_generator_2stream(df[df['Train'] == 0], df_of, train=False, val=False, test=True, eval=False)
-        eval_generator = dh.prepare_generator_2stream(df[df['Train'] == 0], df_of, train=False, val=False, test=False, eval=True)
+        df_rgb_and_of = pd.concat(horse_rgb_OF_dfs)
+        df_rgb_and_of = shuffle_blocks(df_rgb_and_of)
+        # Split into train and test
+        df_train_rgbof, df_val_rgbof = df_val_split(df_rgb_and_of,
+                                                    val_fraction=VAL_FRACTION,
+                                                    batch_size=args.batch_size,
+                                                    round_to_batch=args.round_to_batch)
+        train_generator = dh.prepare_generator_2stream(df_train_rgbof,
+                                                       train=True, val=False, test=False, eval=False)
+        val_generator = dh.prepare_generator_2stream(df_val_rgbof,
+                                                     train=False, val=True, test=False, eval=False)
+        test_generator = dh.prepare_generator_2stream(df_rgb_and_of[df_rgb_and_of['Train'] == 0],
+                                                      train=False, val=False, test=True, eval=False)
+        eval_generator = dh.prepare_generator_2stream(df_rgb_and_of[df_rgb_and_of['Train'] == 0],
+                                                      train=False, val=False, test=False, eval=True)
     # Prepare the training and testing data for 4D-input (batches of frames)
     else:        
         train_generator = dh.prepare_train_image_generator(df_train, train=True, val=False, test=False)
