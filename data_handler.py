@@ -33,7 +33,7 @@ class DataHandler:
         self.color = color
         self.nb_labels = nb_labels
 
-    def prepare_generator_2stream(self, df_rgb, df_of, train, val, test, eval):
+    def prepare_generator_2stream(self, df, train, val, test, eval):
         """
         Prepare the frames into labeled train and test sets, with help from the
         DataFrame with .jpg-paths and labels for train and pain.
@@ -51,33 +51,29 @@ class DataHandler:
             # Shuffle blocks between epochs.
             df = shuffle_blocks(df)
             batch_index = 0
-            seq_index = 0
             for index, row in df.iterrows():
-                if seq_index == 0:
-                    X_seq_list = []
-                    y_seq_list = []
+                if batch_index == 0:
+                    X_batch_list = []
+                    y_batch_list = []
+                    flow_batch_list = []
                 x = self.get_image(row['Path'])
                 y = row['Pain']
-                X_seq_list.append(x)
-                y_seq_list.append(y)
-                seq_index += 1
-                if seq_index % self.seq_length == 0:
-                    if batch_index == 0:
-                        X_batch_list = []
-                        y_batch_list = []
-                    X_batch_list.append(X_seq_list)
-                    y_batch_list.append(y_seq_list)
-                    seq_index = 0
-                    batch_index += 1
+                flow = np.load(row['OF_Path'])
+                extra_channel = np.zeros((flow.shape[0], flow.shape[1], 1))
+                flow = np.concatenate((flow, extra_channel), axis=2)
+                X_batch_list.append(x)
+                y_batch_list.append(y)
+                flow_batch_list.append(flow)
+                batch_index += 1
 
-                if batch_index % self.batch_size == 0 and not batch_index == 0:
+                if batch_index % self.batch_size == 0:
                     X_array = np.array(X_batch_list, dtype=np.float32)
                     y_array = np.array(y_batch_list, dtype=np.uint8)
-                    if self.nb_labels != 2:
-                        y_array = np_utils.to_categorical(y_array, num_classes=self.nb_labels)
-                        y_array = np.reshape(y_array, (self.batch_size, -1, self.nb_labels))
+                    flow_array = np.array(flow_batch_list, dtype=np.float32)
+                    y_array = np_utils.to_categorical(y_array, num_classes=self.nb_labels)
+                    y_array = np.reshape(y_array, (self.batch_size, self.nb_labels))
                     batch_index = 0
-                    yield (X_array, y_array)
+                    yield [X_array, flow_array], [y_array]
 
     def prepare_image_generator_5D(self, df, train, val, test, eval):
         """
@@ -119,7 +115,7 @@ class DataHandler:
                 if batch_index % self.batch_size == 0 and not batch_index == 0:
                     X_array = np.array(X_batch_list, dtype=np.float32)
                     y_array = np.array(y_batch_list, dtype=np.uint8)
-                    if self.nb_labels != 2:
+                    if self.nb_labels == 2:
                         y_array = np_utils.to_categorical(y_array, num_classes=self.nb_labels)
                         y_array = np.reshape(y_array, (self.batch_size, -1, self.nb_labels))
                     batch_index = 0
@@ -405,7 +401,6 @@ class DataHandler:
         :param horse_id: int
         :return: pd.DataFrame
         """
-        df_csv = pd.read_csv('videos_overview_missingremoved.csv', sep=';')
         OF_path_df = pd.DataFrame(columns=['OF_Path'])
         c = 0
         root_of_path = 'data/jpg_320_180_1fps_OF/horse_' + str(horse_id) + '/'
@@ -414,15 +409,24 @@ class DataHandler:
             for filename in files:
                 total_path = join(path, filename)
                 print(total_path)
-                vid_id = get_video_id_from_path(path)
-                csv_row = df_csv.loc[df_csv['Video_id'] == vid_id]
                 if '.npy' in filename:
                     OF_path_df.loc[c] = [total_path]
                     c += 1
         # Now extend horse_df to contain both rgb and OF paths, return whole thing.
         if len(horse_df) != len(OF_path_df):
-            horse_df = horse_df[:-1]
-        horse_df['OF_Path'] = pd.Series(OF_path_df['OF_Path'])
+            diff = len(horse_df) - len(OF_path_df)
+            print("Differed by:", diff)
+
+            # They should only differ by one row.
+            # Else an error should be raised when concatenating.
+            horse_df = horse_df[:-diff]
+        # Add column (concatenate)
+        try:
+            horse_df['OF_Path'] = pd.Series(OF_path_df['OF_Path'], index=horse_df.index)
+        except AssertionError:
+            print('Horse df and OF_df were not the same length and could not be concatenated.')
+            print('Despite having removed the last element of horse df which should be 1 longer.')
+
         return horse_df
 
     def _get_images_from_df(self, df):
