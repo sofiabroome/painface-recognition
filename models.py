@@ -368,12 +368,12 @@ class MyModel:
                 model.add(Dense(self.nb_labels, activation='softmax'))
         return model
 
-    def conv2d_lstm_stateful(self, top_layer = True):
+    def conv2d_lstm_stateful(self, channels = 3, top_layer = True):
         model = Sequential()
         model.add(Convolution2D(filters=self.nb_conv_filters,
                                 kernel_size=(self.kernel_size, self.kernel_size),
-                                input_shape=(self.input_shape[0], self.input_shape[1], 3),
-                                batch_input_shape=(self.batch_size, self.input_shape[0], self.input_shape[1], 3),
+                                input_shape=(self.input_shape[0], self.input_shape[1], channels),
+                                batch_input_shape=(self.batch_size, self.input_shape[0], self.input_shape[1], channels),
                                 activation='relu'))
         model.add(MaxPooling2D())
         model.add(BatchNormalization())
