@@ -12,7 +12,7 @@ import arg_parser
 import models
 
 TARGET_NAMES = ['NO_PAIN', 'PAIN']
-VAL_FRACTION = 0.1
+VAL_FRACTION = 0.2
 COLOR = True
 
 pd.set_option('max_colwidth', 800)

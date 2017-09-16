@@ -122,7 +122,7 @@ class MyModel:
 
     def two_stream(self):
         # Functional API
-        rgb_model = self.conv2d_lstm_without_top_layer(channels=3)
+        rgb_model = self.conv2d_lstm(channels=3, top_layer=False)
         image_input = Input(shape=(self.input_shape[0], self.input_shape[1], 3))
         encoded_image = rgb_model(image_input)
 
@@ -141,106 +141,28 @@ class MyModel:
         two_stream_model = Model(inputs=[image_input, of_input], output=[output])
         return two_stream_model
 
-    def conv2d_lstm(self, channels):
-        model = Sequential()
-        model.add(Convolution2D(filters=self.nb_conv_filters,
-                                kernel_size=(self.kernel_size, self.kernel_size),
-                                input_shape=(self.input_shape[0], self.input_shape[1], channels),
-                                batch_input_shape=(None, self.input_shape[0], self.input_shape[1], channels),
-                                activation='relu', kernel_initializer='he_uniform'))
-        model.add(MaxPooling2D())
-        model.add(BatchNormalization())
-        model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size),
-                                activation='relu', kernel_initializer='he_uniform'))
-        model.add(MaxPooling2D())
-        model.add(BatchNormalization())
-        model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size),
-                                activation='relu', kernel_initializer='he_uniform'))
-        model.add(MaxPooling2D())
-        model.add(BatchNormalization())
-        model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size),
-                                activation='relu', kernel_initializer='he_uniform'))
-        model.add(MaxPooling2D())
-        model.add(BatchNormalization())
-        model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size),
-                                activation='relu', kernel_initializer='he_uniform'))
-        model.add(BatchNormalization())
-        model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(3, 3),
-                                activation='relu', kernel_initializer='he_uniform'))
-        model.add(BatchNormalization())
-        model.add(TimeDistributed(Flatten()))
-        if self.nb_lstm_layers == 1:
-            model.add((LSTM(self.nb_lstm_units,
-                            stateful=False,
-                            dropout=self.dropout_2,
-                            input_shape=(None, self.seq_length, None),
-                            return_sequences=False,
-                            implementation=2)))
-        if self.nb_lstm_layers == 2:
-            model.add((LSTM(self.nb_lstm_units,
-                            stateful=False,
-                            dropout=self.dropout_2,
-                            input_shape=(None, self.seq_length, None),
-                            return_sequences=True,
-                            implementation=2)))
-            model.add((LSTM(self.nb_lstm_units,
-                            stateful=False,
-                            dropout=self.dropout_2,
-                            input_shape=(None, self.seq_length, None),
-                            return_sequences=False,
-                            implementation=2)))
-        if self.nb_lstm_layers == 3:
-            model.add((LSTM(self.nb_lstm_units,
-                            stateful=False,
-                            dropout=self.dropout_2,
-                            input_shape=(None, self.seq_length, None),
-                            return_sequences=True,
-                            implementation=2)))
-            model.add((LSTM(self.nb_lstm_units,
-                            stateful=False,
-                            dropout=self.dropout_2,
-                            input_shape=(None, self.seq_length, None),
-                            return_sequences=True,
-                            implementation=2)))
-            model.add((LSTM(self.nb_lstm_units,
-                            stateful=False,
-                            dropout=self.dropout_2,
-                            input_shape=(None, self.seq_length, None),
-                            return_sequences=False,
-                            implementation=2)))
-        if self.nb_lstm_layers == 4:
-            model.add((LSTM(self.nb_lstm_units,
-                            stateful=False,
-                            dropout=self.dropout_2,
-                            input_shape=(None, self.seq_length, None),
-                            return_sequences=True,
-                            implementation=2)))
-            model.add((LSTM(self.nb_lstm_units,
-                            stateful=False,
-                            dropout=self.dropout_2,
-                            input_shape=(None, self.seq_length, None),
-                            return_sequences=True,
-                            implementation=2)))
-            model.add((LSTM(self.nb_lstm_units,
-                            stateful=False,
-                            dropout=self.dropout_2,
-                            input_shape=(None, self.seq_length, None),
-                            return_sequences=True,
-                            implementation=2)))
-            model.add((LSTM(self.nb_lstm_units,
-                            stateful=False,
-                            dropout=self.dropout_2,
-                            input_shape=(None, self.seq_length, None),
-                            return_sequences=False,
-                            implementation=2)))
+    def two_stream_stateful(self):
+        # Functional API
+        rgb_model = self.conv2d_lstm_stateful(channels=3, top_layer=False)
+        image_input = Input(shape=(self.input_shape[0], self.input_shape[1], 3))
+        encoded_image = rgb_model(image_input)
+
+        of_model = self.conv2d_lstm_stateful(channels=3, top_layer=False)
+        of_input = Input(shape=(self.input_shape[0], self.input_shape[1], 3))
+        encoded_of = of_model(of_input)
+
+        merged = concatenate([encoded_image, encoded_of], axis=-1)
+        dense = Dense(self.nb_dense_units, activation='relu')(merged)
+
         if self.nb_labels == 2:
-            print("2 labels, using sigmoid activation instead of softmax.")
-            model.add(Dense(self.nb_labels, activation='sigmoid'))
+            output = Dense(self.nb_labels, activation='sigmoid')(dense)
         else:
-            model.add(Dense(self.nb_labels, activation='softmax'))
-        return model
+            output = Dense(self.nb_labels, activation='softmax')(dense)
 
-    def conv2d_lstm_without_top_layer(self, channels):
+        two_stream_model = Model(inputs=[image_input, of_input], output=[output])
+        return two_stream_model
+
+    def conv2d_lstm(self, channels, top_layer=True):
         model = Sequential()
         model.add(Convolution2D(filters=self.nb_conv_filters,
                                 kernel_size=(self.kernel_size, self.kernel_size),
@@ -332,9 +254,15 @@ class MyModel:
                             input_shape=(None, self.seq_length, None),
                             return_sequences=False,
                             implementation=2)))
+        if top_layer:
+            if self.nb_labels == 2:
+                print("2 labels, using sigmoid activation instead of softmax.")
+                model.add(Dense(self.nb_labels, activation='sigmoid'))
+            else:
+                model.add(Dense(self.nb_labels, activation='softmax'))
         return model
 
-    def conv2d_lstm_informed(self):
+    def conv2d_lstm_informed(self, top_layer=True):
         model = Sequential()
         model.add(Convolution2D(filters=self.nb_conv_filters,
                                 kernel_size=(self.kernel_size, self.kernel_size),
@@ -428,14 +356,15 @@ class MyModel:
                             implementation=2)))
             model.add(Dense(self.nb_dense_units, activation='relu', kernel_initializer='he_uniform'))
             model.add(Dropout(self.dropout_2))
-        if self.nb_labels == 2:
-            print("2 labels, using sigmoid activation instead of softmax.")
-            model.add(Dense(self.nb_labels, activation='sigmoid'))
-        else:
-            model.add(Dense(self.nb_labels, activation='softmax'))
+        if top_layer:
+            if self.nb_labels == 2:
+                print("2 labels, using sigmoid activation instead of softmax.")
+                model.add(Dense(self.nb_labels, activation='sigmoid'))
+            else:
+                model.add(Dense(self.nb_labels, activation='softmax'))
         return model
 
-    def conv2d_lstm_stateful(self):
+    def conv2d_lstm_stateful(self, top_layer = True):
         model = Sequential()
         model.add(Convolution2D(filters=self.nb_conv_filters,
                                 kernel_size=(self.kernel_size, self.kernel_size),
@@ -467,11 +396,12 @@ class MyModel:
                         input_shape=(None, self.seq_length, None),
                         return_sequences=False,
                         implementation=2)))
-        if self.nb_labels == 2:
-            print("2 labels, using sigmoid activation instead of softmax.")
-            model.add(Dense(self.nb_labels, activation='sigmoid'))
-        else:
-            model.add(Dense(self.nb_labels, activation='softmax'))
+        if top_layer:
+            if self.nb_labels == 2:
+                print("2 labels, using sigmoid activation instead of softmax.")
+                model.add(Dense(self.nb_labels, activation='sigmoid'))
+            else:
+                model.add(Dense(self.nb_labels, activation='softmax'))
         return model
 
     def inception_lstm_4d_input(self):
