@@ -103,8 +103,12 @@ class MyModel:
         encoded_image = rgb_model(image_input)
 
         of_model = InceptionV3(include_top=False)
+        flatten = TimeDistributed(Flatten())(of_model)
+        lstm_layer = LSTM(self.nb_lstm_units,
+                          return_sequences=False,
+                          dropout=self.dropout_2)(flatten)
         of_input = Input(shape=(self.input_shape[0], self.input_shape[1], 3))
-        encoded_of = of_model(of_input)
+        encoded_of = lstm_layer(of_input)
 
         merged = concatenate([encoded_image, encoded_of], axis=-1)
 
