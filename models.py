@@ -98,7 +98,7 @@ class MyModel:
 
     def two_stream_pretrained(self):
         # Functional API
-        rgb_model = InceptionV3(include_top=False)
+        rgb_model = self.conv2d_lstm_without_top_layer(channels=3)
         image_input = Input(shape=(self.input_shape[0], self.input_shape[1], 3))
         encoded_image = rgb_model(image_input)
 
