@@ -74,6 +74,10 @@ class MyModel:
             print('2stream')
             self.model = self.two_stream()
 
+        if self.name == '2stream_pretrained':
+            print('2stream_pretrained')
+            self.model = self.two_stream_pretrained()
+
 
         if self.optimizer == 'adam':
             optimizer = Adam(lr=self.lr)
@@ -92,10 +96,29 @@ class MyModel:
                            optimizer=optimizer,
                            metrics=['binary_accuracy'])
 
+    def two_stream_pretrained(self):
+        # Functional API
+        rgb_model = InceptionV3(include_top=False)
+        image_input = Input(shape=(self.input_shape[0], self.input_shape[1], 3))
+        encoded_image = rgb_model(image_input)
+
+        of_model = InceptionV3(include_top=False)
+        of_input = Input(shape=(self.input_shape[0], self.input_shape[1], 3))
+        encoded_of = of_model(of_input)
+
+        merged = concatenate([encoded_image, encoded_of], axis=-1)
+
+        if self.nb_labels == 2:
+            output = Dense(self.nb_labels, activation='sigmoid')(merged)
+        else:
+            output = Dense(self.nb_labels, activation='softmax')(merged)
+
+        two_stream_model = Model(inputs=[image_input, of_input], output=[output])
+        return two_stream_model
+
     def two_stream(self):
         # Functional API
         rgb_model = self.conv2d_lstm_without_top_layer(channels=3)
-        # rgb_model = Convolution2D(64, activation='relu')(inputs)
         image_input = Input(shape=(self.input_shape[0], self.input_shape[1], 3))
         encoded_image = rgb_model(image_input)
 
