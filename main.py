@@ -124,6 +124,7 @@ def run():
         eval_generator = dh.prepare_image_generator_5D(df[df['Train'] == 0], train=False, val=False, test=False, eval=True)
 
     elif '2stream' in args.model:
+        print("2stream model of some sort.", args.model)
         # Read or create the per-horse optical flow files listing all the frame paths and labels.
         horse_rgb_OF_dfs = read_or_create_horse_rgb_and_OF_dfs(dh, horse_dfs)
         horse_rgb_OF_dfs = set_train_test_in_df(train_horses, test_horses, horse_rgb_OF_dfs)

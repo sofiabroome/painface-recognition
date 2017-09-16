@@ -121,7 +121,7 @@ class MyModel:
         else:
             output = Dense(self.nb_labels, activation='softmax')(merged)
 
-        two_stream_model = Model(inputs=[image_input, of_input], output=[output])
+        two_stream_model = Model(inputs=[image_input, of_input], outputs=[output])
         return two_stream_model
 
     def two_stream(self):
@@ -142,7 +142,7 @@ class MyModel:
         else:
             output = Dense(self.nb_labels, activation='softmax')(merged)
 
-        two_stream_model = Model(inputs=[image_input, of_input], output=[output])
+        two_stream_model = Model(inputs=[image_input, of_input], outputs=[output])
         return two_stream_model
 
     def two_stream_stateful(self):
