@@ -74,6 +74,10 @@ class MyModel:
             print('2stream')
             self.model = self.two_stream()
 
+        if self.name == '2stream_stateful':
+            print('2stream')
+            self.model = self.two_stream_stateful()
+
         if self.name == '2stream_pretrained':
             print('2stream_pretrained')
             self.model = self.two_stream_pretrained()
