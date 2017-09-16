@@ -148,11 +148,11 @@ class MyModel:
     def two_stream_stateful(self):
         # Functional API
         rgb_model = self.conv2d_lstm_stateful(channels=3, top_layer=False)
-        image_input = Input(shape=(self.input_shape[0], self.input_shape[1], 3))
+        image_input = Input(batch_shape=(None, self.input_shape[0], self.input_shape[1], 3))
         encoded_image = rgb_model(image_input)
 
         of_model = self.conv2d_lstm_stateful(channels=3, top_layer=False)
-        of_input = Input(shape=(self.input_shape[0], self.input_shape[1], 3))
+        of_input = Input(batch_shape=(None, self.input_shape[0], self.input_shape[1], 3))
         encoded_of = of_model(of_input)
 
         merged = concatenate([encoded_image, encoded_of], axis=-1)
