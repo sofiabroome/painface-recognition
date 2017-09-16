@@ -131,11 +131,12 @@ class MyModel:
         encoded_of = of_model(of_input)
 
         merged = concatenate([encoded_image, encoded_of], axis=-1)
+        dense = Dense(self.nb_dense_units, activation='relu')(merged)
 
         if self.nb_labels == 2:
-            output = Dense(self.nb_labels, activation='sigmoid')(merged)
+            output = Dense(self.nb_labels, activation='sigmoid')(dense)
         else:
-            output = Dense(self.nb_labels, activation='softmax')(merged)
+            output = Dense(self.nb_labels, activation='softmax')(dense)
 
         two_stream_model = Model(inputs=[image_input, of_input], output=[output])
         return two_stream_model
