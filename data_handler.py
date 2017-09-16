@@ -140,8 +140,9 @@ class DataHandler:
         print("LEN DF:")
         print(len(df))
         while True:
-            # Shuffle blocks between epochs.
-            df = shuffle_blocks(df)    
+            if train:
+                # Shuffle blocks between epochs.
+                df = shuffle_blocks(df)
             batch_index = 0
             for index, row in df.iterrows():
                 if batch_index == 0:
