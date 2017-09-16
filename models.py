@@ -163,7 +163,7 @@ class MyModel:
         else:
             output = Dense(self.nb_labels, activation='softmax')(merged)
 
-        two_stream_model = Model(inputs=[image_input, of_input], output=[output])
+        two_stream_model = Model(inputs=[image_input, of_input], outputs=[output])
         return two_stream_model
 
     def conv2d_lstm(self, channels, top_layer=True):
@@ -368,7 +368,7 @@ class MyModel:
                 model.add(Dense(self.nb_labels, activation='softmax'))
         return model
 
-    def conv2d_lstm_stateful(self, channels = 3, top_layer = True):
+    def conv2d_lstm_stateful(self, channels=3, top_layer=True):
         model = Sequential()
         model.add(Convolution2D(filters=self.nb_conv_filters,
                                 kernel_size=(self.kernel_size, self.kernel_size),
