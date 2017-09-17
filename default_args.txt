@@ -22,3 +22,4 @@
 --image-identifier,'5subj',Choose some string to identify the image of the training process that you will save
 --test-run,0,Whether a test run or not
 --seq-length,50,Length of sequence for LSTM and for 5D input stuff
+--nb-workers,1,Number of workers

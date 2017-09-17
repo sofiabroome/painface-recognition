@@ -61,7 +61,8 @@ def train(model_instance, args, nb_train_samples, nb_val_samples, val_fraction,
                                                       binacc_test_history, binacc_train_history],
                                            validation_data=val_generator,
                                            validation_steps=val_steps,
-                                           verbose=1)
+                                           verbose=1,
+                                           workers=args.nb_workers)
     else:
         if args.round_to_batch:
             X_train, y_train, X_val, y_val = val_split(X_train, y_train, val_fraction, args.batch_size)
