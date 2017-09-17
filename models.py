@@ -74,6 +74,10 @@ class MyModel:
             print('2stream')
             self.model = self.two_stream()
 
+        if self.name == '2stream_5d':
+            print('2stream 5D')
+            self.model = self.two_stream_5d()
+
         if self.name == '2stream_stateful':
             print('2stream')
             self.model = self.two_stream_stateful()
@@ -147,11 +151,11 @@ class MyModel:
 
     def two_stream_5d(self):
         # Functional API
-        rgb_model = self.conv2d_lstm(channels=3, top_layer=False)
+        rgb_model = self.conv3d_informed(channels=3, top_layer=False)
         image_input = Input(shape=(self.input_shape[0], self.input_shape[1], 3))
         encoded_image = rgb_model(image_input)
 
-        of_model = self.conv2d_lstm(channels=3, top_layer=False)
+        of_model = self.conv3d_informed(channels=3, top_layer=False)
         of_input = Input(shape=(self.input_shape[0], self.input_shape[1], 3))
         encoded_of = of_model(of_input)
 
