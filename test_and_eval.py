@@ -38,10 +38,10 @@ class Evaluator:
     def evaluate(self, model, y_test, y_pred, scores, args):
         print('Accuracy: ', scores[1])
         file_identifier = args.image_identifier
-        if args.nb_labels != 2:
+        if args.nb_labels != 2 or '3d' in args.model:
             y_test = np_utils.to_categorical(y_test, num_classes=args.nb_labels)
         y_pred = np.argmax(y_pred, axis=1)
-        if args.nb_labels != 2:
+        if args.nb_labels != 2 or '3d' in args.model:
             y_pred = np_utils.to_categorical(y_pred, num_classes=args.nb_labels)
         nb_preds = len(y_pred)
         nb_tests = len(y_test)
@@ -62,7 +62,7 @@ class Evaluator:
             print(cr)
 
         if self.cm:
-            if args.nb_labels != 2:
+            if args.nb_labels != 2 or '3d' in args.model:
                 cm = confusion_matrix(np.argmax(y_test, axis=1), np.argmax(y_pred, axis=1))
             else:
                 cm = confusion_matrix(y_test, y_pred)

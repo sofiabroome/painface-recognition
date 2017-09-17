@@ -495,7 +495,7 @@ class MyModel:
         model.add((LSTM(self.nb_lstm_units,
                         stateful=False,
                         dropout=self.dropout_2,
-                        input_shape=(None, self.seq_length, None),
+                        input_shape=(None, None, None),
                         return_sequences=True,
                         implementation=2)))
         # model.add(TimeDistributed(Dense(self.nb_dense_units, activation='relu')))
