@@ -76,7 +76,6 @@ class DataHandler:
                     y_array = np_utils.to_categorical(y_array, num_classes=self.nb_labels)
                     y_array = np.reshape(y_array, (self.batch_size, self.nb_labels))
                     batch_index = 0
-                    print(X_array.shape, flow_array.shape, y_array.shape)
                     yield [X_array, flow_array], [y_array]
 
     def prepare_image_generator_5D(self, df, train, val, test, eval):
@@ -123,7 +122,7 @@ class DataHandler:
                         y_array = np_utils.to_categorical(y_array, num_classes=self.nb_labels)
                         y_array = np.reshape(y_array, (self.batch_size, -1, self.nb_labels))
                     batch_index = 0
-                    print(X_array.shape, y_array.shape)
+                    # print(X_array.shape, y_array.shape)
                     yield (X_array, y_array)
 
     def prepare_train_image_generator(self, df, train, val, test):
