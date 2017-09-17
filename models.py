@@ -1,5 +1,5 @@
-from keras.layers import Convolution2D, Convolution3D, MaxPooling2D, MaxPooling3D, LSTM, Dense, Flatten
-from keras.layers import ZeroPadding3D, Dropout, BatchNormalization, concatenate, Input
+from keras.layers import Convolution2D, MaxPooling2D, MaxPooling3D, LSTM, Dense, Flatten
+from keras.layers import ZeroPadding3D, Dropout, BatchNormalization, concatenate, Input, Conv3D
 from keras.layers.wrappers import TimeDistributed
 from keras.optimizers import Adam, Adagrad
 from keras.applications import InceptionV3
@@ -471,21 +471,21 @@ class MyModel:
     def conv3d_informed(self):
         model = Sequential()
         # 1st layer group
-        model.add(Convolution3D(filters=self.nb_conv_filters,
-                                kernel_size=(self.kernel_size, self.kernel_size, self.kernel_size),
-                                activation='relu',
-                                input_shape=(None,
-                                             self.input_shape[0], self.input_shape[1], 3)))
-        model.add(Convolution3D(filters=self.nb_conv_filters,
-                                kernel_size=(self.kernel_size, self.kernel_size, self.kernel_size),
-                                activation='relu'))
+        model.add(Conv3D(filters=self.nb_conv_filters,
+                         kernel_size=(self.kernel_size, self.kernel_size, self.kernel_size),
+                         activation='relu',
+                         input_shape=(None, self.input_shape[0], self.input_shape[1], 3),
+                         data_format='channels_last'))
+        model.add(Conv3D(filters=self.nb_conv_filters,
+                         kernel_size=(self.kernel_size, self.kernel_size, self.kernel_size),
+                         activation='relu'))
         model.add(MaxPooling3D())
         model.add(Dropout(self.dropout_1))
         model.add(BatchNormalization())
-        model.add(Convolution3D(filters=self.nb_conv_filters,
-                                kernel_size=(self.kernel_size, self.kernel_size, self.kernel_size),
-                                activation='relu'))
-        # model.add(Convolution3D(filters=self.nb_conv_filters,
+        model.add(Conv3D(filters=self.nb_conv_filters,
+                         kernel_size=(self.kernel_size, self.kernel_size, self.kernel_size),
+                         activation='relu'))
+        # model.add(Conv3D(filters=self.nb_conv_filters,
         #                         kernel_size=(self.kernel_size, self.kernel_size, self.kernel_size),
         #                         activation='relu'))
         model.add(MaxPooling3D())
