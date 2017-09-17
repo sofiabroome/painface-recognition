@@ -118,6 +118,7 @@ def run():
 
     # Prepare the training and testing data for 5D-input (batches of videos)
     if 'timedist' in args.model or '5d' in args.model or '3d' in args.model:
+        print('5d input model')
         train_generator = dh.prepare_image_generator_5D(df_train, train=True, val=False, test=False, eval=False)
         val_generator = dh.prepare_image_generator_5D(df_val, train=False, val=True, test=False, eval=False)
         test_generator = dh.prepare_image_generator_5D(df[df['Train'] == 0], train=False, val=False, test=True, eval=False)

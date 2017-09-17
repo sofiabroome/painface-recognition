@@ -145,6 +145,27 @@ class MyModel:
         two_stream_model = Model(inputs=[image_input, of_input], outputs=[output])
         return two_stream_model
 
+    def two_stream_5d(self):
+        # Functional API
+        rgb_model = self.conv2d_lstm(channels=3, top_layer=False)
+        image_input = Input(shape=(self.input_shape[0], self.input_shape[1], 3))
+        encoded_image = rgb_model(image_input)
+
+        of_model = self.conv2d_lstm(channels=3, top_layer=False)
+        of_input = Input(shape=(self.input_shape[0], self.input_shape[1], 3))
+        encoded_of = of_model(of_input)
+
+        merged = concatenate([encoded_image, encoded_of], axis=-1)
+        # dense = Dense(self.nb_dense_units, activation='relu')(merged)
+
+        if self.nb_labels == 2:
+            output = Dense(self.nb_labels, activation='sigmoid')(merged)
+        else:
+            output = Dense(self.nb_labels, activation='softmax')(merged)
+
+        two_stream_model = Model(inputs=[image_input, of_input], outputs=[output])
+        return two_stream_model
+
     def two_stream_stateful(self):
         # Functional API
         rgb_model = self.conv2d_lstm_stateful(channels=3, top_layer=False)
@@ -449,10 +470,8 @@ class MyModel:
         model.add(Convolution3D(filters=self.nb_conv_filters,
                                 kernel_size=(self.kernel_size, self.kernel_size, self.kernel_size),
                                 activation='relu',
-                                input_shape=(self.seq_length,
-                                             self.input_shape[0], self.input_shape[1], 3),
-                                batch_input_shape=(None, self.seq_length,
-                                                   self.input_shape[0], self.input_shape[1], 3)))
+                                input_shape=(None,
+                                             self.input_shape[0], self.input_shape[1], 3)))
         model.add(Convolution3D(filters=self.nb_conv_filters,
                                 kernel_size=(self.kernel_size, self.kernel_size, self.kernel_size),
                                 activation='relu'))
@@ -462,15 +481,21 @@ class MyModel:
         model.add(Convolution3D(filters=self.nb_conv_filters,
                                 kernel_size=(self.kernel_size, self.kernel_size, self.kernel_size),
                                 activation='relu'))
-        model.add(Convolution3D(filters=self.nb_conv_filters,
-                                kernel_size=(self.kernel_size, self.kernel_size, self.kernel_size),
-                                activation='relu'))
+        # model.add(Convolution3D(filters=self.nb_conv_filters,
+        #                         kernel_size=(self.kernel_size, self.kernel_size, self.kernel_size),
+        #                         activation='relu'))
         model.add(MaxPooling3D())
         model.add(Dropout(self.dropout_1))
         model.add(BatchNormalization())
         model.add(TimeDistributed(Flatten()))
-        model.add(TimeDistributed(Dense(self.nb_dense_units, activation='relu')))
-        model.add(Dropout(self.dropout_2))
+        model.add((LSTM(self.nb_lstm_units,
+                        stateful=False,
+                        dropout=self.dropout_2,
+                        input_shape=(None, self.seq_length, None),
+                        return_sequences=True,
+                        implementation=2)))
+        # model.add(TimeDistributed(Dense(self.nb_dense_units, activation='relu')))
+        # model.add((Dropout(self.dropout_2)))
         model.add(TimeDistributed(Dense(self.nb_labels, activation="softmax")))
 
         return model
