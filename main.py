@@ -106,10 +106,11 @@ def run():
     df = shuffle_blocks(df)
 
     # Split training data so there is a held out validation set.
-
+    print("lengths df:", len(df))
     df_train, df_val = df_val_split(df, val_fraction=VAL_FRACTION,
                                     batch_size=args.batch_size,
                                     round_to_batch=args.round_to_batch)
+    print("lengths dftr and df val:", len(df_train), len(df_val))
 
     # Count the number of samples in each partition of the data.
     nb_train_samples = len(df_train)
