@@ -639,6 +639,39 @@ class MyModel:
                                                                    self.input_shape[0],
                                                                    self.input_shape[1], 3)))
         model.add(TimeDistributed(MaxPooling2D()))
+        model.add(Dropout(self.dropout_1))
+        model.add(BatchNormalization())
+        model.add(TimeDistributed(Convolution2D(filters=self.nb_conv_filters,
+                                                kernel_size=(self.kernel_size, self.kernel_size),
+                                                activation='relu',
+                                                kernel_initializer='he_uniform')))
+        model.add(TimeDistributed(MaxPooling2D()))
+        model.add(Dropout(self.dropout_1))
+        model.add(BatchNormalization())
+        model.add(TimeDistributed(Convolution2D(filters=self.nb_conv_filters,
+                                                kernel_size=(self.kernel_size, self.kernel_size),
+                                                activation='relu',
+                                                kernel_initializer='he_uniform')))
+        model.add(TimeDistributed(MaxPooling2D()))
+        model.add(Dropout(self.dropout_1))
+        model.add(BatchNormalization())
+        model.add(TimeDistributed(Convolution2D(filters=self.nb_conv_filters,
+                                                kernel_size=(self.kernel_size, self.kernel_size),
+                                                activation='relu',
+                                                kernel_initializer='he_uniform')))
+        model.add(TimeDistributed(Convolution2D(filters=self.nb_conv_filters,
+                                                kernel_size=(self.kernel_size, self.kernel_size),
+                                                activation='relu',
+                                                kernel_initializer='he_uniform')))
+        model.add(TimeDistributed(MaxPooling2D()))
+        model.add(Dropout(self.dropout_1))
+        model.add(BatchNormalization())
+        model.add(TimeDistributed(Convolution2D(filters=self.nb_conv_filters,
+                                                kernel_size=(self.kernel_size, self.kernel_size),
+                                                activation='relu',
+                                                kernel_initializer='he_uniform')))
+        model.add(Dropout(self.dropout_1))
+        model.add(BatchNormalization())
         model.add(TimeDistributed(Flatten()))
         model.add((LSTM(self.nb_lstm_units,
                         stateful=True,
