@@ -41,8 +41,9 @@ class Evaluator:
 
         import pdb; pdb.set_trace()
         if len(y_pred.shape) > 2:
-            # y_pred = get_majority_vote(y_pred)
-            y_pred = np.reshape(y_pred, (y_pred.shape[0]*y_pred.shape[1], 2))
+            y_pred = get_majority_vote(y_pred)
+            # y_pred = np.reshape(y_pred, (y_pred.shape[0]*y_pred.shape[1], 2))
+            # y_pred = y_pred[:,0,:]
         print('y_pred shape after', y_pred.shape)
         file_identifier = args.image_identifier
         if args.nb_labels != 2 or '3d' in args.model or '5d' in args.model:
@@ -123,3 +124,4 @@ def get_majority_vote(y_pred):
         new_array[i, np.argmax(class_sums)] = 1
     y_pred = new_array
     return y_pred
+
