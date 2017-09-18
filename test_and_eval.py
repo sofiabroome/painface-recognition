@@ -38,6 +38,7 @@ class Evaluator:
     def evaluate(self, model, y_test, y_pred, scores, args):
         print('Accuracy: ', scores[1])
         print('y_pred shape before',y_pred.shape)
+        import pdb; pdb.set_trace()
         if len(y_pred.shape) > 2:
             y_pred = np.reshape(y_pred, (y_pred.shape[0]*y_pred.shape[1], 2))
         print('y_pred shape after',y_pred.shape)
