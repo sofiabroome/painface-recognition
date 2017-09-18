@@ -151,11 +151,11 @@ class MyModel:
 
     def two_stream_5d(self):
         # Functional API
-        rgb_model = TimeDistributed(self.conv2d_lstm(channels=3, top_layer=False))
+        rgb_model = TimeDistributed(self.conv2d_lstm(channels=3, top_layer=False, stateful=False))
         image_input = Input(shape=(None, self.input_shape[0], self.input_shape[1], 3))
         encoded_image = rgb_model(image_input)
 
-        of_model = TimeDistributed(self.conv2d_lstm(channels=3, top_layer=False))
+        of_model = TimeDistributed(self.conv2d_lstm(channels=3, top_layer=False, stateful=False))
         of_input = Input(shape=(None, self.input_shape[0], self.input_shape[1], 3))
         encoded_of = of_model(of_input)
 
@@ -216,12 +216,12 @@ class MyModel:
         two_stream_model = Model(inputs=[image_input, of_input], outputs=[output])
         return two_stream_model
 
-    def conv2d_lstm(self, channels, top_layer=True):
+    def conv2d_lstm(self, channels, top_layer=True, stateful=False):
         model = Sequential()
         model.add(Convolution2D(filters=self.nb_conv_filters,
                                 kernel_size=(self.kernel_size, self.kernel_size),
                                 input_shape=(self.input_shape[0], self.input_shape[1], channels),
-                                batch_input_shape=(None, self.input_shape[0], self.input_shape[1], channels),
+                                batch_input_shape=(self.batch_size, self.input_shape[0], self.input_shape[1], channels),
                                 activation='relu', kernel_initializer='he_uniform'))
         model.add(MaxPooling2D())
         model.add(BatchNormalization())
@@ -246,64 +246,65 @@ class MyModel:
         model.add(TimeDistributed(Flatten()))
         if self.nb_lstm_layers == 1:
             model.add((LSTM(self.nb_lstm_units,
-                            stateful=False,
+                            stateful=stateful,
                             dropout=self.dropout_2,
-                            input_shape=(None, self.seq_length, None),
+                            input_shape=(None, None, None),
+                            batch_input_shape=(self.batch_size, None, None, None),
                             return_sequences=False,
                             implementation=2)))
         if self.nb_lstm_layers == 2:
             model.add((LSTM(self.nb_lstm_units,
-                            stateful=False,
+                            stateful=stateful,
                             dropout=self.dropout_2,
                             input_shape=(None, self.seq_length, None),
                             return_sequences=True,
                             implementation=2)))
             model.add((LSTM(self.nb_lstm_units,
-                            stateful=False,
+                            stateful=stateful,
                             dropout=self.dropout_2,
                             input_shape=(None, self.seq_length, None),
                             return_sequences=False,
                             implementation=2)))
         if self.nb_lstm_layers == 3:
             model.add((LSTM(self.nb_lstm_units,
-                            stateful=False,
+                            stateful=stateful,
                             dropout=self.dropout_2,
                             input_shape=(None, self.seq_length, None),
                             return_sequences=True,
                             implementation=2)))
             model.add((LSTM(self.nb_lstm_units,
-                            stateful=False,
+                            stateful=stateful,
                             dropout=self.dropout_2,
                             input_shape=(None, self.seq_length, None),
                             return_sequences=True,
                             implementation=2)))
             model.add((LSTM(self.nb_lstm_units,
-                            stateful=False,
+                            stateful=stateful,
                             dropout=self.dropout_2,
                             input_shape=(None, self.seq_length, None),
                             return_sequences=False,
                             implementation=2)))
         if self.nb_lstm_layers == 4:
             model.add((LSTM(self.nb_lstm_units,
-                            stateful=False,
+                            stateful=stateful,
                             dropout=self.dropout_2,
                             input_shape=(None, self.seq_length, None),
                             return_sequences=True,
                             implementation=2)))
             model.add((LSTM(self.nb_lstm_units,
-                            stateful=False,
+                            stateful=stateful,
                             dropout=self.dropout_2,
                             input_shape=(None, self.seq_length, None),
                             return_sequences=True,
                             implementation=2)))
             model.add((LSTM(self.nb_lstm_units,
-                            stateful=False,
+                            stateful=stateful,
                             dropout=self.dropout_2,
                             input_shape=(None, self.seq_length, None),
                             return_sequences=True,
                             implementation=2)))
             model.add((LSTM(self.nb_lstm_units,
-                            stateful=False,
+                            stateful=stateful,
                             dropout=self.dropout_2,
                             input_shape=(None, self.seq_length, None),
                             return_sequences=False,
