@@ -593,25 +593,37 @@ class MyModel:
         return model
 
     def conv2d_timedist_lstm(self):
-        model = Sequential()
-        model.add(TimeDistributed(Convolution2D(filters=self.nb_conv_filters,
-                                                kernel_size=(self.kernel_size,
-                                                             self.kernel_size)),
-                                                input_shape=(self.seq_length,
-                                                             self.input_shape[0],
-                                                             self.input_shape[1], 3),
-                                                batch_input_shape=(None, self.seq_length,
-                                                                   self.input_shape[0],
-                                                                   self.input_shape[1], 3)))
-        model.add(TimeDistributed(MaxPooling2D()))
-        model.add(TimeDistributed(Flatten()))
-        model.add((LSTM(self.nb_lstm_units,
-                        stateful=False,
-                        dropout=self.dropout_2,
-                        input_shape=(None, self.seq_length, None),
-                        return_sequences=True,
-                        implementation=2)))
-        model.add(TimeDistributed(Dense(self.nb_labels, activation='softmax')))
+
+        rgb_model = TimeDistributed(self.conv2d_lstm_stateful(channels=3, top_layer=False))
+        image_input = Input(shape=(None, self.input_shape[0], self.input_shape[1], 3))
+        encoded_image = rgb_model(image_input)
+
+        if self.nb_labels == 2:
+            output = Dense(self.nb_labels, activation='sigmoid')(encoded_image)
+        else:
+            output = Dense(self.nb_labels, activation='softmax')(encoded_image)
+
+        model = Model(inputs=image_input, outputs=output)
+
+        # model = Sequential()
+        # model.add(TimeDistributed(Convolution2D(filters=self.nb_conv_filters,
+        #                                         kernel_size=(self.kernel_size,
+        #                                                      self.kernel_size)),
+        #                                         input_shape=(self.seq_length,
+        #                                                      self.input_shape[0],
+        #                                                      self.input_shape[1], 3),
+        #                                         batch_input_shape=(None, self.seq_length,
+        #                                                            self.input_shape[0],
+        #                                                            self.input_shape[1], 3)))
+        # model.add(TimeDistributed(MaxPooling2D()))
+        # model.add(TimeDistributed(Flatten()))
+        # model.add((LSTM(self.nb_lstm_units,
+        #                 stateful=False,
+        #                 dropout=self.dropout_2,
+        #                 input_shape=(None, self.seq_length, None),
+        #                 return_sequences=True,
+        #                 implementation=2)))
+        # model.add(TimeDistributed(Dense(self.nb_labels, activation='softmax')))
         return model
 
     def conv2d_timedist_lstm_stateful(self):
