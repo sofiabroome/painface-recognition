@@ -37,6 +37,8 @@ class Evaluator:
 
     def evaluate(self, model, y_test, y_pred, scores, args):
         print('Accuracy: ', scores[1])
+        if len(y_pred.shape) > 2:
+            y_pred = np.reshape(y_pred, (y_pred.shape[0]*y_pred.shape[1], 2))
         file_identifier = args.image_identifier
         if args.nb_labels != 2 or '3d' in args.model:
             y_test = np_utils.to_categorical(y_test, num_classes=args.nb_labels)
