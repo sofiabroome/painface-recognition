@@ -78,6 +78,61 @@ class DataHandler:
                     batch_index = 0
                     yield [X_array, flow_array], [y_array]
 
+    def prepare_2stream_image_generator_5D(self, df, train, val, test, eval):
+        """
+        Prepare the frames into labeled train and test sets, with help from the
+        DataFrame with .jpg-paths and labels for train and pain.
+        :param df: pd.DataFrame
+        :param train: Boolean
+        :param val: Boolean
+        :param test: Boolean
+        :param eval: Boolean
+        :return: np.ndarray, np.ndarray, np.ndarray, np.ndarray
+        """
+
+        print("LEN DF:")
+        print(len(df))
+        while True:
+            # Shuffle blocks between epochs.
+            df = shuffle_blocks(df)
+            batch_index = 0
+            seq_index = 0
+            for index, row in df.iterrows():
+                if seq_index == 0:
+                    X_seq_list = []
+                    y_seq_list = []
+                    flow_seq_list = []
+                x = self.get_image(row['Path'])
+                y = row['Pain']
+                flow = np.load(row['OF_Path'])
+                extra_channel = np.zeros((flow.shape[0], flow.shape[1], 1))
+                flow = np.concatenate((flow, extra_channel), axis=2)
+                X_seq_list.append(x)
+                y_seq_list.append(y)
+                flow_seq_list.append(flow)
+                seq_index += 1
+                if seq_index % self.seq_length == 0:
+                    if batch_index == 0:
+                        X_batch_list = []
+                        y_batch_list = []
+                        flow_batch_list = []
+                    X_batch_list.append(X_seq_list)
+                    y_batch_list.append(y_seq_list)
+                    flow_batch_list.append(flow_seq_list)
+                    seq_index = 0
+                    batch_index += 1
+
+                if batch_index % self.batch_size == 0 and not batch_index == 0:
+                    X_array = np.array(X_batch_list, dtype=np.float32)
+                    y_array = np.array(y_batch_list, dtype=np.uint8)
+                    flow_array = np.array(flow_batch_list, dtype=np.float32)
+                    if self.nb_labels == 2:
+                        y_array = np_utils.to_categorical(y_array, num_classes=self.nb_labels)
+                        y_array = np.reshape(y_array, (self.batch_size, -1, self.nb_labels))
+                    batch_index = 0
+                    # print(X_array.shape, y_array.shape)
+                    yield [X_array, flow_array], [y_array]
+
     def prepare_image_generator_5D(self, df, train, val, test, eval):
         """
         Prepare the frames into labeled train and test sets, with help from the
