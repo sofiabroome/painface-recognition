@@ -10,6 +10,7 @@ from keras.utils import np_utils
 from os.path import join
 
 from helpers import split_string_at_last_occurence_of_certain_char
+from test_and_eval import get_majority_vote
 from image_processor import process_image
 
 train_datagen = ImageDataGenerator()
@@ -130,6 +131,7 @@ class DataHandler:
                         y_array = np_utils.to_categorical(y_array, num_classes=self.nb_labels)
                         y_array = np.reshape(y_array, (self.batch_size, -1, self.nb_labels))
                     batch_index = 0
+                    # y_array = get_majority_vote(y_array)
                     # print(X_array.shape, y_array.shape)
                     yield [X_array, flow_array], [y_array]
 
@@ -148,8 +150,9 @@ class DataHandler:
         print("LEN DF:")
         print(len(df))
         while True:
-            # Shuffle blocks between epochs.
-            df = shuffle_blocks(df)
+            # Shuffle blocks between epochs if during training.
+            if train:
+                df = shuffle_blocks(df)
             batch_index = 0
             seq_index = 0
             for index, row in df.iterrows():
