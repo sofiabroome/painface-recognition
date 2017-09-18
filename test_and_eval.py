@@ -37,11 +37,13 @@ class Evaluator:
 
     def evaluate(self, model, y_test, y_pred, scores, args):
         print('Accuracy: ', scores[1])
-        print('y_pred shape before',y_pred.shape)
+        print('y_pred shape before', y_pred.shape)
+
         import pdb; pdb.set_trace()
         if len(y_pred.shape) > 2:
+            # y_pred = get_majority_vote(y_pred)
             y_pred = np.reshape(y_pred, (y_pred.shape[0]*y_pred.shape[1], 2))
-        print('y_pred shape after',y_pred.shape)
+        print('y_pred shape after', y_pred.shape)
         file_identifier = args.image_identifier
         if args.nb_labels != 2 or '3d' in args.model or '5d' in args.model:
             y_test = np_utils.to_categorical(y_test, num_classes=args.nb_labels)
@@ -99,3 +101,25 @@ def _make_cm_filename(args, identifier):
     return args.model + "_" + identifier + "_NB_LSTM_UNITS_" + \
                   str(args.nb_lstm_units) + "_NB_CONV_FILTERS_" + \
                   str(args.nb_conv_filters) + "_CONFMAT.txt"
+
+def get_majority_vote(y_pred):
+    """
+    I want to take the majority vote for every sequence.
+    :param y_pred: Array with 3 dimensions.
+    :return: Array with 2 dims.
+    """
+    nb_samples = y_pred.shape[0]
+    seq_length = y_pred.shape[1]
+    nb_classes = y_pred.shape[2]
+
+    new_array = np.zeros((nb_samples, nb_classes))
+
+    for i in range(nb_samples):
+        sample = y_pred[i]
+        class_sums = []
+        for c in range(nb_classes):
+            class_sum = sample[:,c].sum()
+            class_sums.append(class_sum)
+        new_array[i, np.argmax(class_sums)] = 1
+    y_pred = new_array
+    return y_pred
