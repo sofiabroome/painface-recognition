@@ -120,7 +120,8 @@ def run():
     nb_test_samples = len(df[df['Train'] == 0])
 
     # Prepare the training and testing data for 5D-input (batches of videos)
-    if 'timedist' in args.model or '5d' in args.model or '3d' in args.model:
+    # if 'timedist' in args.model or '5d' in args.model or '3d' in args.model:
+    if 'timedist' in args.model or '3d' in args.model:
         print('5d input model')
         train_generator = dh.prepare_image_generator_5D(df_train, train=True, val=False, test=False, eval=False)
         val_generator = dh.prepare_image_generator_5D(df_val, train=False, val=True, test=False, eval=False)
@@ -139,14 +140,25 @@ def run():
                                                     val_fraction=VAL_FRACTION,
                                                     batch_size=args.batch_size,
                                                     round_to_batch=args.round_to_batch)
-        train_generator = dh.prepare_generator_2stream(df_train_rgbof,
-                                                       train=True, val=False, test=False, eval=False)
-        val_generator = dh.prepare_generator_2stream(df_val_rgbof,
-                                                     train=False, val=True, test=False, eval=False)
-        test_generator = dh.prepare_generator_2stream(df_rgb_and_of[df_rgb_and_of['Train'] == 0],
-                                                      train=False, val=False, test=True, eval=False)
-        eval_generator = dh.prepare_generator_2stream(df_rgb_and_of[df_rgb_and_of['Train'] == 0],
-                                                      train=False, val=False, test=False, eval=True)
+        if '5d' in args.model:
+            print("Using the 5D generator for 2stream")
+            train_generator = dh.prepare_2stream_image_generator_5D(df_train_rgbof,
+                                                                    train=True, val=False, test=False, eval=False)
+            val_generator = dh.prepare_2stream_image_generator_5D(df_val_rgbof,
+                                                         train=False, val=True, test=False, eval=False)
+            test_generator = dh.prepare_2stream_image_generator_5D(df_rgb_and_of[df_rgb_and_of['Train'] == 0],
+                                                          train=False, val=False, test=True, eval=False)
+            eval_generator = dh.prepare_2stream_image_generator_5D(df_rgb_and_of[df_rgb_and_of['Train'] == 0],
+                                                          train=False, val=False, test=False, eval=True)
+        else:
+            train_generator = dh.prepare_generator_2stream(df_train_rgbof,
+                                                           train=True, val=False, test=False, eval=False)
+            val_generator = dh.prepare_generator_2stream(df_val_rgbof,
+                                                         train=False, val=True, test=False, eval=False)
+            test_generator = dh.prepare_generator_2stream(df_rgb_and_of[df_rgb_and_of['Train'] == 0],
+                                                          train=False, val=False, test=True, eval=False)
+            eval_generator = dh.prepare_generator_2stream(df_rgb_and_of[df_rgb_and_of['Train'] == 0],
+                                                          train=False, val=False, test=False, eval=True)
     # Prepare the training and testing data for 4D-input (batches of frames)
     else:        
         train_generator = dh.prepare_train_image_generator(df_train, train=True, val=False, test=False)
