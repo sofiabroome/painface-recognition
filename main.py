@@ -137,7 +137,7 @@ def run():
         print("2stream model of some sort.", args.model)
         # Read or create the per-horse optical flow files listing all the frame paths and labels.
         horse_rgb_OF_dfs = read_or_create_horse_rgb_and_OF_dfs(dh, horse_dfs)
-        horse_rgb_OF_dfs = set_train_test_in_df(train_horses, test_horses, horse_rgb_OF_dfs)
+        horse_rgb_OF_dfs = set_train_val_test_in_df(train_horses, val_horses, test_horses, horse_rgb_OF_dfs)
         df_rgb_and_of = pd.concat(horse_rgb_OF_dfs)
         df_rgb_and_of = shuffle_blocks(df_rgb_and_of)
         # Split into train and test
@@ -145,16 +145,21 @@ def run():
                                                     val_fraction=VAL_FRACTION,
                                                     batch_size=args.batch_size,
                                                     round_to_batch=args.round_to_batch)
+
+        df_train_rgbof = df_rgb_and_of[df_rgb_and_of['Train'] == 1]
+        df_val_rgbof = df_rgb_and_of[df_rgb_and_of['Train'] == 2]
+        df_test_rgbof = df_rgb_and_of[df_rgb_and_of['Train'] == 0]
+
         if '5d' in args.model:
             print("Using the 5D generator for 2stream")
-            train_generator = dh.prepare_2stream_image_generator_5D(df_train_rgbof,
-                                                                    train=True, val=False, test=False, eval=False)
-            val_generator = dh.prepare_2stream_image_generator_5D(df_val_rgbof,
-                                                         train=False, val=True, test=False, eval=False)
-            test_generator = dh.prepare_2stream_image_generator_5D(df_rgb_and_of[df_rgb_and_of['Train'] == 0],
-                                                          train=False, val=False, test=True, eval=False)
-            eval_generator = dh.prepare_2stream_image_generator_5D(df_rgb_and_of[df_rgb_and_of['Train'] == 0],
-                                                          train=False, val=False, test=False, eval=True)
+            train_generator = dh.prepare_2stream_image_generator_5D(df_train_rgbof, train=True,
+                                                                    val=False, test=False, eval=False)
+            val_generator = dh.prepare_2stream_image_generator_5D(df_val_rgbof, train=False,
+                                                                  val=True, test=False, eval=False)
+            test_generator = dh.prepare_2stream_image_generator_5D(df_test_rgbof, train=False,
+                                                                   val=False, test=True, eval=False)
+            eval_generator = dh.prepare_2stream_image_generator_5D(df_test_rgbof, train=False,
+                                                                   val=False, test=False, eval=True)
         else:
             train_generator = dh.prepare_generator_2stream(df_train_rgbof,
                                                            train=True, val=False, test=False, eval=False)
