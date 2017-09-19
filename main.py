@@ -140,12 +140,8 @@ def run():
         horse_rgb_OF_dfs = set_train_val_test_in_df(train_horses, val_horses, test_horses, horse_rgb_OF_dfs)
         df_rgb_and_of = pd.concat(horse_rgb_OF_dfs)
         df_rgb_and_of = shuffle_blocks(df_rgb_and_of)
+        
         # Split into train and test
-        df_train_rgbof, df_val_rgbof = df_val_split(df_rgb_and_of,
-                                                    val_fraction=VAL_FRACTION,
-                                                    batch_size=args.batch_size,
-                                                    round_to_batch=args.round_to_batch)
-
         df_train_rgbof = df_rgb_and_of[df_rgb_and_of['Train'] == 1]
         df_val_rgbof = df_rgb_and_of[df_rgb_and_of['Train'] == 2]
         df_test_rgbof = df_rgb_and_of[df_rgb_and_of['Train'] == 0]
