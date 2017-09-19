@@ -160,7 +160,7 @@ class MyModel:
         encoded_of = of_model(of_input)
 
         merged = concatenate([encoded_image, encoded_of], axis=-1)
-        merged = Dropout(.1)(merged)
+        merged = Dropout(.2)(merged)
         # dense = Dense(self.nb_dense_units, activation='relu')(merged)
 
         if self.nb_labels == 2:
