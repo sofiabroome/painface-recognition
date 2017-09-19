@@ -64,9 +64,12 @@ def read_or_create_horse_rgb_and_OF_dfs(dh, horse_dfs):
     return horse_rgb_OF_dfs
 
 
-def set_train_test_in_df(train_horses, test_horses, dfs):
+def set_train_val_test_in_df(train_horses, val_horses, test_horses, dfs):
     for trh in train_horses:
         dfs[trh]['Train'] = 1
+
+    for vh in val_horses:
+        dfs[vh]['Train'] = 2
 
     for teh in test_horses:
         dfs[teh]['Train'] = 0
@@ -84,8 +87,10 @@ def run():
     print("(Normally they should be the same, except in 5D input mode.)")
 
     train_horses = ast.literal_eval(args.train_horses)
+    val_horses = ast.literal_eval(args.val_horses)
     test_horses = ast.literal_eval(args.test_horses)
     print('Horses to train on: ', train_horses)
+    print('Horses to validate on: ', val_horses)
     print('Horses to test on: ', test_horses)
 
     model = models.MyModel(args)
@@ -96,8 +101,8 @@ def run():
     # Read or create the per-horse dataframes listing all the frame paths and labels.
     horse_dfs = read_or_create_horse_dfs(dh)
 
-    # Set the train-column to 1 (yes) or 0 (no).
-    horse_dfs = set_train_test_in_df(train_horses, test_horses, horse_dfs)
+    # Set the train-column to 1 (train), 2 (val) or 0 (test).
+    horse_dfs = set_train_val_test_in_df(train_horses, val_horses, test_horses, horse_dfs)
 
     # Put all the separate horse-dfs into one DataFrame.
     df = pd.concat(horse_dfs)
@@ -108,16 +113,16 @@ def run():
     df = shuffle_blocks(df)
 
     # Split training data so there is a held out validation set.
-    print("lengths df:", len(df))
-    df_train, df_val = df_val_split(df, val_fraction=VAL_FRACTION,
-                                    batch_size=args.batch_size,
-                                    round_to_batch=args.round_to_batch)
-    print("lengths dftr and df val:", len(df_train), len(df_val))
+    print("Total length of dataframe:", len(df))
+    df_train = df[df['Train'] == 1]
+    df_val = df[df['Train'] == 2]
+    df_test = df[df['Train'] == 0]
+    print("Lengths dftr and df val:", len(df_train), len(df_val))
 
     # Count the number of samples in each partition of the data.
     nb_train_samples = len(df_train)
     nb_val_samples = len(df_val)
-    nb_test_samples = len(df[df['Train'] == 0])
+    nb_test_samples = len(df_test)
 
     # Prepare the training and testing data for 5D-input (batches of videos)
     # if 'timedist' in args.model or '5d' in args.model or '3d' in args.model:
