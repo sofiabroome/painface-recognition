@@ -1,0 +1,2 @@
+#!/bin/bash
+python main.py --data-path 'data/jpg_320_180_1fps/' --model 'conv3d_informed' --input-width 320 --input-height 180 --nb-labels 2 --nb-lstm-layers 1 --nb-lstm-units 64 --nb-conv-filters 32 --nb-dense-units 64 --kernel-size 3 --dropout-1 0.25 --dropout-2 0.5 --nb-epochs 50 --early-stopping 10 --optimizer 'adam' --lr 0.001 --batch-size 10 --round-to-batch True --train-horses '[0,1,2,3]' --test-horses '[4]' --device '/gpu:1' --image-identifier 'withoutH6_t4_jpg_1fps30bs_16seq' --test-run 0 --seq-length 16
