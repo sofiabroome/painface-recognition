@@ -4,6 +4,7 @@ from keras.layers.wrappers import TimeDistributed
 from keras.optimizers import Adam, Adagrad
 from keras.applications import InceptionV3
 from keras.models import Sequential, Model
+from keras import regularizers
 from keras import backend as K
 
 # K.set_image_dim_ordering('th')
@@ -652,10 +653,6 @@ class MyModel:
                                                 kernel_size=(self.kernel_size, self.kernel_size),
                                                 activation='relu',
                                                 kernel_initializer='he_uniform')))
-        model.add(TimeDistributed(Convolution2D(filters=self.nb_conv_filters,
-                                                kernel_size=(self.kernel_size, self.kernel_size),
-                                                activation='relu',
-                                                kernel_initializer='he_uniform')))
         model.add(TimeDistributed(MaxPooling2D()))
         model.add(Dropout(self.dropout_1))
         model.add(BatchNormalization())
@@ -667,6 +664,7 @@ class MyModel:
         model.add(BatchNormalization())
         model.add(TimeDistributed(Flatten()))
         model.add((LSTM(self.nb_lstm_units,
+                        kernel_regularizer=regularizers.l1_l2(0.01,0.01),
                         stateful=True,
                         dropout=self.dropout_2,
                         input_shape=(None, self.seq_length, None),
