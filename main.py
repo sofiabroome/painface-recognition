@@ -130,8 +130,8 @@ def run():
         print('5d input model')
         train_generator = dh.prepare_image_generator_5D(df_train, train=True, val=False, test=False, eval=False)
         val_generator = dh.prepare_image_generator_5D(df_val, train=False, val=True, test=False, eval=False)
-        test_generator = dh.prepare_image_generator_5D(df[df['Train'] == 0], train=False, val=False, test=True, eval=False)
-        eval_generator = dh.prepare_image_generator_5D(df[df['Train'] == 0], train=False, val=False, test=False, eval=True)
+        test_generator = dh.prepare_image_generator_5D(df_test, train=False, val=False, test=True, eval=False)
+        eval_generator = dh.prepare_image_generator_5D(df_test, train=False, val=False, test=False, eval=True)
 
     elif '2stream' in args.model:
         print("2stream model of some sort.", args.model)
@@ -140,7 +140,7 @@ def run():
         horse_rgb_OF_dfs = set_train_val_test_in_df(train_horses, val_horses, test_horses, horse_rgb_OF_dfs)
         df_rgb_and_of = pd.concat(horse_rgb_OF_dfs)
         df_rgb_and_of = shuffle_blocks(df_rgb_and_of)
-        
+
         # Split into train and test
         df_train_rgbof = df_rgb_and_of[df_rgb_and_of['Train'] == 1]
         df_val_rgbof = df_rgb_and_of[df_rgb_and_of['Train'] == 2]
