@@ -109,19 +109,19 @@ class MyModel:
 
     def two_stream_pretrained(self):
         # Functional API
-        rgb_model = self.conv2d_lstm(channels=3, top_layer=False)
-        image_input = Input(shape=(self.input_shape[0], self.input_shape[1], 3))
+        rgb_model = TimeDistributed(self.conv2d_lstm(channels=3, top_layer=False))
+        image_input = Input(shape=(self.seq_length, self.input_shape[0], self.input_shape[1], 3))
         encoded_image = rgb_model(image_input)
 
-        of_model = InceptionV3(include_top=False)
-        flatten = TimeDistributed(Flatten())(of_model)
-        lstm_layer = LSTM(self.nb_lstm_units,
-                          return_sequences=False,
-                          dropout=self.dropout_2)(flatten)
-        of_input = Input(shape=(self.input_shape[0], self.input_shape[1], 3))
-        encoded_of = lstm_layer(of_input)
+        of_model = TimeDistributed(InceptionV3(include_top=False))
 
-        merged = concatenate([encoded_image, encoded_of], axis=-1)
+        of_input = Input(shape=(self.seq_length, self.input_shape[0], self.input_shape[1], 3))
+        encoded_of = of_model(of_input)
+        flatten = TimeDistributed(Flatten())(encoded_of)
+        lstm_layer = LSTM(self.nb_lstm_units,
+                          return_sequences=True,
+                          dropout=self.dropout_2)(flatten)
+        merged = concatenate([encoded_image, lstm_layer], axis=-1)
 
         if self.nb_labels == 2:
             output = Dense(self.nb_labels, activation='sigmoid')(merged)

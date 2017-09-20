@@ -146,7 +146,7 @@ def run():
         df_val_rgbof = df_rgb_and_of[df_rgb_and_of['Train'] == 2]
         df_test_rgbof = df_rgb_and_of[df_rgb_and_of['Train'] == 0]
 
-        if '5d' in args.model:
+        if args.nb_input_dims == 5:
             print("Using the 5D generator for 2stream")
             train_generator = dh.prepare_2stream_image_generator_5D(df_train_rgbof, train=True,
                                                                     val=False, test=False, eval=False)
