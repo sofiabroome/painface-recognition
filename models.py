@@ -51,13 +51,13 @@ class MyModel:
             print("Conv2d-lstm model")
             self.model = self.conv2d_lstm(channels=3)
 
-        if self.name == 'conv2d_lstm_informed':
-            print("Conv2d-lstm model informed")
-            self.model = self.conv2d_lstm_informed()
-
         if self.name == 'conv2d_lstm_stateful':
             print("Conv2d-lstm model stateful")
             self.model = self.conv2d_lstm_stateful()
+
+        if self.name == 'conv2d_lstm_informed':
+            print("Conv2d-lstm model informed")
+            self.model = self.conv2d_lstm_informed()
 
         if self.name == 'conv3d_informed':
             print('Conv3D Informed')
@@ -80,12 +80,16 @@ class MyModel:
             self.model = self.two_stream_5d()
 
         if self.name == '2stream_stateful':
-            print('2stream')
+            print('2stream stateful')
             self.model = self.two_stream_stateful()
 
         if self.name == '2stream_pretrained':
             print('2stream_pretrained')
             self.model = self.two_stream_pretrained()
+
+        if self.name == 'simonyan':
+            print('Simonyan')
+            self.model = self.simonyan(channels=3)
 
 
         if self.optimizer == 'adam':
@@ -153,10 +157,12 @@ class MyModel:
     def two_stream_5d(self):
         # Functional API
         rgb_model = TimeDistributed(self.conv2d_lstm(channels=3, top_layer=False, stateful=False))
+        # rgb_model = TimeDistributed(self.simonyan(channels=3, top_layer=False, stateful=False))
         image_input = Input(shape=(None, self.input_shape[0], self.input_shape[1], 3))
         encoded_image = rgb_model(image_input)
 
         of_model = TimeDistributed(self.conv2d_lstm(channels=3, top_layer=False, stateful=False))
+        # of_model = TimeDistributed(self.simonyan(channels=3, top_layer=False, stateful=False))
         of_input = Input(shape=(None, self.input_shape[0], self.input_shape[1], 3))
         encoded_of = of_model(of_input)
 
@@ -677,15 +683,11 @@ class MyModel:
         model = Sequential()
         model.add(TimeDistributed(Convolution2D(filters=self.nb_conv_filters,
                                                 kernel_size=(self.kernel_size,
-                                                             self.kernel_size)),
-                                                input_shape=(self.seq_length,
-                                                             self.input_shape[0],
-                                                             self.input_shape[1], 3),
-                                                batch_input_shape=(self.batch_size,
-                                                                   self.seq_length,
-                                                                   self.input_shape[0],
-                                                                   self.input_shape[1], 3)),
-                                                activation='relu')
+                                                             self.kernel_size),
+                                                activation='relu'),
+                                  input_shape=(self.seq_length,self.input_shape[0],self.input_shape[1], 3),
+                                  batch_input_shape=(self.batch_size, self.seq_length,
+                                                     self.input_shape[0], self.input_shape[1], 3)))
         model.add(TimeDistributed(MaxPooling2D()))
         model.add(Dropout(self.dropout_1))
         model.add(BatchNormalization())
