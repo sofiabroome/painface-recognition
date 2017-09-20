@@ -37,7 +37,6 @@ class Evaluator:
         print('Accuracy: ', scores[1])
         print('y_pred shape before', y_pred.shape)
 
-        import pdb; pdb.set_trace()
         if len(y_pred.shape) > 2:
             y_pred = get_majority_vote(y_pred)
             # y_pred = np.reshape(y_pred, (y_pred.shape[0]*y_pred.shape[1], 2))
