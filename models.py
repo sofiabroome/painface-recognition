@@ -573,7 +573,7 @@ class MyModel:
             model.add((LSTM(self.nb_lstm_units,
                             stateful=False,
                             dropout=self.dropout_2,
-                            input_shape=(None, None, None),
+                            input_shape=(None, self.seq_length, None),
                             return_sequences=True,
                             implementation=2)))
         if self.nb_lstm_layers == 2:
