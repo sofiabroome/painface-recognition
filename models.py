@@ -549,8 +549,8 @@ class MyModel:
         model.add(Conv3D(filters=self.nb_conv_filters,
                          kernel_size=(self.kernel_size, self.kernel_size, self.kernel_size),
                          activation='relu',
-                         input_shape=(None, self.input_shape[0], self.input_shape[1], channels),
-                         batch_input_shape=(None, self.input_shape[0], self.input_shape[1], channels),
+                         input_shape=(self.seq_length, self.input_shape[0], self.input_shape[1], channels),
+                         batch_input_shape=(None, self.seq_length, self.input_shape[0], self.input_shape[1], channels),
                          data_format='channels_last'))
         model.add(Conv3D(filters=self.nb_conv_filters,
                          kernel_size=(self.kernel_size, self.kernel_size, self.kernel_size),
