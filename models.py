@@ -7,8 +7,6 @@ from keras.models import Sequential, Model
 from keras import regularizers
 from keras import backend as K
 
-# K.set_image_dim_ordering('th')
-
 
 class MyModel:
     def __init__(self, args):
