@@ -156,13 +156,13 @@ class MyModel:
 
     def two_stream_5d(self):
         # Functional API
-        rgb_model = TimeDistributed(self.conv2d_lstm(channels=3, top_layer=False, stateful=False))
-        # rgb_model = TimeDistributed(self.simonyan(channels=3, top_layer=False, stateful=False))
+        #rgb_model = TimeDistributed(self.conv2d_lstm(channels=3, top_layer=False, stateful=False))
+        rgb_model = TimeDistributed(self.simonyan(channels=3, top_layer=False, stateful=False))
         image_input = Input(shape=(None, self.input_shape[0], self.input_shape[1], 3))
         encoded_image = rgb_model(image_input)
 
-        of_model = TimeDistributed(self.conv2d_lstm(channels=3, top_layer=False, stateful=False))
-        # of_model = TimeDistributed(self.simonyan(channels=3, top_layer=False, stateful=False))
+        # of_model = TimeDistributed(self.conv2d_lstm(channels=3, top_layer=False, stateful=False))
+        of_model = TimeDistributed(self.simonyan(channels=3, top_layer=False, stateful=False))
         of_input = Input(shape=(None, self.input_shape[0], self.input_shape[1], 3))
         encoded_of = of_model(of_input)
 
@@ -713,7 +713,7 @@ class MyModel:
         model.add(BatchNormalization())
         model.add(TimeDistributed(Flatten()))
         model.add((LSTM(self.nb_lstm_units,
-                        kernel_regularizer=regularizers.l1_l2(0.01,0.01),
+                        kernel_regularizer=regularizers.l1_l2(0.01, 0.01),
                         stateful=True,
                         dropout=self.dropout_2,
                         input_shape=(None, self.seq_length, None),
