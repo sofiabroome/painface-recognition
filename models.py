@@ -574,7 +574,7 @@ class MyModel:
                             stateful=False,
                             dropout=self.dropout_2,
                             input_shape=(None, None, None),
-                            return_sequences=True,
+                            return_sequences=False,
                             implementation=2)))
         if self.nb_lstm_layers == 2:
             model.add((LSTM(self.nb_lstm_units,
