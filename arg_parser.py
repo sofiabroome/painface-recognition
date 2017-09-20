@@ -69,6 +69,8 @@ def parse_arguments():
                         help="Length of sequence for LSTM and for 5D input stuff")
     parser.add_argument('--nb-workers', nargs='?', type=int,
                         help="Number of workers")
+    parser.add_argument('--nb-input-dims', nargs='?', type=int,
+                        help="Number of input dimensions")
     return parser.parse_args()
 
 

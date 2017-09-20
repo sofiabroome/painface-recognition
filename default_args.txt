@@ -24,3 +24,4 @@
 --test-run,0,Whether a test run or not
 --seq-length,50,Length of sequence for LSTM and for 5D input stuff
 --nb-workers,1,Number of workers
+--nb-input-dims,5,Number of input dimensions
