@@ -637,9 +637,9 @@ class MyModel:
         # model.add((Dropout(self.dropout_2)))
         if top_layer:
             if self.nb_labels == 2:
-                model.add(Dense(self.nb_labels, activation="sigmoid"))
+                model.add(TimeDistributed(Dense(self.nb_labels, activation="sigmoid")))
             else:
-                model.add(Dense(self.nb_labels, activation="softmax"))
+                model.add(TimeDistributed(Dense(self.nb_labels, activation="softmax")))
 
         return model
 
