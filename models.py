@@ -567,7 +567,7 @@ class MyModel:
         model.add(MaxPooling3D())
         model.add(Dropout(self.dropout_1))
         model.add(BatchNormalization())
-        model.add(TimeDistributed(Flatten()))
+        model.add((Flatten()))
         # model.add(Flatten())
         if self.nb_lstm_layers == 1:
             model.add((LSTM(self.nb_lstm_units,
@@ -637,9 +637,9 @@ class MyModel:
         # model.add((Dropout(self.dropout_2)))
         if top_layer:
             if self.nb_labels == 2:
-                model.add(TimeDistributed(Dense(self.nb_labels, activation="sigmoid")))
+                model.add(Dense(self.nb_labels, activation="sigmoid"))
             else:
-                model.add(TimeDistributed(Dense(self.nb_labels, activation="softmax")))
+                model.add(Dense(self.nb_labels, activation="softmax"))
 
         return model
 
