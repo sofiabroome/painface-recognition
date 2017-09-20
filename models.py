@@ -677,15 +677,15 @@ class MyModel:
         model = Sequential()
         model.add(TimeDistributed(Convolution2D(filters=self.nb_conv_filters,
                                                 kernel_size=(self.kernel_size,
-                                                             self.kernel_size)),
+                                                             self.kernel_size),
                                                 input_shape=(self.seq_length,
                                                              self.input_shape[0],
                                                              self.input_shape[1], 3),
                                                 batch_input_shape=(self.batch_size,
                                                                    self.seq_length,
                                                                    self.input_shape[0],
-                                                                   self.input_shape[1], 3)),
-                                                activation='relu')
+                                                                   self.input_shape[1], 3),
+                                                activation='relu')))
         model.add(TimeDistributed(MaxPooling2D()))
         model.add(Dropout(self.dropout_1))
         model.add(BatchNormalization())
