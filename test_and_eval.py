@@ -19,9 +19,9 @@ class Evaluator:
         ###### If not a generator:
         #    y_pred = model.predict_classes(X_test, batch_size=model.batch_size)
         if args.nb_input_dims == 5:
-            nb_steps = int(nb_test_samples/(self.batch_size * self.seq_length))
+            nb_steps = int(nb_test_samples/(args.batch_size * args.seq_length))
         if args.nb_input_dims == 4:
-            nb_steps = int(nb_test_samples/self.batch_size)
+            nb_steps = int(nb_test_samples/args.batch_size)
         if args.test_run == 1:
             nb_steps = 2
 
@@ -36,10 +36,8 @@ class Evaluator:
     def evaluate(self, model, y_test, y_pred, scores, args):
         print('Accuracy: ', scores[1])
         print('y_pred shape before', y_pred.shape)
-
         if len(y_pred.shape) > 2:
-            y_pred = get_majority_vote(y_pred)
-            # y_pred = np.reshape(y_pred, (y_pred.shape[0]*y_pred.shape[1], 2))
+            y_pred = np.reshape(y_pred, (y_pred.shape[0]*y_pred.shape[1], 2))
             # y_pred = y_pred[:,0,:]
         print('y_pred shape after', y_pred.shape)
         file_identifier = args.image_identifier
