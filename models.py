@@ -116,10 +116,12 @@ class MyModel:
         image_input = Input(shape=(self.seq_length, self.input_shape[0], self.input_shape[1], channels))
         encoded_image = model(image_input)
 
+        dropout = Dropout(.2)(encoded_image)
+
         if self.nb_labels == 2:
-            output = Dense(self.nb_labels, activation='sigmoid')(encoded_image)
+            output = Dense(self.nb_labels, activation='sigmoid')(dropout)
         else:
-            output = Dense(self.nb_labels, activation='softmax')(encoded_image)
+            output = Dense(self.nb_labels, activation='softmax')(dropout)
 
         whole_model = Model(inputs=image_input, outputs=output)
         return whole_model
