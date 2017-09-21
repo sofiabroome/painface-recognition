@@ -49,6 +49,10 @@ class MyModel:
             print("Conv2d-lstm model")
             self.model = self.conv2d_lstm(channels=3)
 
+        if self.name == 'conv2d_lstm_5d':
+            print("Conv2d-lstm model 5D")
+            self.model = self.conv2d_lstm_5d(channels=3)
+
         if self.name == 'conv2d_lstm_stateful':
             print("Conv2d-lstm model stateful")
             self.model = self.conv2d_lstm_stateful()
@@ -106,6 +110,19 @@ class MyModel:
         self.model.compile(loss='binary_crossentropy',
                            optimizer=optimizer,
                            metrics=['binary_accuracy'])
+
+    def conv2d_lstm_5d(self, channels=3):
+        model = TimeDistributed(self.conv2d_lstm(channels=3, top_layer=False))
+        image_input = Input(shape=(self.seq_length, self.input_shape[0], self.input_shape[1], channels))
+        encoded_image = model(image_input)
+
+        if self.nb_labels == 2:
+            output = Dense(self.nb_labels, activation='sigmoid')(encoded_image)
+        else:
+            output = Dense(self.nb_labels, activation='softmax')(encoded_image)
+
+        whole_model = Model(inputs=image_input, outputs=output)
+        return whole_model
 
     def two_stream_pretrained(self):
         # Functional API
