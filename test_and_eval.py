@@ -88,15 +88,15 @@ class Evaluator:
 
 
 def _make_cr_filename(args, identifier):
-    return args.model + "_" + identifier + "_NB_LSTM_UNITS_" +\
-                  str(args.nb_lstm_units) + "_NB_CONV_FILTERS_" +\
-                  str(args.nb_conv_filters) + "_CLASSREPORT.txt"
+    return args.model + "_" + identifier + "_LSTM_UNITS_" +\
+                  str(args.nb_lstm_units) + "_CONV_FILTERS_" +\
+                  str(args.nb_conv_filters) + "_CR.txt"
 
 
 def _make_cm_filename(args, identifier):
-    return args.model + "_" + identifier + "_NB_LSTM_UNITS_" + \
-                  str(args.nb_lstm_units) + "_NB_CONV_FILTERS_" + \
-                  str(args.nb_conv_filters) + "_CONFMAT.txt"
+    return args.model + "_" + identifier + "_LSTM_UNITS_" + \
+                  str(args.nb_lstm_units) + "_CONV_FILTERS_" + \
+                  str(args.nb_conv_filters) + "_CM.txt"
 
 def get_majority_vote(y_pred):
     """
