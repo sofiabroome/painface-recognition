@@ -583,7 +583,10 @@ class MyModel:
 
     def inception_lstm_5d_input(self, top_layer=True):
         model = Sequential()
-        model.add(TimeDistributed(InceptionV3(include_top=False),
+        model.add(TimeDistributed(InceptionV3(include_top=False,
+                                              input_shape=(self.input_shape[0],
+                                                          self.input_shape[1],
+                                                          3)),
                                   input_shape=(self.seq_length,
                                                self.input_shape[0],
                                                self.input_shape[1],
