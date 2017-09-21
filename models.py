@@ -581,17 +581,27 @@ class MyModel:
             model.add(Dense(self.nb_labels, activation='softmax'))
         return model
 
-    def inception_lstm_5d_input(self):
+    def inception_lstm_5d_input(self, top_layer=True):
         model = Sequential()
-        model.add(InceptionV3(include_top=False, input_shape=(self.seq_length,
-                                                              self.input_shape[0],
-                                                              self.input_shape[1],
-                                                              3)))
-        model.add(TimeDistributed()())
-        model.add(Conv3D(self.nb_conv_filters, 3, 3, 3))
-        model.add(Conv3D(self.nb_of_filters, 3, 3, 3))
-        model.add(Flatten())
-        model.add(Dense(self.nb_labels, activation="softmax"))
+        model.add(TimeDistributed(InceptionV3(include_top=False),
+                                  input_shape=(self.seq_length,
+                                               self.input_shape[0],
+                                               self.input_shape[1],
+                                               3)))
+        model.add(TimeDistributed(Flatten()))
+        if self.nb_lstm_layers == 1:
+            model.add((LSTM(self.nb_lstm_units,
+                            stateful=False,
+                            dropout=self.dropout_2,
+                            input_shape=(None, self.seq_length, None),
+                            return_sequences=True,
+                            implementation=2)))
+        model.add(Dropout(self.dropout_2))
+        if top_layer:
+            if self.nb_labels == 2:
+                model.add(Dense(self.nb_labels, activation="sigmoid"))
+            else:
+                model.add(Dense(self.nb_labels, activation="softmax"))
         return model
 
     def conv3d_informed(self, channels=3, top_layer=True):
