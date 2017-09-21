@@ -355,6 +355,31 @@ class MyModel:
                             input_shape=(None, self.seq_length, None),
                             return_sequences=False,
                             implementation=2)))
+        if self.nb_lstm_layers == 4:
+            model.add((LSTM(self.nb_lstm_units,
+                            stateful=stateful,
+                            dropout=self.dropout_2,
+                            input_shape=(None, self.seq_length, None),
+                            return_sequences=True,
+                            implementation=2)))
+            model.add((LSTM(self.nb_lstm_units,
+                            stateful=stateful,
+                            dropout=self.dropout_2,
+                            input_shape=(None, self.seq_length, None),
+                            return_sequences=True,
+                            implementation=2)))
+            model.add((LSTM(self.nb_lstm_units,
+                            stateful=stateful,
+                            dropout=self.dropout_2,
+                            input_shape=(None, self.seq_length, None),
+                            return_sequences=True,
+                            implementation=2)))
+            model.add((LSTM(self.nb_lstm_units,
+                            stateful=stateful,
+                            dropout=self.dropout_2,
+                            input_shape=(None, self.seq_length, None),
+                            return_sequences=False,
+                            implementation=2)))
         if self.nb_lstm_layers == 5:
             model.add((LSTM(self.nb_lstm_units,
                             stateful=stateful,
