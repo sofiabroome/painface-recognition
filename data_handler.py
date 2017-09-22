@@ -320,10 +320,6 @@ class DataHandler:
         :param test: Boolean
         :return: np.ndarray, np.ndarray, np.ndarray, np.ndarray
         """
-        if train:
-            df = df.loc[df['Train'] == 1]
-        else:
-            df = df.loc[df['Train'] == 0]
         print("LEN DF:")
         print(len(df))
         batch_index = 0
