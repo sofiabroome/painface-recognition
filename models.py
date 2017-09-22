@@ -173,13 +173,13 @@ class MyModel:
 
     def two_stream_5d(self):
         # Functional API
-        # rgb_model = TimeDistributed(self.conv2d_lstm(channels=3, top_layer=False, stateful=False))
-        rgb_model = TimeDistributed(self.simonyan_4d(channels=3, top_layer=False, stateful=False))
+        rgb_model = TimeDistributed(self.conv2d_lstm(channels=3, top_layer=False, stateful=False))
+        # rgb_model = TimeDistributed(self.simonyan_4d(channels=3, top_layer=False, stateful=False))
         image_input = Input(shape=(None, self.input_shape[0], self.input_shape[1], 3))
         encoded_image = rgb_model(image_input)
 
-        # of_model = TimeDistributed(self.conv2d_lstm(channels=3, top_layer=False, stateful=False))
-        of_model = TimeDistributed(self.simonyan_4d(channels=3, top_layer=False, stateful=False))
+        of_model = TimeDistributed(self.conv2d_lstm(channels=3, top_layer=False, stateful=False))
+        # of_model = TimeDistributed(self.simonyan_4d(channels=3, top_layer=False, stateful=False))
         of_input = Input(shape=(None, self.input_shape[0], self.input_shape[1], 3))
         encoded_of = of_model(of_input)
 
@@ -343,10 +343,14 @@ class MyModel:
                                 activation='relu', kernel_initializer='he_uniform'))
         model.add(MaxPooling2D())
         model.add(BatchNormalization())
-        # model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size),
-        #                         activation='relu', kernel_initializer='he_uniform'))
-        # model.add(MaxPooling2D())
-        # model.add(BatchNormalization())
+        model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size),
+                                activation='relu', kernel_initializer='he_uniform'))
+        model.add(MaxPooling2D())
+        model.add(BatchNormalization())
+        model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size),
+                                activation='relu', kernel_initializer='he_uniform'))
+        model.add(MaxPooling2D())
+        model.add(BatchNormalization())
         # model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size),
         #                         activation='relu', kernel_initializer='he_uniform'))
         # model.add(MaxPooling2D())
@@ -814,19 +818,44 @@ class MyModel:
         model.add(TimeDistributed(MaxPooling2D()))
         model.add(Dropout(self.dropout_1))
         model.add(BatchNormalization())
-        model.add(TimeDistributed(Convolution2D(filters=self.nb_conv_filters,
-                                                kernel_size=(self.kernel_size, self.kernel_size),
-                                                activation='relu',
-                                                kernel_initializer='he_uniform')))
-        model.add(Dropout(self.dropout_1))
-        model.add(BatchNormalization())
+        # model.add(TimeDistributed(Convolution2D(filters=self.nb_conv_filters,
+        #                                         kernel_size=(self.kernel_size, self.kernel_size),
+        #                                         activation='relu',
+        #                                         kernel_initializer='he_uniform')))
+        # model.add(Dropout(self.dropout_1))
+        # model.add(BatchNormalization())
         model.add(TimeDistributed(Flatten()))
-        model.add((LSTM(self.nb_lstm_units,
-                        kernel_regularizer=regularizers.l2(0.01),
-                        stateful=True,
-                        dropout=self.dropout_2,
-                        input_shape=(None, self.seq_length, None),
-                        return_sequences=True,
-                        implementation=2)))
+        if self.nb_lstm_layers == 4:
+            model.add((LSTM(self.nb_lstm_units,
+                            stateful=True,
+                            dropout=self.dropout_2,
+                            input_shape=(None, None, None),
+                            return_sequences=True,
+                            implementation=2)))
+            model.add((LSTM(self.nb_lstm_units,
+                            stateful=True,
+                            dropout=self.dropout_2,
+                            input_shape=(None, None, None),
+                            return_sequences=True,
+                            implementation=2)))
+            model.add((LSTM(self.nb_lstm_units,
+                            stateful=True,
+                            dropout=self.dropout_2,
+                            input_shape=(None, None, None),
+                            return_sequences=True,
+                            implementation=2)))
+            model.add((LSTM(self.nb_lstm_units,
+                            stateful=True,
+                            dropout=self.dropout_2,
+                            input_shape=(None, None, None),
+                            return_sequences=False,
+                            implementation=2)))
+        # model.add((LSTM(self.nb_lstm_units,
+        #                 # kernel_regularizer=regularizers.l2(0.01),
+        #                 stateful=True,
+        #                 dropout=self.dropout_2,
+        #                 input_shape=(None, self.seq_length, None),
+        #                 return_sequences=True,
+        #                 implementation=2)))
         model.add(TimeDistributed(Dense(self.nb_labels, activation='softmax')))
         return model
