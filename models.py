@@ -173,13 +173,13 @@ class MyModel:
 
     def two_stream_5d(self):
         # Functional API
-        rgb_model = TimeDistributed(self.conv2d_lstm(channels=3, top_layer=False, stateful=False))
-        # rgb_model = TimeDistributed(self.simonyan(channels=3, top_layer=False, stateful=False))
+        # rgb_model = TimeDistributed(self.conv2d_lstm(channels=3, top_layer=False, stateful=False))
+        rgb_model = TimeDistributed(self.simonyan_4d(channels=3, top_layer=False, stateful=False))
         image_input = Input(shape=(None, self.input_shape[0], self.input_shape[1], 3))
         encoded_image = rgb_model(image_input)
 
-        of_model = TimeDistributed(self.conv2d_lstm(channels=3, top_layer=False, stateful=False))
-        # of_model = TimeDistributed(self.simonyan(channels=3, top_layer=False, stateful=False))
+        # of_model = TimeDistributed(self.conv2d_lstm(channels=3, top_layer=False, stateful=False))
+        of_model = TimeDistributed(self.simonyan_4d(channels=3, top_layer=False, stateful=False))
         of_input = Input(shape=(None, self.input_shape[0], self.input_shape[1], 3))
         encoded_of = of_model(of_input)
 
@@ -249,8 +249,7 @@ class MyModel:
                                 strides=(2, 2)),
                                 input_shape=(self.seq_length, self.input_shape[0], self.input_shape[1], channels),
                                 batch_input_shape=(self.batch_size, self.seq_length, self.input_shape[0],
-                                                   self.input_shape[1], channels)
-                                ))
+                                                   self.input_shape[1], channels)))
         model.add(BatchNormalization())
         model.add(TimeDistributed(MaxPooling2D()))
         model.add(TimeDistributed(Convolution2D(filters=256,
@@ -276,6 +275,7 @@ class MyModel:
                                 activation='relu',
                                 strides=(1, 1))))
         model.add(TimeDistributed(MaxPooling2D()))
+        model.add(TimeDistributed(Flatten()))
         model.add(TimeDistributed(Dense(4096)))
         model.add(Dropout(0.5))
         model.add(TimeDistributed(Dense(2048)))
@@ -285,6 +285,53 @@ class MyModel:
                 model.add(TimeDistributed(Dense(self.nb_labels, activation='sigmoid')))
             else:
                 model.add(TimeDistributed(Dense(self.nb_labels, activation='softmax')))
+        return model
+
+    def simonyan_4d(self, channels, top_layer=True, stateful=False):
+        model = Sequential()
+        model.add((Convolution2D(filters=96,
+                                kernel_size=(7,7),
+                                kernel_initializer='he_uniform',
+                                activation='relu',
+                                strides=(2, 2),
+                                input_shape=(self.input_shape[0], self.input_shape[1], channels),
+                                batch_input_shape=(None, self.input_shape[0],
+                                                   self.input_shape[1], channels))))
+        model.add(BatchNormalization())
+        model.add((MaxPooling2D()))
+        model.add((Convolution2D(filters=256,
+                                kernel_size=(5, 5),
+                                kernel_initializer='he_uniform',
+                                activation='relu',
+                                strides=(2, 2))))
+        model.add(BatchNormalization())
+        model.add((MaxPooling2D()))
+        model.add((Convolution2D(filters=512,
+                                kernel_size=(3, 3),
+                                kernel_initializer='he_uniform',
+                                activation='relu',
+                                strides=(1, 1))))
+        model.add((Convolution2D(filters=512,
+                                kernel_size=(3, 3),
+                                kernel_initializer='he_uniform',
+                                activation='relu',
+                                strides=(1, 1))))
+        model.add((Convolution2D(filters=512,
+                                kernel_size=(3, 3),
+                                kernel_initializer='he_uniform',
+                                activation='relu',
+                                strides=(1, 1))))
+        model.add((MaxPooling2D()))
+        model.add((Flatten()))
+        model.add((Dense(4096)))
+        model.add(Dropout(0.5))
+        model.add((Dense(2048)))
+        model.add(Dropout(0.5))
+        if top_layer:
+            if self.nb_labels == 2:
+                model.add((Dense(self.nb_labels, activation='sigmoid')))
+            else:
+                model.add((Dense(self.nb_labels, activation='softmax')))
         return model
 
     def conv2d_lstm(self, channels, top_layer=True, stateful=False):
