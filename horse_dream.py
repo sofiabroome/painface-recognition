@@ -1,8 +1,14 @@
+import matplotlib
+matplotlib.use('agg')
 import matplotlib.pyplot as plt
 from keras import backend as K
 import tensorflow as tf
 import numpy as np
 import keras
+
+config = tf.ConfigProto(log_device_placement=True)
+config.gpu_options.allow_growth = True
+sess = tf.Session(config=config)
 
 
 def get_noise(batch_size, seq_length, width, height, channels):
@@ -31,9 +37,7 @@ if __name__ == '__main__':
         # layer_dict = dict([(layer.name, layer) for layer in model.layers])
         # For testing filters
         layer_dict = dict([(layer.name, layer) for layer in model.layers if not 'lstm' in layer.name])
-        import ipdb;
 
-        ipdb.set_trace()
         loss = K.mean(model.output[:, :, output_index])
 
         batch_size = 1
