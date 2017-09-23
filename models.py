@@ -1,5 +1,5 @@
 from keras.layers import Convolution2D, MaxPooling2D, MaxPooling3D, LSTM, Dense, Flatten
-from keras.layers import ZeroPadding3D, Dropout, BatchNormalization, concatenate, Input, Conv3D
+from keras.layers import ZeroPadding3D, Dropout, BatchNormalization, concatenate, add, Input, Conv3D
 from keras.layers.convolutional_recurrent import ConvLSTM2D
 from keras.layers.wrappers import TimeDistributed
 from keras.optimizers import Adam, Adagrad, Adadelta
@@ -173,17 +173,18 @@ class MyModel:
         return two_stream_model
 
     def two_stream_5d(self):
-        # rgb_model = TimeDistributed(self.conv2d_lstm(channels=3, top_layer=False, stateful=False))
-        rgb_model = TimeDistributed(self.simonyan_4d(channels=3, top_layer=False, stateful=False))
+        rgb_model = TimeDistributed(self.conv2d_lstm(channels=3, top_layer=False, stateful=False))
+        # rgb_model = TimeDistributed(self.simonyan_4d(channels=3, top_layer=False, stateful=False))
         image_input = Input(shape=(None, self.input_shape[0], self.input_shape[1], 3))
         encoded_image = rgb_model(image_input)
 
-        # of_model = TimeDistributed(self.conv2d_lstm(channels=3, top_layer=False, stateful=False))
-        of_model = TimeDistributed(self.simonyan_4d(channels=3, top_layer=False, stateful=False))
+        of_model = TimeDistributed(self.conv2d_lstm(channels=3, top_layer=False, stateful=False))
+        # of_model = TimeDistributed(self.simonyan_4d(channels=3, top_layer=False, stateful=False))
         of_input = Input(shape=(None, self.input_shape[0], self.input_shape[1], 3))
         encoded_of = of_model(of_input)
-
-        merged = concatenate([encoded_image, encoded_of], axis=-1)
+        
+        merged = add([encoded_image, encoded_of])
+        # merged = concatenate([encoded_image, encoded_of], axis=-1)
         merged = Dropout(.2)(merged)
         # dense = Dense(self.nb_dense_units, activation='relu')(merged)
 
