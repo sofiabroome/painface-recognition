@@ -325,10 +325,10 @@ class MyModel:
                                 activation='relu', kernel_initializer='he_uniform'))
         model.add(MaxPooling2D())
         model.add(BatchNormalization())
-        model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size),
-                                activation='relu', kernel_initializer='he_uniform'))
-        model.add(MaxPooling2D())
-        model.add(BatchNormalization())
+        # model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size),
+        #                         activation='relu', kernel_initializer='he_uniform'))
+        # model.add(MaxPooling2D())
+        # model.add(BatchNormalization())
         # model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size),
         #                         activation='relu', kernel_initializer='he_uniform'))
         # model.add(MaxPooling2D())
@@ -804,14 +804,19 @@ class MyModel:
                              kernel_size=(self.kernel_size, self.kernel_size),
                              input_shape=(None, self.input_shape[0], self.input_shape[1], channels),
                              padding='same', return_sequences=True))
+        model.add(TimeDistributed(MaxPooling2D()))
         model.add(BatchNormalization())
+        # model.add(Dropout(self.dropout_1))
 
         model.add(ConvLSTM2D(filters=self.nb_lstm_units, kernel_size=(self.kernel_size, self.kernel_size),
                              padding='same', return_sequences=True))
+        model.add(TimeDistributed(MaxPooling2D()))
         model.add(BatchNormalization())
+        # model.add(Dropout(self.dropout_1))
 
         model.add(ConvLSTM2D(filters=self.nb_lstm_units, kernel_size=(self.kernel_size, self.kernel_size),
                              padding='same', return_sequences=True))
+        model.add(TimeDistributed(MaxPooling2D()))
         model.add(BatchNormalization())
 
         model.add(ConvLSTM2D(filters=self.nb_lstm_units, kernel_size=(self.kernel_size, self.kernel_size),
@@ -890,5 +895,3 @@ class MyModel:
         #                 input_shape=(None, self.seq_length, None),
         #                 return_sequences=True,
         #                 implementation=2)))
-        model.add(TimeDistributed(Dense(self.nb_labels, activation='softmax')))
-        return model
