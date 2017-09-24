@@ -142,19 +142,20 @@ def get_data_2stream_5d_input(dh, horse_dfs, train_horses, test_horses, val_hors
     Prepare the training and testing data for 5D-input (batches of sequences of frames)
     """
     print("2stream model of some sort.", args.model)
+    import ipdb; ipdb.set_trace()
     # Read or create the per-horse optical flow files listing all the frame paths and labels.
-    if args.val_fraction == 1:
+    if args.val_fraction == 0:
         df_rgb_and_of = prepare_rgb_of_dataframe(dh, horse_dfs, train_horses, test_horses, val_horses)
         df_train_rgbof = df_rgb_and_of[df_rgb_and_of['Train'] == 1]
         df_val_rgbof = df_rgb_and_of[df_rgb_and_of['Train'] == 2]
-    else:
+    if args.val_fraction == 1:
         df_rgb_and_of = prepare_rgb_of_dataframe(dh, horse_dfs, train_horses, test_horses)
         df_train_rgbof, df_val_rgbof = df_val_split(df_rgb_and_of,
                                                     VAL_FRACTION,
                                                     batch_size=args.batch_size,
                                                     round_to_batch=True)
     # Split into train and test
-    
+
     df_test_rgbof = df_rgb_and_of[df_rgb_and_of['Train'] == 0]
     print("Using the 5D generator for 2stream")
     train_generator = dh.prepare_2stream_image_generator_5D(df_train_rgbof, train=True,
@@ -191,7 +192,7 @@ def run():
 
     # Read or create the per-horse dataframes listing all the frame paths and labels.
     horse_dfs = read_or_create_horse_dfs(dh)
-    import ipdb; ipdb.set_trace()
+
     # Set the train-column to 1 (train), 2 (val) or 0 (test).
     if args.val_fraction == 0:
         print("Using separate horse validation.")
@@ -220,7 +221,7 @@ def run():
                                         val_fraction=VAL_FRACTION,
                                         batch_size=args.batch_size,
                                         round_to_batch=args.round_to_batch)
-    else:
+    if args.val_fraction == 0:
         df_train = df[df['Train'] == 1]
         df_val = df[df['Train'] == 2]
 
@@ -238,7 +239,7 @@ def run():
             print('5d input 2stream model')
             if args.val_fraction == 0:
                 generators = get_data_2stream_5d_input(dh, horse_dfs, train_horses, test_horses, val_horses)
-            else:
+            if args.val_fraction == 1:
                 generators = get_data_2stream_5d_input(dh, horse_dfs, train_horses, test_horses)
         else:
             print('5d input model')
