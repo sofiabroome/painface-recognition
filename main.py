@@ -50,7 +50,10 @@ def read_or_create_horse_dfs(dh):
 
 def prepare_rgb_of_dataframe(dh, horse_dfs, train_horses, test_horses, val_horses=None):
     horse_rgb_OF_dfs = read_or_create_horse_rgb_and_OF_dfs(dh, horse_dfs)
-    horse_rgb_OF_dfs = set_train_val_test_in_df(train_horses, val_horses, test_horses, horse_rgb_OF_dfs)
+    if args.val_fraction == 0:
+        horse_rgb_OF_dfs = set_train_val_test_in_df(train_horses, val_horses, test_horses, horse_rgb_OF_dfs)
+    else:
+        horse_rgb_OF_dfs = set_train_test_in_df(train_horses, test_horses, horse_rgb_OF_dfs)
     df_rgb_and_of = pd.concat(horse_rgb_OF_dfs)
     df_rgb_and_of = shuffle_blocks(df_rgb_and_of)
     return df_rgb_and_of
@@ -140,7 +143,8 @@ def get_data_2stream_5d_input(dh, horse_dfs, train_horses, test_horses, val_hors
     """
     print("2stream model of some sort.", args.model)
     # Read or create the per-horse optical flow files listing all the frame paths and labels.
-    df_rgb_and_of = prepare_rgb_of_dataframe(dh, horse_dfs, train_horses, test_horses, val_horses)
+    if args.val_fraction == 1:
+        df_rgb_and_of = prepare_rgb_of_dataframe(dh, horse_dfs, train_horses, test_horses, val_horses)
 
     # Split into train and test
     df_train_rgbof = df_rgb_and_of[df_rgb_and_of['Train'] == 1]
@@ -226,7 +230,10 @@ def run():
     if args.nb_input_dims == 5:
         if '2stream' in args.model:
             print('5d input 2stream model')
-            generators = get_data_2stream_5d_input(dh, horse_dfs, train_horses, test_horses, val_horses)
+            if args.val_fraction == 0:
+                generators = get_data_2stream_5d_input(dh, horse_dfs, train_horses, test_horses, val_horses)
+            else:
+                generators = get_data_2stream_5d_input(dh, horse_dfs, train_horses, test_horses)
         else:
             print('5d input model')
             generators = get_data_5d_input(dh, df_train, df_test, df_val)
