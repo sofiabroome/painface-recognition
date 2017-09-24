@@ -71,6 +71,8 @@ def parse_arguments():
                         help="Number of workers")
     parser.add_argument('--nb-input-dims', nargs='?', type=int,
                         help="Number of input dimensions")
+    parser.add_argument('--val-fraction', nargs='?', type=int,
+                        help="Whether to use val fract instead of separate horses. 0 false 1 true.")
     return parser.parse_args()
 
 
