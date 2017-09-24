@@ -103,6 +103,8 @@ def train(model_instance, args, nb_train_samples, nb_val_samples, val_fraction,
                                      validation_split=val_fraction,
                                      callbacks=[early_stopping, checkpointer,
                                                 catacc_test_history, catacc_train_history])
+    plot_training(binacc_test_history, binacc_train_history,
+                  args.image_identifier, args.model)
     return model_instance.model
 
 
@@ -132,19 +134,6 @@ def round_to_batch_size(data_array, batch_size):
     surplus = num_rows % batch_size
     data_array_rounded = data_array[:num_rows-surplus]
     return data_array_rounded
-
-
-def plot_training(catacc_test_history,
-                  catacc_train_history,
-                  image_identifier,
-                  ws,
-                  model_name):
-    plt.plot(catacc_test_history.cataccs, label='Val, categorical acc.')
-    plt.plot(catacc_train_history.cataccs, label='Train, categorical acc.')
-    plt.xlabel('Epochs')
-    plt.legend()
-    plt.savefig(model_name + '_' + image_identifier + "_WS_" + str(ws) + '.png')
-    plt.close()
 
 
 def create_best_model_path(model, args):
@@ -201,3 +190,15 @@ class BinAccTrainHistory(Callback):
 class PrintBatch(Callback):
     def on_batch_end(self, epoch, logs={}):
         print(logs)
+
+
+def plot_training(test_history,
+                  train_history,
+                  image_identifier,
+                  model_name):
+    plt.plot(test_history.binaccs, label='Validation set, categorical accuracy')
+    plt.plot(train_history.binaccs, label='Training set, categorical accuracy')
+    plt.xlabel('Epochs')
+    plt.legend()
+    plt.savefig(model_name + '_' + image_identifier + '.png')
+    plt.close()
