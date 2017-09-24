@@ -142,7 +142,6 @@ def get_data_2stream_5d_input(dh, horse_dfs, train_horses, test_horses, val_hors
     Prepare the training and testing data for 5D-input (batches of sequences of frames)
     """
     print("2stream model of some sort.", args.model)
-    import ipdb; ipdb.set_trace()
     # Read or create the per-horse optical flow files listing all the frame paths and labels.
     if args.val_fraction == 0:
         df_rgb_and_of = prepare_rgb_of_dataframe(dh, horse_dfs, train_horses, test_horses, val_horses)
