@@ -1,5 +1,7 @@
 from keras.callbacks import EarlyStopping, ModelCheckpoint, Callback
-from matplotlib import pyplot as plt
+import matplotlib
+matplotlib.use('agg')
+import matplotlib.pyplot as plt
 import tensorflow as tf
 
 
