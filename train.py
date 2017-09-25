@@ -17,13 +17,13 @@ def train(model_instance, args, nb_train_samples, nb_val_samples, val_fraction,
     :param model_instance: Model object from my file models.py | The model instance.
                            model_instance.model is the keras Sequential()-object.
     :param args: [mixed types] | Command line args
+    :param nb_train_samples: int
+    :param nb_val_samples: int
+    :param val_fraction: float
     :param X_train: np.ndarray
     :param y_train: np.ndarray
-    :param batch_size: int | How many images per batch
-    :param nb_epochs: int | (Maximum) number of training epochs
-    :param early_stopping_patience: int | Number of epochs with no validation set
-                                          improvement before early stopping.
-    :param generator: A generator, provided if the training data can't fit into memory.
+    :param generator: Generator object
+    :param val_generator: Generator object
     :return: keras.Sequential() object | The (trained) model instance
     """
     print(model_instance.model.summary())
