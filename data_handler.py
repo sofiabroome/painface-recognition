@@ -2,7 +2,6 @@ import _pickle as cp
 import pandas as pd
 import numpy as np
 import random
-import ipdb
 import os
 
 from keras.preprocessing.image import ImageDataGenerator
@@ -10,7 +9,6 @@ from keras.utils import np_utils
 from os.path import join
 
 from helpers import split_string_at_last_occurence_of_certain_char
-from test_and_eval import get_majority_vote
 from image_processor import process_image
 
 train_datagen = ImageDataGenerator()
@@ -136,7 +134,7 @@ class DataHandler:
                     # print(X_array.shape, y_array.shape)
                     yield [X_array, flow_array], [y_array]
 
-    def prepare_image_generator_5D(self, df, train, val, test, eval):
+    def prepare_image_generator_5D(self, df, data_type, train, val, test, eval):
         """
         Prepare the frames into labeled train and test sets, with help from the
         DataFrame with .jpg-paths and labels for train and pain.
@@ -160,7 +158,13 @@ class DataHandler:
                 if seq_index == 0:
                     X_seq_list = []
                     y_seq_list = []
-                x = self.get_image(row['Path'])
+                if data_type == 'rgb':
+                    x = self.get_image(row['Path'])
+                if data_type == 'of':
+                    print("ONLY OPTICAL FLOW")
+                    x = np.load(row['OF_Path'])
+                    extra_channel = np.zeros((x.shape[0], x.shape[1], 1))
+                    x = np.concatenate((x, extra_channel), axis=2)
                 y = row['Pain']
                 X_seq_list.append(x)
                 y_seq_list.append(y)
@@ -471,14 +475,12 @@ class DataHandler:
         root_of_path = 'data/jpg_320_180_1fps_OF/horse_' + str(horse_id) + '/'
         for path, dirs, files in os.walk(root_of_path):
             print(path)
-            # import ipdb; ipdb.set_trace()
             if old_path != path and c != 0:
                 horse_df.drop(c, inplace=True)
                 horse_df.reset_index(drop=True, inplace=True)
             old_path = path
             for filename in files:
                 total_path = join(path, filename)
-                # import ipdb; ipdb.set_trace()
                 # print(total_path)
                 if '.npy' in filename:
                     OF_path_df.loc[c] = [total_path]
