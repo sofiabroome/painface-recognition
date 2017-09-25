@@ -161,7 +161,6 @@ class DataHandler:
                 if data_type == 'rgb':
                     x = self.get_image(row['Path'])
                 if data_type == 'of':
-                    print("ONLY OPTICAL FLOW")
                     x = np.load(row['OF_Path'])
                     extra_channel = np.zeros((x.shape[0], x.shape[1], 1))
                     x = np.concatenate((x, extra_channel), axis=2)
