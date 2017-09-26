@@ -178,18 +178,20 @@ class MyModel:
 
     def two_stream_5d(self):
         # Functional API
-        rgb_model = TimeDistributed(self.conv2d_lstm(channels=3, top_layer=False, stateful=False))
+        rgb_model = self.conv3d_lstm(channels=3, top_layer=False, stateful=False)
+        # rgb_model = TimeDistributed(self.conv2d_lstm(channels=3, top_layer=False, stateful=False))
         # rgb_model = TimeDistributed(self.simonyan_4d(channels=3, top_layer=False, stateful=False))
         image_input = Input(shape=(None, self.input_shape[0], self.input_shape[1], 3))
         encoded_image = rgb_model(image_input)
 
-        of_model = TimeDistributed(self.conv2d_lstm(channels=3, top_layer=False, stateful=False))
+        of_model = self.conv3d_lstm(channels=3, top_layer=False, stateful=False)
+        # of_model = TimeDistributed(self.conv2d_lstm(channels=3, top_layer=False, stateful=False))
         # of_model = TimeDistributed(self.simonyan_4d(channels=3, top_layer=False, stateful=False))
         of_input = Input(shape=(None, self.input_shape[0], self.input_shape[1], 3))
         encoded_of = of_model(of_input)
         
-        merged = add([encoded_image, encoded_of])
-        # merged = concatenate([encoded_image, encoded_of], axis=-1)
+        # merged = add([encoded_image, encoded_of])
+        merged = concatenate([encoded_image, encoded_of], axis=-1)
         merged = Dropout(.2)(merged)
         # dense = Dense(self.nb_dense_units, activation='relu')(merged)
 
