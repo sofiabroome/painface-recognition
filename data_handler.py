@@ -103,6 +103,7 @@ class DataHandler:
                     y_seq_list = []
                     flow_seq_list = []
                 x = self.get_image(row['Path'])
+                x /= 255
                 y = row['Pain']
                 flow = np.load(row['OF_Path'])
                 extra_channel = np.zeros((flow.shape[0], flow.shape[1], 1))
