@@ -120,7 +120,7 @@ def val_split(X_train, y_train, val_fraction, batch_size, round_to_batch=True):
 
         X_train = X_train[:-num_val, :]
         y_train = y_train[:-num_val:]
-        import ipdb;ipdb.set_trace()
+        import ipdb; ipdb.set_trace()
 
         # If pre-divided into batches...temp thing
         # X_val = X_train[-1:]
