@@ -21,7 +21,7 @@ def load_model(file_name):
     return keras.models.load_model(file_name)
 
 
-def run():
+def run(args):
     dh = DataHandler(args.data_path, (args.input_width, args.input_height),
                          args.seq_length, args.batch_size, COLOR, args.nb_labels)
     ev = Evaluator(True, True, True, TARGET_NAMES, args.batch_size)
@@ -136,4 +136,4 @@ if __name__ == '__main__':
 
     # Run the whole program, from preparing the data to evaluating
     # the model's test performance
-    run()
+    run(args)
