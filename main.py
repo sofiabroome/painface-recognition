@@ -270,7 +270,7 @@ def run():
         else:
             print('4d input model')
             if args.data_type == 'rgb':
-                generators = get_data_4d_input(dh, df_train, df_test, df_val)
+                generators = get_data_4d_input(dh, args.data_type, df_train, df_test, df_val)
             if args.data_type == 'of':
                 df_train, df_val, df_test = get_rgb_of_dataframes(dh, horse_dfs, train_horses, test_horses, val_horses)
                 generators = get_data_4d_input(dh, args.data_type, df_train, df_test, df_val)
