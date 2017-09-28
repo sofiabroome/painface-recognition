@@ -303,8 +303,9 @@ if __name__ == '__main__':
     # model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t1_seq10_4conv.h5'
     
     
-    model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t1_seq10_4conv_of.h5'
+    # model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t1_seq10_4conv_of.h5'
     # model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t0_seq10_4conv.h5'
+    model_fn = 'models/BEST_MODEL_inception_4d_input_adam_LSTMunits_64_CONVfilters_16_jpg_val4_t3_rgb.h5'
     
 # Parse the command line arguments
 
