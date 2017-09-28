@@ -98,10 +98,10 @@ def get_data_4d_input(dh, data_type, df_train, df_test, df_val=None):
     """
     Prepare the training and testing data for 4D-input (batches of frames)
     """
-    train_generator = dh.prepare_image_generator(df_train, data_type, train=True, val=False, test=False, eval=False)
-    val_generator = dh.prepare_image_generator(df_val, data_type, train=False, val=True, test=False, eval=False)
-    test_generator = dh.prepare_image_generator(df_test, data_type, train=False, val=False, test=True, eval=False)
-    eval_generator = dh.prepare_image_generator(df_test, data_type, train=False, val=False, test=False,  eval=True)
+    train_generator = dh.prepare_image_generator(df_train, data_type, train=True, val=False, test=False, evaluate=False)
+    val_generator = dh.prepare_image_generator(df_val, data_type, train=False, val=True, test=False, evaluate=False)
+    test_generator = dh.prepare_image_generator(df_test, data_type, train=False, val=False, test=True, evaluate=False)
+    eval_generator = dh.prepare_image_generator(df_test, data_type, train=False, val=False, test=False,  evaluate=True)
     generators = (train_generator, val_generator, test_generator, eval_generator)
     return generators
 
@@ -270,7 +270,7 @@ def run():
         else:
             print('4d input model')
             if args.data_type == 'rgb':
-                generators = get_data_4d_input(dh, df_train, df_test, df_val)
+                generators = get_data_4d_input(dh, args.data_type, df_train, df_test, df_val)
             if args.data_type == 'of':
                 df_train, df_val, df_test = get_rgb_of_dataframes(dh, horse_dfs, train_horses, test_horses, val_horses)
                 generators = get_data_4d_input(dh, args.data_type, df_train, df_test, df_val)

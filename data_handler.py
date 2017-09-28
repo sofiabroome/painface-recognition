@@ -187,7 +187,7 @@ class DataHandler:
                     # print(X_array.shape, y_array.shape)
                     yield (X_array, y_array)
 
-    def prepare_image_generator(self, df, data_type, train, val, test, eval):
+    def prepare_image_generator(self, df, data_type, train, val, test, evaluate):
         """
         Prepare the frames into labeled train and test sets, with help from the
         DataFrame with .jpg-paths and labels for train and pain.
@@ -199,6 +199,8 @@ class DataHandler:
         """
         print("LEN DF:")
         print(len(df))
+        print('Datatype:')
+        print(data_type)
         while True:
             if train:
                 # Shuffle blocks between epochs.
@@ -237,7 +239,7 @@ class DataHandler:
                         X_array, y_array = test_datagen.flow(X_array, y_array,
                                                              batch_size=self.batch_size,
                                                              shuffle=False).next()
-                    if eval:
+                    if evaluate:
                         X_array, y_array = eval_datagen.flow(X_array, y_array,
                                                              batch_size=self.batch_size,
                                                              shuffle=False).next()
