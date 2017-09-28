@@ -78,6 +78,10 @@ class MyModel:
             print('inception_lstm_4d_input')
             self.model = self.inception_lstm_4d_input()
 
+        if self.name == 'inception_4d_input':
+            print('inception_4d_input')
+            self.model = self.inception_4d_input()
+
         if self.name == '2stream':
             print('2stream')
             self.model = self.two_stream()
@@ -612,6 +616,19 @@ class MyModel:
                         return_sequences=False,
                         implementation=2
                         )))
+        if self.nb_labels == 2:
+            print("2 labels, using sigmoid activation instead of softmax.")
+            model.add(Dense(self.nb_labels, activation='sigmoid'))
+        else:
+            model.add(Dense(self.nb_labels, activation='softmax'))
+        return model
+
+    def inception_4d_input(self):
+        model = Sequential()
+        model.add(InceptionV3(include_top=False, input_shape=(self.input_shape[0],
+                                                              self.input_shape[1],
+                                                              3)))
+        model.add(Flatten())
         if self.nb_labels == 2:
             print("2 labels, using sigmoid activation instead of softmax.")
             model.add(Dense(self.nb_labels, activation='sigmoid'))
