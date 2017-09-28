@@ -285,7 +285,7 @@ if __name__ == '__main__':
     # model_fn = 'best_convoLSTM_models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t0_seq20.h5'
 
     # model_fn = 'best_convoLSTM_models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t3_seq10_4conv.h5'
-    model_fn = 'best_convoLSTM_models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t2_seq10_4conv.h5'
+    # model_fn = 'best_convoLSTM_models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t2_seq10_4conv.h5'
     # model_fn = 'best_convoLSTM_models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t1_seq10_4conv.h5'
 
     # model_fn = 'best_convoLSTM_models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t3_seq10_4conv_of.h5'
@@ -299,7 +299,7 @@ if __name__ == '__main__':
     # model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t1_seq10_4conv.h5'
     
     
-    # model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t1_seq10_4conv_of.h5'
+    model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t1_seq10_4conv_of.h5'
     # model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t0_seq10_4conv.h5'
     
 # Parse the command line arguments
