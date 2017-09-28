@@ -1,5 +1,5 @@
+import tensorflow as tf
 import pandas as pd
-import numpy as np
 import keras
 import sys
 import ast
@@ -12,6 +12,10 @@ import arg_parser
 TARGET_NAMES = ['NO_PAIN', 'PAIN']
 VAL_FRACTION = 0.2
 COLOR = True
+
+config = tf.ConfigProto(log_device_placement=True)
+config.gpu_options.allow_growth = True
+sess = tf.Session(config=config)
 
 
 def load_model(file_name):
