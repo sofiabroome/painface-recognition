@@ -187,7 +187,7 @@ class DataHandler:
                     # print(X_array.shape, y_array.shape)
                     yield (X_array, y_array)
 
-    def prepare_train_image_generator(self, df, train, val, test):
+    def prepare_image_generator(self, df, data_type, train, val, test):
         """
         Prepare the frames into labeled train and test sets, with help from the
         DataFrame with .jpg-paths and labels for train and pain.
@@ -197,10 +197,6 @@ class DataHandler:
         :param test: Boolean
         :return: np.ndarray, np.ndarray, np.ndarray, np.ndarray
         """
-        if train:
-            df = df.loc[df['Train'] == 1]
-        else:
-            df = df.loc[df['Train'] == 0]
         print("LEN DF:")
         print(len(df))
         while True:
@@ -212,8 +208,13 @@ class DataHandler:
                 if batch_index == 0:
                     X_list = []
                     y_list = []
-                x = self.get_image(row['Path'])
-                x /= 255
+                if data_type == 'rgb':
+                    x = self.get_image(row['Path'])
+                    # x /= 255
+                if data_type == 'of':
+                    x = np.load(row['OF_Path'])
+                    extra_channel = np.zeros((x.shape[0], x.shape[1], 1))
+                    x = np.concatenate((x, extra_channel), axis=2)
                 y = row['Pain']
                 X_list.append(x)
                 y_list.append(y)
@@ -224,9 +225,22 @@ class DataHandler:
                     X_array = np.array(X_list, dtype=np.float32)
                     y_array = np.array(y_list, dtype=np.uint8)
                     y_array = np_utils.to_categorical(y_array, num_classes=self.nb_labels)
-                    X_array, y_array = train_datagen.flow(X_array, y_array,
-                                                          batch_size=self.batch_size,
-                                                          shuffle=False).next()
+                    if train:
+                        X_array, y_array = train_datagen.flow(X_array, y_array,
+                                                              batch_size=self.batch_size,
+                                                              shuffle=False).next()
+                    if val:
+                        X_array, y_array = val_datagen.flow(X_array, y_array,
+                                                            batch_size=self.batch_size,
+                                                            shuffle=False).next()
+                    if test:
+                        X_array, y_array = test_datagen.flow(X_array, y_array,
+                                                             batch_size=self.batch_size,
+                                                             shuffle=False).next()
+                    if eval:
+                        X_array, y_array = eval_datagen.flow(X_array, y_array,
+                                                             batch_size=self.batch_size,
+                                                             shuffle=False).next()
                     batch_index = 0
                     yield (X_array, y_array)
 
