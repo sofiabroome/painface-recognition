@@ -187,7 +187,7 @@ class DataHandler:
                     # print(X_array.shape, y_array.shape)
                     yield (X_array, y_array)
 
-    def prepare_image_generator(self, df, data_type, train, val, test):
+    def prepare_image_generator(self, df, data_type, train, val, test, eval):
         """
         Prepare the frames into labeled train and test sets, with help from the
         DataFrame with .jpg-paths and labels for train and pain.
