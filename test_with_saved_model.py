@@ -53,7 +53,7 @@ def read_or_create_horse_dfs(dh):
 
 def prepare_rgb_of_dataframe(dh, horse_dfs, train_horses, test_horses, val_horses=None):
     horse_rgb_OF_dfs = read_or_create_horse_rgb_and_OF_dfs(dh, horse_dfs)
-    if args.val_fraction == 0:
+    if kwargs.val_fraction == 0:
         horse_rgb_OF_dfs = set_train_val_test_in_df(train_horses, val_horses, test_horses, horse_rgb_OF_dfs)
     else:
         horse_rgb_OF_dfs = set_train_test_in_df(train_horses, test_horses, horse_rgb_OF_dfs)
@@ -283,22 +283,30 @@ if __name__ == '__main__':
     arg_parser = arg_parser.ArgParser(len(sys.argv))
     kwargs = arg_parser.parse()
 
-    model_fn = 'BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t3_seq20.h5'
-    # model_fn = 'BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t2_seq20.h5'
-    # model_fn = 'BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t1_seq20.h5'
-    # model_fn = 'BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t0_seq20.h5'
+    # model_fn = 'best_convoLSTM_models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t3_seq20.h5'
+    # model_fn = 'best_convoLSTM_models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t2_seq20.h5'
+    # model_fn = 'best_convoLSTM_models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t1_seq20.h5'
+    # model_fn = 'best_convoLSTM_models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t0_seq20.h5'
 
-    # model_fn = 'BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t3_seq10_4conv.h5'
-    # model_fn = 'BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t2_seq10_4conv.h5'
-    # model_fn = 'BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t1_seq10_4conv.h5'
+    # model_fn = 'best_convoLSTM_models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t3_seq10_4conv.h5'
+    model_fn = 'best_convoLSTM_models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t2_seq10_4conv.h5'
+    # model_fn = 'best_convoLSTM_models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t1_seq10_4conv.h5'
 
-    # model_fn = 'BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t3_seq10_4conv_of.h5'
-    # model_fn = 'BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t2_seq10_4conv_of.h5'
+    # model_fn = 'best_convoLSTM_models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t3_seq10_4conv_of.h5'
+    # model_fn = 'best_convoLSTM_models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t2_seq10_4conv_of.h5'
 
-    # model_fn = 'BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t2_seq20_3convpool.h5'
-    # model_fn = 'BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t3_seq20_3convpool.h5'
-
-    # Parse the command line arguments
+    # model_fn = 'best_convoLSTM_models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t2_seq20_3convpool.h5'
+    # model_fn = 'best_convoLSTM_models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t3_seq20_3convpool.h5'
+    
+    # FROM TONIGHT
+    # model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t2_seq10_4conv_of.h5'
+    # model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t1_seq10_4conv.h5'
+    
+    
+    # model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t1_seq10_4conv_of.h5'
+    # model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t0_seq10_4conv.h5'
+    
+# Parse the command line arguments
 
 
     # Run the whole program, from preparing the data to evaluating
