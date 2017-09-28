@@ -99,14 +99,14 @@ def set_train_test_in_df(train_horses, test_horses, dfs):
     return dfs
 
 
-def get_data_4d_input(dh, df_train, df_val, df_test):
+def get_data_4d_input(dh, data_type, df_train, df_test, df_val=None):
     """
     Prepare the training and testing data for 4D-input (batches of frames)
     """
-    train_generator = dh.prepare_train_image_generator(df_train, train=True, val=False, test=False)
-    val_generator = dh.prepare_val_image_generator(df_val, train=False, val=True, test=False)
-    test_generator = dh.prepare_test_image_generator(df_test, train=False, val=False, test=True)
-    eval_generator = dh.prepare_eval_image_generator(df_test, train=False, val=False, test=True)
+    train_generator = dh.prepare_image_generator(df_train, data_type, train=True, val=False, test=False, evaluate=False)
+    val_generator = dh.prepare_image_generator(df_val, data_type, train=False, val=True, test=False, evaluate=False)
+    test_generator = dh.prepare_image_generator(df_test, data_type, train=False, val=False, test=True, evaluate=False)
+    eval_generator = dh.prepare_image_generator(df_test, data_type, train=False, val=False, test=False,  evaluate=True)
     generators = (train_generator, val_generator, test_generator, eval_generator)
     return generators
 
@@ -263,7 +263,11 @@ def run():
             generators = get_data_2stream_4d_input(dh, horse_dfs, train_horses, test_horses, val_horses)
         else:
             print('4d input model')
-            generators = get_data_4d_input(dh, df_train, df_test, df_val)
+            if kwargs.data_type == 'rgb':
+                generators = get_data_4d_input(dh, kwargs.data_type, df_train, df_test, df_val)
+            if kwargs.data_type == 'of':
+                df_train, df_val, df_test = get_rgb_of_dataframes(dh, horse_dfs, train_horses, test_horses, val_horses)
+                generators = get_data_4d_input(dh, kwargs.data_type, df_train, df_test, df_val)
 
     train_generator, val_generator, test_generator, eval_generator = generators
 
