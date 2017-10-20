@@ -1,0 +1,89 @@
+Batch size:
+20
+Sequence length:
+20
+(Normally they should be the same, except in 5D input mode.)
+Horses to train on:  [5, 0, 1, 2]
+Horses to test on:  [3]
+Conv2d-lstm model 5D
+Using binary crossentropy and binary accuracy metrics.
+data/jpg_320_180_1fps/
+data/jpg_320_180_1fps/
+data/jpg_320_180_1fps/
+data/jpg_320_180_1fps/
+data/jpg_320_180_1fps/
+data/jpg_320_180_1fps/
+Using separate horse validation.
+Horses to validate on:  [4]
+Total length of dataframe: 35109
+Lengths dftr and df val: 22029 6267
+5d input model
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+input_1 (InputLayer)         (None, 20, 180, 320, 3)   0         
+_________________________________________________________________
+time_distributed_2 (TimeDist (None, 20, 5)             8870      
+_________________________________________________________________
+dropout_1 (Dropout)          (None, 20, 5)             0         
+_________________________________________________________________
+dense_1 (Dense)              (None, 20, 2)             12        
+=================================================================
+Total params: 8,882
+Trainable params: 8,862
+Non-trainable params: 20
+_________________________________________________________________
+None
+best model path:
+models/BEST_MODEL_conv2d_lstm_5d_adam_LSTMunits_5_CONVfilters_5_1sttest_OF.h5
+TRAIN STEPS:
+2
+VAL STEPS:
+2
+LEN DF:
+22029
+Epoch 1/2
+1/2 [==============>...............] - ETA: 23s - loss: 0.6125 - binary_accuracy: 0.6712LEN DF:
+6813
+Epoch 00000: val_binary_accuracy improved from -inf to 0.96625, saving model to models/BEST_MODEL_conv2d_lstm_5d_adam_LSTMunits_5_CONVfilters_5_1sttest_OF.h5
+2/2 [==============================] - 73s - loss: 0.5956 - binary_accuracy: 0.7169 - val_loss: 0.5416 - val_binary_accuracy: 0.9663
+Epoch 2/2
+1/2 [==============>...............] - ETA: 19s - loss: 0.5676 - binary_accuracy: 0.8225Epoch 00001: val_binary_accuracy did not improve
+2/2 [==============================] - 53s - loss: 0.5501 - binary_accuracy: 0.8587 - val_loss: 0.7018 - val_binary_accuracy: 0.3819
+LEN DF:
+6267
+1/2 [==============>...............] - ETA: 9s2/2 [==============================] - 15s    
+LEN DF:
+6267
+Scores:  [0.78268596529960632, 0.5]
+Model metrics:  ['loss', 'binary_accuracy']
+y_pred shape before (40, 20, 2)
+y_pred shape after (800, 2)
+Warning, number of predictions not the same as the length of the y_test vector.
+Y test length:  6813
+Y pred length:  800
+y_test:
+[[ 1.  0.]
+ [ 1.  0.]
+ [ 1.  0.]
+ ..., 
+ [ 1.  0.]
+ [ 1.  0.]
+ [ 1.  0.]]
+y_pred:
+[[ 1.  0.]
+ [ 1.  0.]
+ [ 1.  0.]
+ ..., 
+ [ 1.  0.]
+ [ 1.  0.]
+ [ 1.  0.]]
+             precision    recall  f1-score   support
+
+          0       1.00      1.00      1.00       800
+          1       0.00      0.00      0.00         0
+
+avg / total       1.00      1.00      1.00       800
+
+[[800]]
+Device mapping: no known devices.
