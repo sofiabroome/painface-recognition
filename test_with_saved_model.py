@@ -167,7 +167,7 @@ def get_data_2stream_5d_input(dh, horse_dfs, train_horses, test_horses, val_hors
     """
     Prepare the training and testing data for 5D-input (batches of sequences of frames)
     """
-    print("2stream model of some sort.", args.model)
+    print("2stream model of some sort.", kwargs.model)
     # Read or create the per-horse optical flow files listing all the frame paths and labels.
     df_train_rgbof, df_val_rgbof, df_test_rgbof = get_rgb_of_dataframes(dh, horse_dfs,
                                                                         train_horses,
@@ -309,7 +309,15 @@ if __name__ == '__main__':
     
     # model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t1_seq10_4conv_of.h5'
     # model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t0_seq10_4conv.h5'
-    model_fn = 'models/BEST_MODEL_inception_4d_input_adam_LSTMunits_64_CONVfilters_16_jpg_val4_t3_rgb.h5'
+    # model_fn = 'models/BEST_MODEL_inception_4d_input_adam_LSTMunits_64_CONVfilters_16_jpg_val4_t3_rgb.h5'
+    # model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t0_seq10_4conv_of.h5'
+
+    # model_fn = 'models/BEST_MODEL_2stream_5d_adam_LSTMunits_64_CONVfilters_16_val4_02finaldropout_rightsteps_t3_2conv4lstmseq10.h5'
+    # model_fn = 'models/BEST_MODEL_2stream_5d_adam_LSTMunits_64_CONVfilters_16_val4_02finaldropout_rightsteps_t2_2conv4lstmseq10.h5'
+    # model_fn = 'models/BEST_MODEL_2stream_5d_adam_LSTMunits_64_CONVfilters_16_val4_02finaldropout_rightsteps_t1_2conv4lstmseq10.h5'
+    # model_fn = 'models/BEST_MODEL_2stream_5d_adam_LSTMunits_64_CONVfilters_16_val4_02finaldropout_rightsteps_t0_2conv4lstmseq10.h5'
+    # model_fn = 'models/BEST_MODEL_inception_4d_input_adam_LSTMunits_64_CONVfilters_16_jpg_val4_t0_rgb22.h5'
+    model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t1_seq10_4conv_of3.h5'
     
 # Parse the command line arguments
 
