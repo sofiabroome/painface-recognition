@@ -94,7 +94,11 @@ data/
 data_test/
 models/
 Logs/
+examples/
 
 # Mac-stuff
 .DS_Store
 .idea/
+
+# Excel files
+*.xlsx
