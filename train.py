@@ -107,7 +107,7 @@ def train(model_instance, args, nb_train_samples, nb_val_samples, val_fraction,
                                                 catacc_test_history, catacc_train_history])
     plot_training(binacc_test_history, binacc_train_history,
                   args.image_identifier, args.model)
-    return model_instance.model
+    return best_model_path
 
 
 def val_split(X_train, y_train, val_fraction, batch_size, round_to_batch=True):

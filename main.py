@@ -1,4 +1,5 @@
 import pandas as pd
+import keras
 import sys
 import ast
 import os
@@ -276,8 +277,10 @@ def run():
                 generators = get_data_4d_input(dh, args.data_type, df_train, df_test, df_val)
     train_generator, val_generator, test_generator, eval_generator = generators
     # Train the model
-    model = train(model, args, nb_train_samples, nb_val_samples, VAL_FRACTION,
-                  generator=train_generator, val_generator=val_generator)
+    best_model_path = train(model, args, nb_train_samples, nb_val_samples, VAL_FRACTION,
+                            generator=train_generator, val_generator=val_generator)
+
+    model = keras.models.load_model(best_model_path)
 
     # Get test predictions
     y_preds, scores = ev.test(model, args, test_generator, eval_generator, nb_test_samples)
