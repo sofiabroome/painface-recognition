@@ -232,7 +232,7 @@ def run():
         df_train, df_val = df_val_split(df,
                                         val_fraction=VAL_FRACTION,
                                         batch_size=args.batch_size,
-                                        round_to_batch=args.round_to_batch)
+                                        round_to_batch=round_to_batch)
     if args.val_fraction == 0:
         df_train = df[df['Train'] == 1]
         df_val = df[df['Train'] == 2]
@@ -276,6 +276,7 @@ def run():
                 df_train, df_val, df_test = get_rgb_of_dataframes(dh, horse_dfs, train_horses, test_horses, val_horses)
                 generators = get_data_4d_input(dh, args.data_type, df_train, df_test, df_val)
     train_generator, val_generator, test_generator, eval_generator = generators
+
     # Train the model
     best_model_path = train(model, args, nb_train_samples, nb_val_samples, VAL_FRACTION,
                             generator=train_generator, val_generator=val_generator)
@@ -296,6 +297,11 @@ if __name__ == '__main__':
     # Parse the command line arguments
     arg_parser = arg_parser.ArgParser(len(sys.argv))
     args = arg_parser.parse()
+
+    if args.round_to_batch == 1:
+        round_to_batch = True
+    else:
+        round_to_batch = False
 
     # Run the whole program, from preparing the data to evaluating
     # the model's test performance
