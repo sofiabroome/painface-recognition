@@ -59,8 +59,6 @@ def parse_arguments():
                         help="List of horse-id:s to validate on, choosing from range(0,6): ex [4,5]")
     parser.add_argument('--test-horses', nargs='?', type=str,
                         help="List of horse-id:s to test on, choosing from range(0,6): ex [4,5]")
-    parser.add_argument('--device', nargs='?', type=str,
-                        help="Name of device to run on")
     parser.add_argument('--image-identifier', nargs='?', type=str,
                         help='Choose some string to identify the image of the training process')
     parser.add_argument('--test-run', nargs='?', type=int,
