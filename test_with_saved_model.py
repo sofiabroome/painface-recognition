@@ -137,13 +137,13 @@ def get_data_5d_input(dh, data_type, df_train, df_val, df_test):
 
 def get_data_2stream_4d_input(dh, df_train_rgbof, df_val_rgbof, df_test_rgbof):
     train_generator = dh.prepare_generator_2stream(df_train_rgbof, train=True,
-                                                   val=False, test=False, eval=False)
+                                                   val=False, test=False, evaluate=False)
     val_generator = dh.prepare_generator_2stream(df_val_rgbof, train=False,
-                                                 val=True, test=False, eval=False)
+                                                 val=True, test=False, evaluate=False)
     test_generator = dh.prepare_generator_2stream(df_test_rgbof, train=False,
-                                                  val=False, test=True, eval=False)
+                                                  val=False, test=True, evaluate=False)
     eval_generator = dh.prepare_generator_2stream(df_test_rgbof, train=False,
-                                                  val=False, test=False, eval=True)
+                                                  val=False, test=False, evaluate=True)
     generators = (train_generator, val_generator, test_generator, eval_generator)
     return generators
 
@@ -175,13 +175,13 @@ def get_data_2stream_5d_input(dh, horse_dfs, train_horses, test_horses, val_hors
                                                                         val_horses)
     print("Using the 5D generator for 2stream")
     train_generator = dh.prepare_2stream_image_generator_5D(df_train_rgbof, train=True,
-                                                            val=False, test=False, eval=False)
+                                                            val=False, test=False, evaluate=False)
     val_generator = dh.prepare_2stream_image_generator_5D(df_val_rgbof, train=False,
-                                                          val=True, test=False, eval=False)
+                                                          val=True, test=False, evaluate=False)
     test_generator = dh.prepare_2stream_image_generator_5D(df_test_rgbof, train=False,
-                                                           val=False, test=True, eval=False)
+                                                           val=False, test=True, evaluate=False)
     eval_generator = dh.prepare_2stream_image_generator_5D(df_test_rgbof, train=False,
-                                                           val=False, test=False, eval=True)
+                                                           val=False, test=False, evaluate=True)
     generators = (train_generator, val_generator, test_generator, eval_generator)
     return generators
 
