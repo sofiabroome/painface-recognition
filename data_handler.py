@@ -141,6 +141,7 @@ class DataHandler:
         Prepare the frames into labeled train and test sets, with help from the
         DataFrame with .jpg-paths and labels for train and pain.
         :param df: pd.DataFrame
+        :param data_type: str ['rgb' || 'of']
         :param train: Boolean
         :param val: Boolean
         :param test: Boolean
@@ -194,6 +195,7 @@ class DataHandler:
         Prepare the frames into labeled train and test sets, with help from the
         DataFrame with .jpg-paths and labels for train and pain.
         :param df: pd.DataFrame
+        :param data_type: str ['rgb' || 'of']
         :param train: Boolean
         :param val: Boolean
         :param test: Boolean
