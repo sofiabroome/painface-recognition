@@ -72,7 +72,7 @@ def train(model_instance, args, nb_train_samples, nb_val_samples, val_fraction,
         print(val_steps)
 
         model_instance.model.fit_generator(generator=generator,
-                                           steps_per_epoch= train_steps,
+                                           steps_per_epoch=train_steps,
                                            epochs=args.nb_epochs,
                                            callbacks=[early_stopping, checkpointer,
                                                       binacc_test_history, binacc_train_history],
