@@ -45,12 +45,13 @@ def df_val_split(df,
 
 def read_or_create_horse_dfs(dh):
     """
-    Read or create the per-horse dataframes listing all the frame paths and labels.
+    Read or create the per-horse dataframes listing
+    all the frame paths and corresponding labels and metadata.
     :param dh: DataHandler
     :return: [pd.Dataframe]
     """
     horse_dfs = []
-    for horse in range(1,7):
+    for horse in range(1, 7):
         print(args.data_path)
         horse_csv_path = args.data_path + 'horse_' + str(horse) + '.csv'
         if os.path.isfile(horse_csv_path):
@@ -96,10 +97,11 @@ def prepare_rgb_of_dataframe(dh,
 def read_or_create_horse_rgb_and_OF_dfs(dh,
                                         horse_dfs):
     """
-    Read or create the per-horse optical flow files listing all the frame paths and labels.
-    :param dh:
-    :param horse_dfs:
-    :return:
+    Read or create the per-horse optical flow files listing
+    all the frame paths and labels.
+    :param dh: DataHandler object
+    :param horse_dfs: [pd.DataFrame]
+    :return: [pd.DataFrame]
     """
     horse_rgb_OF_dfs = []
     for horse_id in range(1, 7):
@@ -120,6 +122,15 @@ def set_train_val_test_in_df(train_horses,
                              val_horses,
                              test_horses,
                              dfs):
+    """
+    Mark in input dataframe which horses to use for train, val or test.
+    Used when args.val_fraction == 0.
+    :param train_horses: [int]
+    :param val_horses: [int]
+    :param test_horses: [int]
+    :param dfs: [pd.DataFrame]
+    :return: [pd.DataFrame]
+    """
     for trh in train_horses:
         dfs[trh]['Train'] = 1
 
@@ -134,6 +145,14 @@ def set_train_val_test_in_df(train_horses,
 def set_train_test_in_df(train_horses,
                          test_horses,
                          dfs):
+    """
+    Mark in input dataframe which horses to use for train or test.
+    Used when args.val_fraction == 1.
+    :param train_horses: [int]
+    :param test_horses: [int]
+    :param dfs: [pd.DataFrame]
+    :return: [pd.DataFrame]
+    """
     for trh in train_horses:
         dfs[trh]['Train'] = 1
 
@@ -149,11 +168,25 @@ def get_data_4d_input(dh,
                       df_val=None):
     """
     Prepare the training and testing data for 4D-input (batches of frames)
+    :param dh: DataHandler object
+    :param data_type: str ['rgb' || 'of']
+    :param df_train: pd.DataFrame
+    :param df_test: pd.DataFrame
+    :param df_val: pd.DataFrame
+    :return: (4-tuple of Generator objects)
     """
-    train_generator = dh.prepare_image_generator(df_train, data_type, train=True, val=False, test=False, evaluate=False)
-    val_generator = dh.prepare_image_generator(df_val, data_type, train=False, val=True, test=False, evaluate=False)
-    test_generator = dh.prepare_image_generator(df_test, data_type, train=False, val=False, test=True, evaluate=False)
-    eval_generator = dh.prepare_image_generator(df_test, data_type, train=False, val=False, test=False,  evaluate=True)
+    train_generator = dh.prepare_image_generator(df_train, data_type,
+                                                 train=True, val=False,
+                                                 test=False, evaluate=False)
+    val_generator = dh.prepare_image_generator(df_val, data_type,
+                                               train=False, val=True,
+                                               test=False, evaluate=False)
+    test_generator = dh.prepare_image_generator(df_test, data_type,
+                                                train=False, val=False,
+                                                test=True, evaluate=False)
+    eval_generator = dh.prepare_image_generator(df_test, data_type,
+                                                train=False, val=False,
+                                                test=False,  evaluate=True)
     generators = (train_generator, val_generator, test_generator, eval_generator)
     return generators
 
@@ -164,24 +197,31 @@ def get_data_5d_input(dh,
                       df_val,
                       df_test):
     """
-    Prepare the training and testing data for 5D-input (batches of sequences of frames)
+    Prepare the training and testing data for 5D-input
+    (batches of sequences of frames).
+    :param dh: DataHandler object
+    :param data_type: str ['rgb' || 'of']
+    :param df_train: pd.DataFrame
+    :param df_val: pd.DataFrame
+    :param df_test: pd.DataFrame
+    :return: (4-tuple of Generator objects)
     """
     train_generator = dh.prepare_image_generator_5D(df_train,
                                                     data_type=data_type,
-                                                    train=True,
-                                                    val=False, test=False, eval=False)
+                                                    train=True, val=False,
+                                                    test=False, eval=False)
     val_generator = dh.prepare_image_generator_5D(df_val,
                                                   data_type=data_type,
-                                                  train=False,
-                                                  val=True, test=False, eval=False)
+                                                  train=False, val=True,
+                                                  test=False, eval=False)
     test_generator = dh.prepare_image_generator_5D(df_test,
                                                    data_type=data_type,
-                                                   train=False,
-                                                   val=False, test=True, eval=False)
+                                                   train=False, val=False,
+                                                   test=True, eval=False)
     eval_generator = dh.prepare_image_generator_5D(df_test,
                                                    data_type=data_type,
-                                                   train=False,
-                                                   val=False, test=False, eval=True)
+                                                   train=False, val=False,
+                                                   test=False, eval=True)
     generators = (train_generator, val_generator, test_generator, eval_generator)
     return generators
 
@@ -190,14 +230,26 @@ def get_data_2stream_4d_input(dh,
                               df_train_rgbof,
                               df_val_rgbof,
                               df_test_rgbof):
-    train_generator = dh.prepare_generator_2stream(df_train_rgbof, train=True,
-                                                   val=False, test=False, evaluate=False)
-    val_generator = dh.prepare_generator_2stream(df_val_rgbof, train=False,
-                                                 val=True, test=False, evaluate=False)
-    test_generator = dh.prepare_generator_2stream(df_test_rgbof, train=False,
-                                                  val=False, test=True, evaluate=False)
-    eval_generator = dh.prepare_generator_2stream(df_test_rgbof, train=False,
-                                                  val=False, test=False, evaluate=True)
+    """
+    Prepare data generators for the 2stream model with 4D input.
+    :param dh: DataHandler object
+    :param df_train_rgbof: pd.DataFrame
+    :param df_val_rgbof: pd.DataFrame
+    :param df_test_rgbof: pd.DataFrame
+    :return: (4-tuple of Generator objects)
+    """
+    train_generator = dh.prepare_generator_2stream(df_train_rgbof,
+                                                   train=True, val=False,
+                                                   test=False, evaluate=False)
+    val_generator = dh.prepare_generator_2stream(df_val_rgbof,
+                                                 train=False, val=True,
+                                                 test=False, evaluate=False)
+    test_generator = dh.prepare_generator_2stream(df_test_rgbof,
+                                                  train=False, val=False,
+                                                  test=True, evaluate=False)
+    eval_generator = dh.prepare_generator_2stream(df_test_rgbof,
+                                                  train=False, val=False,
+                                                  test=False, evaluate=True)
     generators = (train_generator, val_generator, test_generator, eval_generator)
     return generators
 
@@ -207,6 +259,16 @@ def get_rgb_of_dataframes(dh,
                           train_horses,
                           test_horses,
                           val_horses=None):
+    """
+    Prepare a combined dataframe with both RGB and optical flow
+    simultaneous frames and data.
+    :param dh:
+    :param horse_dfs:
+    :param train_horses:
+    :param test_horses:
+    :param val_horses:
+    :return:
+    """
     if args.val_fraction == 0:
         df_rgb_and_of = prepare_rgb_of_dataframe(dh, horse_dfs, train_horses,
                                                  test_horses, val_horses)
@@ -229,10 +291,20 @@ def get_data_2stream_5d_input(dh,
                               test_horses,
                               val_horses=None):
     """
-    Prepare the training and testing data for 5D-input (batches of sequences of frames)
+    Prepare the training and testing data for 5D-input
+    (batches of sequences of frames).
+    :param dh: DataHandler object
+    :param horse_dfs: [pd.DataFrame]
+    :param train_horses: [int]
+    :param test_horses: [int]
+    :param val_horses: [int]
+    :return: (4-tuple of Generator objects)
     """
     print("2stream model of some sort.", args.model)
-    # Read or create the per-horse optical flow files listing all the frame paths and labels.
+
+    # Read or create the per-horse optical flow files that lists all
+    # the frame paths and labels.
+
     df_train_rgbof, df_val_rgbof, df_test_rgbof = get_rgb_of_dataframes(dh, horse_dfs,
                                                                         train_horses,
                                                                         test_horses,
@@ -290,7 +362,7 @@ def run():
     ev = Evaluator(True, True, True, TARGET_NAMES, args.batch_size)
 
     # Read or create the per-horse dataframes listing all the frame paths and labels.
-    horse_dfs = read_or_create_horse_dfs(dh)
+    horse_dfs = read_or_create_horse_dfs(dh)  # Returns a list of dataframes, per horse.
 
     # Set the train-column to 1 (train), 2 (val) or 0 (test).
     if args.val_fraction == 0:
@@ -303,7 +375,7 @@ def run():
                                              horse_dfs)
 
     if args.val_fraction == 1:
-        print("Using validation fractinon.")
+        print("Using validation fraction.")
         print("Val fract: ", VAL_FRACTION)
         horse_dfs = set_train_test_in_df(train_horses,
                                          test_horses,
