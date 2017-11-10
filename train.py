@@ -56,9 +56,9 @@ def train(model_instance, args, nb_train_samples, nb_val_samples, val_fraction,
             train_steps = 2
         # SET VAL STEPS
         if args.nb_input_dims == 5:
-            val_steps = int(nb_train_samples / (args.batch_size * args.seq_length))
+            val_steps = int(nb_val_samples / (args.batch_size * args.seq_length))
         if args.nb_input_dims == 4:
-            val_steps = int(nb_train_samples / args.batch_size)
+            val_steps = int(nb_val_samples / args.batch_size)
         if args.test_run == 1:
             val_steps = 2
 
@@ -72,7 +72,7 @@ def train(model_instance, args, nb_train_samples, nb_val_samples, val_fraction,
         print(val_steps)
 
         model_instance.model.fit_generator(generator=generator,
-                                           steps_per_epoch= train_steps,
+                                           steps_per_epoch=train_steps,
                                            epochs=args.nb_epochs,
                                            callbacks=[early_stopping, checkpointer,
                                                       binacc_test_history, binacc_train_history],
