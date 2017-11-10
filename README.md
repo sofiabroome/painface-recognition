@@ -1,5 +1,5 @@
 # painface-recognition
-Using convolutional LSTM networks to process videos of horses' facial pain expressions.
+Using convolutional LSTM networks (or other models) to process videos of horses' facial pain expressions.
 
 ## Training
 

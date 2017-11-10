@@ -15,6 +15,7 @@ val_datagen = ImageDataGenerator()
 test_datagen = ImageDataGenerator()
 eval_datagen = ImageDataGenerator()
 
+
 class DataHandler:
     def __init__(self, path, image_size, seq_length, batch_size, color, nb_labels):
         """
@@ -23,6 +24,7 @@ class DataHandler:
         :param image_size: (int, int)
         :param seq_length: int
         :param color: bool
+        :param nb_labels: int
         """
         self.path = path
         self.image_size = image_size
@@ -31,7 +33,7 @@ class DataHandler:
         self.color = color
         self.nb_labels = nb_labels
 
-    def prepare_generator_2stream(self, df, train, val, test, eval):
+    def prepare_generator_2stream(self, df, train, val, test, evaluate):
         """
         Prepare the frames into labeled train and test sets, with help from the
         DataFrame with .jpg-paths and labels for train and pain.
@@ -39,7 +41,7 @@ class DataHandler:
         :param train: Boolean
         :param val: Boolean
         :param test: Boolean
-        :param eval: Boolean
+        :param evaluate: Boolean
         :return: np.ndarray, np.ndarray, np.ndarray, np.ndarray
         """
 
@@ -76,7 +78,7 @@ class DataHandler:
                     batch_index = 0
                     yield [X_array, flow_array], [y_array]
 
-    def prepare_2stream_image_generator_5D(self, df, train, val, test, eval):
+    def prepare_2stream_image_generator_5D(self, df, train, val, test, evaluate):
         """
         Prepare the frames into labeled train and test sets, with help from the
         DataFrame with .jpg-paths and labels for train and pain.
@@ -84,7 +86,7 @@ class DataHandler:
         :param train: Boolean
         :param val: Boolean
         :param test: Boolean
-        :param eval: Boolean
+        :param evaluate: Boolean
         :return: np.ndarray, np.ndarray, np.ndarray, np.ndarray
         """
 
@@ -542,9 +544,9 @@ def get_video_id_stem_from_path(path):
         vid_id, _ = split_string_at_last_occurence_of_certain_char(vid_id, '_')
     return vid_id
 
+
 def get_video_id_from_path(path):
     _, vid_id = split_string_at_last_occurence_of_certain_char(path, '/')
-    nb_underscore = vid_id.count('_')
     return vid_id
 
 
@@ -563,6 +565,14 @@ def round_to_batch_size(data_array, batch_size):
 
 
 def shuffle_blocks(df):
+    """
+    Takes a dataframe with all frames from all different sequences (which always
+    lay in the same order) and shuffles the blocks of frames from separate videos,
+    without altering the internal frame-ordering.
+    The intention is that
+    :param df:
+    :return:
+    """
     vids = set(df['Video_ID'])
     df_blocks = []
     for v in vids:
