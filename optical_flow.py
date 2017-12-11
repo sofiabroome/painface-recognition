@@ -1,6 +1,10 @@
+from extract_frames_into_folders import check_if_unique_in_df
+from image_processor import process_image
 from __future__ import absolute_import
-from __future__ import division
 from __future__ import print_function
+from __future__ import division
+from helpers import find_between
+
 import pandas as pd
 import numpy as np
 import subprocess
@@ -8,9 +12,8 @@ import time
 import argparse
 import pyflow
 import os
-from image_processor import process_image
-from helpers import find_between
-from extract_frames_into_folders import check_if_unique_in_df
+
+
 
 pd.set_option('max_colwidth', 800)
 
@@ -38,20 +41,13 @@ def get_path(file_name, path_dict):
     return path_dict.get(file_name + '.mts')
 
 
-def make_folders():
-    root_dir = 'data/Experimental_pain/'
-    exclude_prefixes = ('__', '.')  # exclusion prefixes
-    complete_paths = []
-    file_names = []
-    filename = -1
-
-    for dirpath, dirnames, files in os.walk(root_dir):
-        if '.DS_Store' not in files[0]:
-            for filename in files:
-                complete_paths.append(os.path.join(dirpath, filename))
-                file_names.append(filename)
-
-    path_dict = dict((fn, p) for fn, p in zip(file_names, complete_paths))
+def make_folders(frame_rate):
+    """
+    This method only needs to be run once. It creates the per-horse folders
+    where to save the computed optical flow.
+    :param frame_rate: int (frames per second)
+    :return: None
+    """
 
     # Make all the subfolders for all the separate 60 sequences, in separate horse_id folders.
     # The horse_id folders need to be created beforehand. Only need do once.
@@ -61,12 +57,11 @@ def make_folders():
         output_dir = 'horse_' + str(h)
         horse_df = df.loc[df['Horse'] == h]
         for vid in horse_df['Video_id']:
-            path = get_path(vid, path_dict)
             occurences = check_if_unique_in_df(vid, df)
             if occurences == 1:
-                seq_dir_path = 'data/jpg_320_180_1fps_OF/' + output_dir + '/' + vid
+                seq_dir_path = 'data/jpg_320_180_' + frame_rate + 'fps_OF/' + output_dir + '/' + vid
             elif occurences > 1:
-                seq_dir_path = 'data/jpg_320_180_1fps_OF/' + output_dir + '/' + vid + '_' + str(counter)
+                seq_dir_path = 'data/jpg_320_180_' + frame_rate + 'fps_OF/' + output_dir + '/' + vid + '_' + str(counter)
                 if counter == occurences:
                     counter = 1
                 else:
@@ -140,6 +135,6 @@ if __name__ == '__main__':
     df = pd.read_csv('videos_overview_missingremoved.csv', sep=';')
 
     # Only need to make folders once.
-    # make_folders()
+    # make_folders(frame_rate=1)
 
     iterate_over_frames()
