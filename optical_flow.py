@@ -11,6 +11,7 @@ import subprocess
 import time
 import argparse
 import pyflow
+import cv2
 import os
 
 
@@ -50,7 +51,7 @@ def make_folders(frame_rate):
     """
 
     # Make all the subfolders for all the separate 60 sequences, in separate horse_id folders.
-    # The horse_id folders need to be created beforehand. Only need do once.
+    # The horse_id folders need to be created beforehand. Only need to do once.
     for h in range(1, 7):
         print("NEW HORSE")
         counter = 1  # Counter of non-unique videos.
@@ -86,7 +87,6 @@ def compute_optical_flow(ims, output_path_stem):
     np.save(output_path_stem + '.npy', flow)
 
     if args.viz:
-        import cv2
         hsv = np.zeros(im1.shape, dtype=np.uint8)
         hsv[:, :, 0] = 255
         hsv[:, :, 1] = 255
@@ -101,13 +101,16 @@ def compute_optical_flow(ims, output_path_stem):
 def iterate_over_frames():
     root_dir = 'data/jpg_320_180_1fps/'
     output_root_dir = 'data/jpg_320_180_1fps_OF/'
-    for horse_id in range(1,7):
+    for horse_id in range(1, 7):
         csv_path = root_dir + 'horse_' + str(horse_id) + '.csv'
         horse_frames_df = pd.read_csv(csv_path, sep=',')
         counter = 0
         per_video_counter = 0
+        # Every row in the df contains 1 frame from a sequence.
         for row in horse_frames_df.iterrows():
             if counter == 0:
+                # The ims list will always contain maximum 2 images, between
+                # which images the optical flow will be computed.
                 ims = []
             if counter >= 2:
                 if old_vid_seq_name != vid_seq_name:
