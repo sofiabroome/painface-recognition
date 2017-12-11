@@ -230,7 +230,8 @@ class DataHandler:
                     # TODO Test normalization here (divide X-array by 255).
                     X_array = np.array(X_list, dtype=np.float32)
                     y_array = np.array(y_list, dtype=np.uint8)
-                    y_array = np_utils.to_categorical(y_array, num_classes=self.nb_labels)
+                    y_array = np_utils.to_categorical(y_array,
+                                                      num_classes=self.nb_labels)
                     if train:
                         X_array, y_array = train_datagen.flow(X_array, y_array,
                                                               batch_size=self.batch_size,
@@ -379,7 +380,7 @@ class DataHandler:
         im = process_image(path, (self.image_size[0], self.image_size[1], channels))
         return im
 
-    ### BELOW HANDLES DATA EXTRACTION WHEN THE DATA IS ORGANIZED IN TRAIN/TEST/PAIN/NOPAIN-FOLDERS
+    # BELOW HANDLES DATA EXTRACTION WHEN THE DATA IS ORGANIZED IN TRAIN/TEST/PAIN/NOPAIN-FOLDERS
 
     def prepare_train_test(self, df):
         """
@@ -463,7 +464,11 @@ class DataHandler:
         :return: pd.DataFrame
         """
         df_csv = pd.read_csv('videos_overview_missingremoved.csv', sep=';')
-        horse_df = pd.DataFrame(columns=['Video_ID', 'Path', 'Pain', 'Observer', 'Train'])
+        horse_df = pd.DataFrame(columns=['Video_ID',
+                                         'Path',
+                                         'Pain',
+                                         'Observer',
+                                         'Train'])
         c = 0
         horse_path = self.path + 'horse_' + str(horse_id) + '/'
         for path, dirs, files in os.walk(horse_path):
@@ -477,48 +482,60 @@ class DataHandler:
                     train_field = -1
                     pain_field = csv_row.iloc[0]['Pain']
                     observer_field = csv_row.iloc[0]['Observer']
-                    horse_df.loc[c] = [vid_id, total_path, pain_field, observer_field, train_field]
+                    horse_df.loc[c] = [vid_id,
+                                       total_path,
+                                       pain_field,
+                                       observer_field,
+                                       train_field]
                     c += 1
         return horse_df
 
     def save_OF_paths_to_df(self, horse_id, horse_df):
         """
-        Create a DataFrame with all the optical flow paths with annotations from a csv-file,
-        then join it with the existing horse df with rgb paths.
+        Create a DataFrame with all the optical flow paths with annotations
+        from a csv-file, then join it with the existing horse df with rgb paths,
+        at simultaneous frames.
         :param horse_id: int
+        :param horse_df: pd.DataFrame
         :return: pd.DataFrame
         """
-        OF_path_df = pd.DataFrame(columns=['OF_Path'])
+        OF_path_df = pd.DataFrame(columns=['OF_Path'])  # Instantiate an empty df
         c = 0
         old_path = 'NoPath'
         root_of_path = 'data/jpg_320_180_1fps_OF/horse_' + str(horse_id) + '/'
+
+        # Walk through all the files in the of-folders and put them in a
+        # DataFrame column, in order (the same order they were extracted in.)
+
         for path, dirs, files in os.walk(root_of_path):
             print(path)
-            if old_path != path and c != 0:
-                horse_df.drop(c, inplace=True)
-                horse_df.reset_index(drop=True, inplace=True)
+            if old_path != path and c != 0:  # If entering a new folder
+                horse_df.drop(c, inplace=True)  # Delete first element
+                horse_df.reset_index(drop=True, inplace=True)  # And adjust the index
             old_path = path
             for filename in files:
                 total_path = join(path, filename)
-                # print(total_path)
-                if '.npy' in filename:
+                if '.npy' in filename:  # (If it's an optical flow-array.)
                     OF_path_df.loc[c] = [total_path]
                     c += 1
-        # Now extend horse_df to contain both rgb and OF paths, return whole thing.
+
+        # Now extend horse_df to contain both rgb and OF paths,
+        # and then return whole thing.
+
         if len(horse_df) != len(OF_path_df):
             diff = len(horse_df) - len(OF_path_df)
             print("Differed by:", diff)
-
-            # They should only differ by one row.
-            # Else an error should be raised when concatenating.
+            # (They should only differ by one row.
+            # Else an error should be raised when concatenating.)
             horse_df = horse_df[:-diff]
-        # Add column (concatenate)
+
         try:
-            # horse_df = horse_df.assign()
+            # Add column (concatenate)
             horse_df.loc[:, 'OF_Path'] = pd.Series(OF_path_df['OF_Path'])
         except AssertionError:
-            print('Horse df and OF_df were not the same length and could not be concatenated.')
-            print('Despite having removed the last element of horse df which should be 1 longer.')
+            print('Horse df and OF_df were not the same length and could not'
+                  'be concatenated. Even despite having removed the last'
+                  'element of horse df which should be 1 longer.')
 
         return horse_df
 
@@ -534,7 +551,10 @@ class DataHandler:
         else:
             channels = 1
         for path in df['Path']:
-            im = process_image(path, (self.image_size[0], self.image_size[1], channels))
+            im = process_image(path,
+                               (self.image_size[0],
+                                self.image_size[1],
+                                channels))
             images.append(im)
         return images
 
