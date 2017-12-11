@@ -672,26 +672,36 @@ class MyModel:
 
     def convolutional_LSTM(self, channels=3, top_layer=True):
         model = Sequential()
-        model.add(ConvLSTM2D(filters=self.nb_lstm_units,
-                             kernel_size=(self.kernel_size, self.kernel_size),
-                             input_shape=(None, self.input_shape[0], self.input_shape[1], channels),
-                             padding='same', return_sequences=True))
-        model.add(TimeDistributed(MaxPooling2D()))
-        model.add(BatchNormalization())
+        if self.nb_lstm_layers >= 1:
+            model.add(ConvLSTM2D(filters=self.nb_lstm_units,
+                                 kernel_size=(self.kernel_size, self.kernel_size),
+                                 input_shape=(None, self.input_shape[0], self.input_shape[1], channels),
+                                 padding='same', return_sequences=True))
+            model.add(TimeDistributed(MaxPooling2D()))
+            model.add(BatchNormalization())
+        
+        if self.nb_lstm_layers >= 2:
+            model.add(ConvLSTM2D(filters=self.nb_lstm_units, kernel_size=(self.kernel_size, self.kernel_size),
+                                 padding='same', return_sequences=True))
+            model.add(TimeDistributed(MaxPooling2D()))
+            model.add(BatchNormalization())
 
-        # model.add(ConvLSTM2D(filters=self.nb_lstm_units, kernel_size=(self.kernel_size, self.kernel_size),
-        #                      padding='same', return_sequences=True))
-        # model.add(TimeDistributed(MaxPooling2D()))
-        # model.add(BatchNormalization())
+        if self.nb_lstm_layers >= 3:
+            model.add(ConvLSTM2D(filters=self.nb_lstm_units, kernel_size=(self.kernel_size, self.kernel_size),
+                                 padding='same', return_sequences=True))
+            model.add(TimeDistributed(MaxPooling2D()))
+            model.add(BatchNormalization())
+        
+        if self.nb_lstm_layers >= 4:
+            model.add(ConvLSTM2D(filters=self.nb_lstm_units, kernel_size=(self.kernel_size, self.kernel_size),
+                                 padding='same', return_sequences=True))
+            model.add(TimeDistributed(MaxPooling2D()))
+            model.add(BatchNormalization())
 
-        # model.add(ConvLSTM2D(filters=self.nb_lstm_units, kernel_size=(self.kernel_size, self.kernel_size),
-        #                      padding='same', return_sequences=True))
-        # model.add(TimeDistributed(MaxPooling2D()))
-        # model.add(BatchNormalization())
-
-        # model.add(ConvLSTM2D(filters=self.nb_lstm_units, kernel_size=(self.kernel_size, self.kernel_size),
-        #                      padding='same', return_sequences=True))
-        # model.add(BatchNormalization())
+        if self.nb_lstm_layers >= 5:
+            model.add(ConvLSTM2D(filters=self.nb_lstm_units, kernel_size=(self.kernel_size, self.kernel_size),
+                                 padding='same', return_sequences=True))
+            model.add(BatchNormalization())
         model.add(TimeDistributed(Flatten()))
         if top_layer:
             if self.nb_labels == 2:
