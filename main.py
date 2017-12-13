@@ -106,7 +106,7 @@ def read_or_create_horse_rgb_and_OF_dfs(dh,
     horse_rgb_OF_dfs = []
     for horse_id in range(1, 7):
         print(args.data_path)
-        horse_of_csv_path = 'data/jpg_320_180_1fps_OF/horse_' + str(horse_id) + '.csv'
+        horse_of_csv_path = dh.of_path + '/horse_' + str(horse_id) + '.csv'
         if os.path.isfile(horse_of_csv_path):
             hdf = pd.read_csv(horse_of_csv_path)
         else:
@@ -353,6 +353,7 @@ def run():
 
     model = models.MyModel(args)
     dh = DataHandler(args.data_path,
+                     args.of_path,
                      (args.input_width, args.input_height),
                      args.seq_length,
                      args.batch_size,
@@ -387,7 +388,7 @@ def run():
     # Shuffle the different sequences (like 1_1a_1) so that they don't always
     # appear in the same order. Also done in training generator but we do it here so that
     # the validation set is more random as well.
-    df = shuffle_blocks(df)
+    df = shuffle_blocks(df) # The df-index is now shuffled as well, if that matters.
     print("Total length of dataframe:", len(df))
 
     # Split training data so there is a held out validation set.
