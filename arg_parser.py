@@ -19,6 +19,8 @@ def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument('--data-path', nargs='?', type=str,
                         help="Name of folder with all the data to be processed")
+    parser.add_argument('--of-path', nargs='?', type=str,
+                        help="Name of folder with all the data to be processed")
     parser.add_argument('--model', nargs='?', type=str,
                         help="Choose neural network architecture.")
     parser.add_argument('--input-width', nargs='?', type=int,

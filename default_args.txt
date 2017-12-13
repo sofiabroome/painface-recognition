@@ -1,4 +1,5 @@
---data-path,'data/',The path to the folder with all the data.
+--data-path,'data/',The path to the folder with the (rgb or optical flow) data.
+--of-path,'data/',The path to the folder with the optical flow data.
 --model,conv_lstm,Choose neural network architecture.
 --input-width,320,Input image width.
 --input-height,180,Input image height.
