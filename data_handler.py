@@ -17,7 +17,8 @@ eval_datagen = ImageDataGenerator()
 
 
 class DataHandler:
-    def __init__(self, path, image_size, seq_length, batch_size, color, nb_labels):
+    def __init__(self, path, of_path, image_size, seq_length,
+                 batch_size, color, nb_labels):
         """
         Constructor for the DataHandler.
         :param path: str
@@ -27,6 +28,7 @@ class DataHandler:
         :param nb_labels: int
         """
         self.path = path
+        self.of_path = of_path
         self.image_size = image_size
         self.seq_length = seq_length
         self.batch_size = batch_size
@@ -500,24 +502,33 @@ class DataHandler:
         :return: pd.DataFrame
         """
         OF_path_df = pd.DataFrame(columns=['OF_Path'])  # Instantiate an empty df
-        c = 0
+        c = 0  # Per horse frame counter.
+        per_clip_frame_counter = 0
         old_path = 'NoPath'
-        root_of_path = 'data/jpg_320_180_1fps_OF/horse_' + str(horse_id) + '/'
+        root_of_path = self.of_path + 'horse_' + str(horse_id) + '/'
 
         # Walk through all the files in the of-folders and put them in a
         # DataFrame column, in order (the same order they were extracted in.)
-
         for path, dirs, files in os.walk(root_of_path):
             print(path)
+            video_id = get_video_id_from_path(path)
+            nb_frames_in_clip = len(horse_df.loc[horse_df['Path'].str.contains(video_id)])
+            print(video_id)
             if old_path != path and c != 0:  # If entering a new folder
-                horse_df.drop(c, inplace=True)  # Delete first element
-                horse_df.reset_index(drop=True, inplace=True)  # And adjust the index
+                per_clip_frame_counter = 0
+                if self.of_path.contains('1fps'): # To match the #pictures with #of I disregard the first frame.
+                    horse_df.drop(c, inplace=True)  # Delete first element
+                    horse_df.reset_index(drop=True, inplace=True)  # And adjust the index
             old_path = path
             for filename in files:
                 total_path = join(path, filename)
                 if '.npy' in filename:  # (If it's an optical flow-array.)
+                    if per_clip_frame_counter > nb_frames_in_clip:  # This can probably be removed but will
+                                                                    # leave it here for now.
+                        break
                     OF_path_df.loc[c] = [total_path]
                     c += 1
+                    per_clip_frame_counter += 1
 
         # Now extend horse_df to contain both rgb and OF paths,
         # and then return whole thing.
@@ -527,7 +538,10 @@ class DataHandler:
             print("Differed by:", diff)
             # (They should only differ by one row.
             # Else an error should be raised when concatenating.)
-            horse_df = horse_df[:-diff]
+            if diff < 0: # If the of-df was larger, reduce it
+                OF_path_df = OF_path_df[:diff]
+            else:  # Vice versa with horse-df
+                horse_df = horse_df[:-diff]
 
         try:
             # Add column (concatenate)
@@ -569,6 +583,11 @@ def get_video_id_stem_from_path(path):
 
 def get_video_id_from_path(path):
     _, vid_id = split_string_at_last_occurence_of_certain_char(path, '/')
+    return vid_id
+
+def get_video_id_from_frame_path(path):
+    path_left, frame_id = split_string_at_last_occurence_of_certain_char(path, '/')
+    _, vid_id = split_string_at_last_occurence_of_certain_char(path_left, '/')
     return vid_id
 
 
