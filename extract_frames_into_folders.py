@@ -10,6 +10,7 @@ def make_delta(entry):
                               minutes=int(m),
                               seconds=int(s))
 
+
 def get_path(file_name):
     """
     param file_name: str
@@ -21,9 +22,9 @@ def check_if_unique_in_df(file_name, df):
     """
     param file_name: str
     param df: pd.DataFrame
+    :return: int [nb occurences of sequences from the same video clip]
     """
-    occurences = len(df[df['Video_id'] == file_name])
-    return occurences
+    return len(df[df['Video_id'] == file_name])
 
 
 if __name__ == '__main__':
@@ -43,27 +44,27 @@ if __name__ == '__main__':
     path_dict = dict((fn, p) for fn, p in zip(file_names, complete_paths))
 
     # Make all the subfolders for all the separate 60 sequences, in separate horse_id folders.
-    # The horse_id folders need to be created beforehand.
+    # NOTE: The horse_id folders need to be created beforehand.
     # Only need to do once. Therefore commented now... great coding practice.
-    # for h in range(1, 7):
-    #     print("NEW HORSE")
-    #     counter = 1  # Counter of non-unique videos.
-    #     output_dir = 'horse_' + str(h)
-    #     horse_df = df.loc[df['Horse'] == h]
-    #     for vid in horse_df['Video_id']:
-    #         path = get_path(vid)
-    #         occurences = check_if_unique_in_df(vid, df)
-    #         if occurences == 1:
-    #             seq_dir_path = 'data/' + output_dir + '/' + vid
-    #         elif occurences > 1:
-    #             seq_dir_path = 'data/' + output_dir + '/' + vid + '_' + str(counter)
-    #             if counter == occurences:
-    #                 counter = 1
-    #             else:
-    #                 counter += 1
-    #         else:
-    #             print('WARNING 0 occurences')
-    #         subprocess.call(['mkdir', seq_dir_path])
+    for h in range(1, 7):
+        print("NEW HORSE")
+        counter = 1  # Counter of non-unique videos.
+        output_dir = 'horse_' + str(h)
+        horse_df = df.loc[df['Horse'] == h]
+        for vid in horse_df['Video_id']:
+            path = get_path(vid)
+            occurences = check_if_unique_in_df(vid, df)
+            if occurences == 1:
+                seq_dir_path = 'data/' + output_dir + '/' + vid
+            elif occurences > 1:
+                seq_dir_path = 'data/' + output_dir + '/' + vid + '_' + str(counter)
+                if counter == occurences:
+                    counter = 1
+                else:
+                    counter += 1
+            else:
+                print('WARNING 0 occurences')
+            subprocess.call(['mkdir', seq_dir_path])
 
     # Extract frames
     for h in range(1, 7):
@@ -86,7 +87,7 @@ if __name__ == '__main__':
                 else:
                     counter += 1
             else:
-                print("WARNING, No occursences")
+                print("WARNING, No occurences")
 
             # Start and lengths as hh:mm:ss-strings
             start = str(vid[1]['Start'])
@@ -94,7 +95,7 @@ if __name__ == '__main__':
             print(start)
 
             # REAL
-            # complete_output_path = '~/Documents/EquineML/painface-recognition/' + seq_dir_path + '/frame_%06d.jp'
+            # complete_output_path = '~/Documents/EquineML/painface-recognition/' + seq_dir_path + '/frame_%06d.jpg'
 
             # TEST
             # complete_output_path = 'data_test/frame_%06d.png'
@@ -108,15 +109,14 @@ if __name__ == '__main__':
             print('VIDEO PATH:')
             print(video_path)
 
-
             if not os.path.exists(complete_output_path):
-                print("comp path not exists")
+                print("comp path does not exist")
 
             if not os.path.exists(seq_dir_path):
-                print("seq path not exists")
+                print("seq path does not exist")
 
             if not os.path.exists(video_path):
-                print("video path not exists")
+                print("video path does not exist")
 
             print(os.environ['PATH'])
 
@@ -127,11 +127,16 @@ if __name__ == '__main__':
             # ffmpeg_command = ['ffmpeg', '-ss', start, '-i', video_path, '-vcodec', 'png', '-t', length, '-vf',
             #                   'scale=320:240', '-r', str(5), '-an', complete_output_path]
 
-            # JPG HALFASS QUALITY, MAYBE LOSSY, 5 FPS
+            # # JPG HALFASS QUALITY, MAYBE LOSSY, 1 FPS
+            #
+            #
+            # ffmpeg_command = ['ffmpeg', '-ss', start, '-i', video_path, '-t', length, '-vf',
+            #                   'scale=320:240', '-r', str(1), '-an', complete_output_path]
 
-
-            ffmpeg_command = ['ffmpeg', '-ss', start, '-i', video_path, '-t', length, '-vf',
-                              'scale=320:240', '-r', str(1), '-an', complete_output_path]
+            # JPG HALFASS QUALITY, MAYBE LOSSY, 15 FPS
+            # NOTE:  Need to add qscale:v arg for higher frame rates, otherwise pixelated.
+            ffmpeg_command = ['ffmpeg', '-ss', start, '-i', video_path, '-qscale:v', str(4), '-t', length, '-vf',
+                              'scale=320:240', '-r', str(15), '-an', complete_output_path]
 
             print(ffmpeg_command)
 
