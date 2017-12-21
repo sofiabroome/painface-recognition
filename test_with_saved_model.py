@@ -67,7 +67,7 @@ def read_or_create_horse_rgb_and_OF_dfs(dh, horse_dfs):
     horse_rgb_OF_dfs = []
     for horse_id in range(1, 7):
         print(kwargs.data_path)
-        horse_of_csv_path = 'data/jpg_320_180_1fps_OF/horse_' + str(horse_id) + '.csv'
+        horse_of_csv_path = dh.of_path + '/horse_' + str(horse_id) + '.csv'
         if os.path.isfile(horse_of_csv_path):
             hdf = pd.read_csv(horse_of_csv_path)
         else:
@@ -187,7 +187,7 @@ def get_data_2stream_5d_input(dh, horse_dfs, train_horses, test_horses, val_hors
 
 
 def run():
-    dh = DataHandler(kwargs.data_path, (kwargs.input_width, kwargs.input_height),
+    dh = DataHandler(kwargs.data_path, kwargs.of_path, (kwargs.input_width, kwargs.input_height),
                          kwargs.seq_length, kwargs.batch_size, COLOR, kwargs.nb_labels)
     ev = Evaluator(True, True, True, TARGET_NAMES, kwargs.batch_size)
 
@@ -317,7 +317,11 @@ if __name__ == '__main__':
     # model_fn = 'models/BEST_MODEL_2stream_5d_adam_LSTMunits_64_CONVfilters_16_val4_02finaldropout_rightsteps_t1_2conv4lstmseq10.h5'
     # model_fn = 'models/BEST_MODEL_2stream_5d_adam_LSTMunits_64_CONVfilters_16_val4_02finaldropout_rightsteps_t0_2conv4lstmseq10.h5'
     # model_fn = 'models/BEST_MODEL_inception_4d_input_adam_LSTMunits_64_CONVfilters_16_jpg_val4_t0_rgb22.h5'
-    model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t1_seq10_4conv_of3.h5'
+    # model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t1_seq10_4conv_of3.h5'
+    # model_fn = 'models/BEST_MODEL_2stream_5d_adam_LSTMunits_32_CONVfilters_16_concat_v4_t3_5hl_seq10_bs2_run2.h5'
+    # model_fn = 'models/BEST_MODEL_2stream_5d_adam_LSTMunits_32_CONVfilters_16_concat_v4_t2_5hl_seq10_bs2_run2.h5'
+    # model_fn = 'models/BEST_MODEL_2stream_5d_adam_LSTMunits_32_CONVfilters_16_concat_v4_t1_5hl_seq10_bs2_run2.h5'
+    model_fn = 'models/BEST_MODEL_2stream_5d_adam_LSTMunits_32_CONVfilters_16_concat_v4_t0_5hl_seq10_bs2_run2.h5'
     
 # Parse the command line arguments
 
