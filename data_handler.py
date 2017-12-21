@@ -516,7 +516,7 @@ class DataHandler:
             print(video_id)
             if old_path != path and c != 0:  # If entering a new folder
                 per_clip_frame_counter = 0
-                if self.of_path.contains('1fps'): # To match the #pictures with #of I disregard the first frame.
+                if '1fps' in self.of_path: # To match the #pictures with #of I disregard the first frame.
                     horse_df.drop(c, inplace=True)  # Delete first element
                     horse_df.reset_index(drop=True, inplace=True)  # And adjust the index
             old_path = path
