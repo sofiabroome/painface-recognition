@@ -109,7 +109,10 @@ class DataHandler:
                 x /= 255
                 y = row['Pain']
                 flow = np.load(row['OF_Path'])
-                extra_channel = np.zeros((flow.shape[0], flow.shape[1], 1))
+                # Concatenate a third channel in order to comply w RGB images
+                # Either just zeros, or the magnitude.
+                # extra_channel = np.zeros((flow.shape[0], flow.shape[1], 1))
+                extra_channel = get_flow_magnitude(flow)
                 flow = np.concatenate((flow, extra_channel), axis=2)
                 X_seq_list.append(x)
                 y_seq_list.append(y)
