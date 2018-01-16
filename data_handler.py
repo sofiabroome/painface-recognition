@@ -643,3 +643,4 @@ def get_flow_magnitude(flow):
             mag = np.sqrt(np.power(xflow, 2) + np.power(yflow, 2))
             magnitude[i, j] = mag
     return magnitude
+
