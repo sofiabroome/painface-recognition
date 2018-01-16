@@ -622,3 +622,21 @@ def shuffle_blocks(df):
     random.shuffle(df_blocks)
     df = pd.concat(df_blocks)
     return df
+
+
+def get_flow_magnitude(flow):
+    """
+    Compute the magnitude of the optical flow at every pixel.
+    :param flow: np.ndarray [width, height, 2]
+    :return: np.ndarray [width, height, 1]
+    """
+    rows = flow.shape[0]
+    cols = flow.shape[1]
+    magnitude = np.zeros((rows, cols, 1))
+    for i in range(0, rows):
+        for j in range(0, cols):
+            xflow = flow[i, j, 0]
+            yflow = flow[i, j, 1]
+            mag = np.sqrt(np.power(xflow, 2) + np.power(yflow, 2))
+            magnitude[i, j] = mag
+    return magnitude
