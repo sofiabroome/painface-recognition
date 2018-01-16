@@ -75,6 +75,24 @@ def make_folders(frame_rate):
             subprocess.call(['mkdir', seq_dir_path])
 
 
+def get_flow_magnitude(flow):
+    """
+    Compute the magnitude of the optical flow at every pixel.
+    :param flow: np.ndarray [width, height, 2]
+    :return: np.ndarray [width, height, 1]
+    """
+    rows = flow.shape[0]
+    cols = flow.shape[1]
+    magnitude = np.zeros((rows, cols, 1))
+    for i in range(0, rows):
+        for j in range(0, cols):
+            xflow = flow[i, j, 0]
+            yflow = flow[i, j, 1]
+            mag = np.sqrt(np.power(xflow, 2) + np.power(yflow, 2))
+            magnitude[i, j] = mag
+    return magnitude
+
+
 def compute_optical_flow(ims, output_path_stem):
     im1, im2 = ims[0], ims[1]
     im1 = im1.astype(float) / 255.
