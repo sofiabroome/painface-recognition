@@ -110,10 +110,10 @@ class DataHandler:
                 y = row['Pain']
                 flow = np.load(row['OF_Path'])
                 # Concatenate a third channel in order to comply w RGB images
-                # Either just zeros, or the magnitude.
+                # NOTE: If OF-path has 'magnitude' in it, no concatenation is needed and it already has 3 channels.
+                # Either just zeros, or the magnitude (can load magnitude directly now from file)
                 # extra_channel = np.zeros((flow.shape[0], flow.shape[1], 1))
-                extra_channel = get_flow_magnitude(flow)
-                flow = np.concatenate((flow, extra_channel), axis=2)
+                # flow = np.concatenate((flow, extra_channel), axis=2)
                 X_seq_list.append(x)
                 y_seq_list.append(y)
                 flow_seq_list.append(flow)
@@ -512,7 +512,7 @@ class DataHandler:
 
         # Walk through all the files in the of-folders and put them in a
         # DataFrame column, in order (the same order they were extracted in.)
-        for path, dirs, files in os.walk(root_of_path):
+        for path, dirs, files in sorted(os.walk(root_of_path)):
             print(path)
             video_id = get_video_id_from_path(path)
             nb_frames_in_clip = len(horse_df.loc[horse_df['Path'].str.contains(video_id)])
@@ -523,7 +523,7 @@ class DataHandler:
                     horse_df.drop(c, inplace=True)  # Delete first element
                     horse_df.reset_index(drop=True, inplace=True)  # And adjust the index
             old_path = path
-            for filename in files:
+            for filename in sorted(files):
                 total_path = join(path, filename)
                 if '.npy' in filename:  # (If it's an optical flow-array.)
                     if per_clip_frame_counter > nb_frames_in_clip:  # This can probably be removed but will
