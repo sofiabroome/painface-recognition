@@ -62,10 +62,10 @@ def make_folders(frame_rate):
             occurences = check_if_unique_in_df(vid, df)
             if occurences == 1:
                 seq_dir_path = 'data/jpg_320_180_' + str(frame_rate) +\
-                               'fps_OF/' + output_dir + '/' + vid
+                               'fps_OF_magnitude/' + output_dir + '/' + vid
             elif occurences > 1:
                 seq_dir_path = 'data/jpg_320_180_' + str(frame_rate) +\
-                               'fps_OF/' + output_dir + '/' + vid + '_' + str(counter)
+                               'fps_OF_magnitude/' + output_dir + '/' + vid + '_' + str(counter)
                 if counter == occurences:
                     counter = 1
                 else:
@@ -109,7 +109,10 @@ def compute_optical_flow(ims, output_path_stem):
         e - s, im1.shape[0], im1.shape[1], im1.shape[2]))
     flow = np.concatenate((u[..., None], v[..., None]), axis=2)
 
-    # import ipdb; ipdb.set_trace()
+    # ADD MAGNITUDE AS THIRD CHANNEL (optional)
+    extra_channel = get_flow_magnitude(flow)
+    flow = np.concatenate((flow, extra_channel), axis=2)
+
     np.save(output_path_stem + '.npy', flow)
 
     if args.viz:
@@ -126,7 +129,7 @@ def compute_optical_flow(ims, output_path_stem):
 
 def iterate_over_frames():
     root_dir = 'data/jpg_320_180_15fps/'
-    output_root_dir = 'data/jpg_320_180_15fps_OF/'
+    output_root_dir = 'data/jpg_320_180_15fps_OF_magnitude/'
     for horse_id in range(1, 7):
         csv_path = root_dir + 'horse_' + str(horse_id) + '.csv'
         horse_frames_df = pd.read_csv(csv_path, sep=',')
