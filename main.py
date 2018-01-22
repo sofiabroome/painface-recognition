@@ -356,6 +356,7 @@ def run():
                      args.of_path,
                      (args.input_width, args.input_height),
                      args.seq_length,
+                     args.seq_stride,
                      args.batch_size,
                      COLOR,
                      args.nb_labels)

@@ -18,8 +18,17 @@ class Evaluator:
     def test(self, model, args, test_generator, eval_generator, nb_test_samples, X_test=None):
         ###### If not a generator:
         #    y_pred = model.predict_classes(X_test, batch_size=model.batch_size)
+        ws = args.seq_length  # "Window size" in a sliding window.
+        ss = args.seq_stride  # Provide argument for slinding w. stride.
+
+        # SET TEST STEPS
         if args.nb_input_dims == 5:
-            nb_steps = int(nb_test_samples/(args.batch_size * args.seq_length))
+            if args.seq_stride == args.seq_length:
+                nb_steps = int(nb_test_samples / (args.batch_size * args.seq_length))
+            else:
+                valid_test = nb_test_samples - (ws - 1)
+                nw_test = valid_test // ss  # Number of windows
+                nb_steps = nw_test / args.batch_size
         if args.nb_input_dims == 4:
             nb_steps = int(nb_test_samples/args.batch_size)
         if args.test_run == 1:
