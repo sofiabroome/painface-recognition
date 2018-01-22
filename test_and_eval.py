@@ -43,19 +43,35 @@ class Evaluator:
         return y_pred, scores
 
     def evaluate(self, model, y_test, y_pred, scores, args):
+        """
+        Compute confusion matrix and class report with F1-scores.
+        :param model: Model object
+        :param y_test: np.ndarray (dim,)
+        :param y_pred: np.ndarray (dim, nb_classes)
+        :param scores: [np.ndarray]
+        :param args: command line args
+        :return: None
+        """
         print('Scores: ', scores)
         print('Model metrics: ', model.metrics_names)
         print('y_pred shape before', y_pred.shape)
-        if len(y_pred.shape) > 2:
+        import ipdb; ipdb.set_trace()
+
+        if len(y_pred.shape) > 2: # If sequences, p
             y_pred = np.reshape(y_pred, (y_pred.shape[0]*y_pred.shape[1], 2))
-            # y_pred = y_pred[:,0,:]
+
         print('y_pred shape after', y_pred.shape)
-        file_identifier = args.image_identifier
+
+        y_pred = np.argmax(y_pred, axis=1)
+
         if args.nb_labels != 2 or '3d' in args.model or '5d' in args.model:
             y_test = np_utils.to_categorical(y_test, num_classes=args.nb_labels)
-        y_pred = np.argmax(y_pred, axis=1)
-        if args.nb_labels != 2 or '3d' in args.model or '5d' in args.model:
             y_pred = np_utils.to_categorical(y_pred, num_classes=args.nb_labels)
+
+        # If sequences, get majority labels per window.
+        y_pred = get_sequence_majority_labels(y_pred, args.seq_length, args.seq_stride)
+        y_test = get_sequence_majority_labels(y_test, args.seq_length, args.seq_stride)
+
         nb_preds = len(y_pred)
         nb_tests = len(y_test)
         if nb_preds != nb_tests:
@@ -63,13 +79,17 @@ class Evaluator:
             print("Y test length: ", nb_tests)
             print("Y pred length: ", nb_preds)
         y_test = y_test[:nb_preds]
+
+        # Print labels and predictions.
+
         print('y_test:')
         print(y_test)
         print('y_pred:')
         print(y_pred)
+
         if self.cr:
             cr = classification_report(y_test, y_pred)
-            f = open(_make_cr_filename(args, file_identifier), 'w')
+            f = open(_make_cr_filename(args), 'w')
             print(cr, end="", file=f)
             f.close()
             print(cr)
@@ -80,9 +100,10 @@ class Evaluator:
             else:
                 cm = confusion_matrix(y_test, y_pred)
             print(cm)
-            f = open(_make_cm_filename(args, file_identifier), 'w')
+            f = open(_make_cm_filename(args), 'w')
             print(cm, end="", file=f)
             f.close()
+
 
     def classification_report(self, y_test, y_pred):
         return classification_report(np.argmax(y_test, axis=1), y_pred,
@@ -97,18 +118,62 @@ class Evaluator:
         return confusion_matrix(y_test, y_pred)
 
 
-def _make_cr_filename(args, identifier):
-    return args.model + "_" + identifier + "_LSTM_UNITS_" +\
+def _make_cr_filename(args):
+    return args.model + "_" + args.image_identifier + "_LSTM_UNITS_" +\
                   str(args.nb_lstm_units) + "_CONV_FILTERS_" +\
                   str(args.nb_conv_filters) + "_CR.txt"
 
 
-def _make_cm_filename(args, identifier):
-    return args.model + "_" + identifier + "_LSTM_UNITS_" + \
+def _make_cm_filename(args):
+    return args.model + "_" + args.image_identifier + "_LSTM_UNITS_" + \
                   str(args.nb_lstm_units) + "_CONV_FILTERS_" + \
                   str(args.nb_conv_filters) + "_CM.txt"
 
-def get_majority_vote(y_pred):
+
+def get_sequence_majority_labels(y_per_frame, ws, stride):
+    """
+    Get the majority labels for every sequence.
+    :param y_per_frame: np.ndarray
+    :param ws: int
+    :param stride: int
+    :return: np.ndarray
+    """
+
+    import ipdb;
+    ipdb.set_trace()
+
+    nb_frames = len(y_per_frame)
+    valid = nb_frames - (ws - 1)
+    nw = valid // stride
+
+    window_votes = np.zeros((nw, 1))
+
+    for window_index in range(nw):
+        start = window_index * stride
+        stop = start + ws
+        window = y_per_frame[start:stop]
+        window_votes[window_index] = get_majority_vote_for_sequence(window,
+                                                                    y_per_frame.shape[1])
+
+    return window_votes
+
+
+def get_majority_vote_for_sequence(sequence, nb_classes):
+    """
+    Get the most common class for one sequence.
+    :param sequence:
+    :return:
+    """
+    import ipdb; ipdb.set_trace()
+    votes_per_class = np.zeros((nb_classes, 1))
+    for i in range(len(sequence)):
+        class_vote = np.argmax(sequence[i])
+        votes_per_class[class_vote] += 1
+
+    return np.argmax(votes_per_class)
+
+
+def get_majority_vote_3d(y_pred):
     """
     I want to take the majority vote for every sequence.
     :param y_pred: Array with 3 dimensions.
