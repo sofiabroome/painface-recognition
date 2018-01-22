@@ -18,7 +18,7 @@ eval_datagen = ImageDataGenerator()
 
 class DataHandler:
     def __init__(self, path, of_path, image_size, seq_length,
-                 batch_size, color, nb_labels):
+                 seq_stride, batch_size, color, nb_labels):
         """
         Constructor for the DataHandler.
         :param path: str
@@ -31,6 +31,7 @@ class DataHandler:
         self.of_path = of_path
         self.image_size = image_size
         self.seq_length = seq_length
+        self.seq_stride = seq_stride
         self.batch_size = batch_size
         self.color = color
         self.nb_labels = nb_labels
@@ -92,42 +93,69 @@ class DataHandler:
         :return: np.ndarray, np.ndarray, np.ndarray, np.ndarray
         """
 
-        print("LEN DF:")
-        print(len(df))
+        print("LEN DF (nb. of frames):")
+        nb_frames = len(df)
+        print(nb_frames)
+        ws = self.seq_length  # "Window size" in a sliding window.
+        ss = self.seq_stride  # Provide argument for slinding w. stride.
+        valid = nb_frames - (ws - 1)
+        nw = valid//ss  # Number of windows
+        print('Number of windows', nw)
         while True:
             # Shuffle blocks between epochs.
             if train:
                 df = shuffle_blocks(df)
             batch_index = 0
             seq_index = 0
-            for index, row in df.iterrows():
-                if seq_index == 0:
-                    X_seq_list = []
-                    y_seq_list = []
-                    flow_seq_list = []
-                x = self.get_image(row['Path'])
-                x /= 255
-                y = row['Pain']
-                flow = np.load(row['OF_Path'])
-                # Concatenate a third channel in order to comply w RGB images
-                # NOTE: If OF-path has 'magnitude' in it, no concatenation is needed and it already has 3 channels.
-                # Either just zeros, or the magnitude (can load magnitude directly now from file)
-                # extra_channel = np.zeros((flow.shape[0], flow.shape[1], 1))
-                # flow = np.concatenate((flow, extra_channel), axis=2)
-                X_seq_list.append(x)
-                y_seq_list.append(y)
-                flow_seq_list.append(flow)
-                seq_index += 1
-                if seq_index % self.seq_length == 0:
-                    if batch_index == 0:
-                        X_batch_list = []
-                        y_batch_list = []
-                        flow_batch_list = []
-                    X_batch_list.append(X_seq_list)
-                    y_batch_list.append(y_seq_list)
-                    flow_batch_list.append(flow_seq_list)
-                    seq_index = 0
-                    batch_index += 1
+            for window_index in range(nw):
+                # for index, row in df.iterrows():
+                start = window_index * ss
+                stop = start + ws
+                rows = df.iloc[start:stop]  # A new dataframe for the window in question.
+
+                X_seq_list = []
+                y_seq_list = []
+                flow_seq_list = []
+
+                # if seq_index == 0:
+                #     X_seq_list = []
+                #     y_seq_list = []
+                #     flow_seq_list = []
+
+                for index, row in rows.iterrows():
+                    row = df.iloc[index]
+
+                    x = self.get_image(row['Path'])
+                    x /= 255  # Normalize to [0,1] since optical flow is on [0,1].
+                    y = row['Pain']
+                    flow = np.load(row['OF_Path'])
+                    # Concatenate a third channel in order to comply w RGB images
+                    # NOTE: If OF-path has 'magnitude' in it, no concatenation is needed and it already has 3 channels.
+                    # Either just zeros, or the magnitude (can load magnitude directly now from file)
+                    # extra_channel = np.zeros((flow.shape[0], flow.shape[1], 1))
+                    # flow = np.concatenate((flow, extra_channel), axis=2)
+                    X_seq_list.append(x)
+                    y_seq_list.append(y)
+                    flow_seq_list.append(flow)
+                    # seq_index += 1
+                    # if seq_index % self.seq_length == 0:
+                    #     if batch_index == 0:
+                    #         X_batch_list = []
+                    #         y_batch_list = []
+                    #         flow_batch_list = []
+                        # X_batch_list.append(X_seq_list)
+                        # y_batch_list.append(y_seq_list)
+                        # flow_batch_list.append(flow_seq_list)
+                        # seq_index = 0
+                        # batch_index += 1
+                if batch_index == 0:
+                    X_batch_list = []
+                    y_batch_list = []
+                    flow_batch_list = []
+                X_batch_list.append(X_seq_list)
+                y_batch_list.append(y_seq_list)
+                flow_batch_list.append(flow_seq_list)
+                batch_index += 1
 
                 if batch_index % self.batch_size == 0 and not batch_index == 0:
                     X_array = np.array(X_batch_list, dtype=np.float32)
@@ -137,8 +165,6 @@ class DataHandler:
                         y_array = np_utils.to_categorical(y_array, num_classes=self.nb_labels)
                         y_array = np.reshape(y_array, (self.batch_size, -1, self.nb_labels))
                     batch_index = 0
-                    # y_array = get_majority_vote(y_array)
-                    # print(X_array.shape, y_array.shape)
                     yield [X_array, flow_array], [y_array]
 
     def prepare_image_generator_5D(self, df, data_type, train, val, test, eval):
