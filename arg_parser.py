@@ -67,6 +67,8 @@ def parse_arguments():
                         help='Whether to run as a quick test or not.')
     parser.add_argument('--seq-length', nargs='?', type=int,
                         help="Length of sequence for LSTM and for 5D input stuff")
+    parser.add_argument('--seq-stride', nargs='?', type=int,
+                        help="Stride for (sliding window) sequence extraction. Same as seq length if b2b.")
     parser.add_argument('--nb-workers', nargs='?', type=int,
                         help="Number of workers")
     parser.add_argument('--nb-input-dims', nargs='?', type=int,

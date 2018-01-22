@@ -22,7 +22,8 @@
 --test-horses,[4,5], List of horse-id:s to test on, choosing from range(0,6): ex [4,5]
 --image-identifier,'5subj',Choose some string to identify the image of the training process that you will save
 --test-run,0,Whether a test run or not
---seq-length,50,Length of sequence for LSTM and for 5D input stuff
+--seq-length,10,Length of sequence for LSTM and for 5D input stuff
+--seq-stride,10,Stride for (sliding window) sequence extraction
 --nb-workers,1,Number of workers
 --nb-input-dims,5,Number of input dimensions
 --val-fraction,0,Whether to use val fraction instead of separate horses (0 false 1 true)
