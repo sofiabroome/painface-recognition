@@ -321,7 +321,12 @@ if __name__ == '__main__':
     # model_fn = 'models/BEST_MODEL_2stream_5d_adam_LSTMunits_32_CONVfilters_16_concat_v4_t3_5hl_seq10_bs2_run2.h5'
     # model_fn = 'models/BEST_MODEL_2stream_5d_adam_LSTMunits_32_CONVfilters_16_concat_v4_t2_5hl_seq10_bs2_run2.h5'
     # model_fn = 'models/BEST_MODEL_2stream_5d_adam_LSTMunits_32_CONVfilters_16_concat_v4_t1_5hl_seq10_bs2_run2.h5'
-    model_fn = 'models/BEST_MODEL_2stream_5d_adam_LSTMunits_32_CONVfilters_16_concat_v4_t0_5hl_seq10_bs2_run2.h5'
+    # model_fn = 'models/BEST_MODEL_2stream_5d_adam_LSTMunits_32_CONVfilters_16_concat_v4_t0_5hl_seq10_bs2_run2.h5'
+
+    # model_fn = 'models/BEST_MODEL_2stream_5d_adam_LSTMunits_32_CONVfilters_16_concat_v4_t3_5hl_seq10_bs2.h5'
+    # model_fn = 'models/BEST_MODEL_2stream_5d_adam_LSTMunits_32_CONVfilters_16_concat_v4_t2_5hl_seq10_bs2.h5'
+    # model_fn = 'models/BEST_MODEL_2stream_5d_adam_LSTMunits_32_CONVfilters_16_concat_v4_t1_5hl_seq10_bs2.h5'
+    model_fn = 'models/BEST_MODEL_2stream_5d_adam_LSTMunits_32_CONVfilters_16_concat_v4_t0_5hl_seq10_bs2.h5'
     
 # Parse the command line arguments
 
