@@ -55,7 +55,7 @@ class Evaluator:
         print('Scores: ', scores)
         print('Model metrics: ', model.metrics_names)
         print('y_pred shape before', y_pred.shape)
-        import ipdb; ipdb.set_trace()
+        import pdb; pdb.set_trace()
 
         if len(y_pred.shape) > 2: # If sequences, p
             y_pred = np.reshape(y_pred, (y_pred.shape[0]*y_pred.shape[1], 2))
@@ -71,6 +71,8 @@ class Evaluator:
         # If sequences, get majority labels per window.
         y_pred = get_sequence_majority_labels(y_pred, args.seq_length, args.seq_stride)
         y_test = get_sequence_majority_labels(y_test, args.seq_length, args.seq_stride)
+
+        pdb.set_trace()
 
         nb_preds = len(y_pred)
         nb_tests = len(y_test)
@@ -139,8 +141,8 @@ def get_sequence_majority_labels(y_per_frame, ws, stride):
     :return: np.ndarray
     """
 
-    import ipdb;
-    ipdb.set_trace()
+    import pdb;
+    pdb.set_trace()
 
     nb_frames = len(y_per_frame)
     valid = nb_frames - (ws - 1)
@@ -164,7 +166,7 @@ def get_majority_vote_for_sequence(sequence, nb_classes):
     :param sequence:
     :return:
     """
-    import ipdb; ipdb.set_trace()
+    import pdb; pdb.set_trace()
     votes_per_class = np.zeros((nb_classes, 1))
     for i in range(len(sequence)):
         class_vote = np.argmax(sequence[i])
