@@ -57,7 +57,7 @@ def train(model_instance, args, nb_train_samples, nb_val_samples, val_fraction,
             else:
                 valid_train = nb_train_samples - (ws - 1)
                 nw_train = valid_train // ss  # Number of windows
-                train_steps = nw_train / args.batch_size
+                train_steps = int(nw_train / args.batch_size)
         if args.nb_input_dims == 4:
             train_steps = int(nb_train_samples/args.batch_size)
         if args.test_run == 1:
@@ -70,7 +70,7 @@ def train(model_instance, args, nb_train_samples, nb_val_samples, val_fraction,
             else:
                 valid_val = nb_val_samples - (ws - 1)
                 nw_val = valid_val // ss  # Number of windows
-                val_steps = nw_val / args.batch_size
+                val_steps = int(nw_val / args.batch_size)
         if args.nb_input_dims == 4:
             val_steps = int(nb_val_samples / args.batch_size)
         if args.test_run == 1:

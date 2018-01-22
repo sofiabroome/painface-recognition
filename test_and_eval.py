@@ -28,7 +28,7 @@ class Evaluator:
             else:
                 valid_test = nb_test_samples - (ws - 1)
                 nw_test = valid_test // ss  # Number of windows
-                nb_steps = nw_test / args.batch_size
+                nb_steps = int(nw_test / args.batch_size)
         if args.nb_input_dims == 4:
             nb_steps = int(nb_test_samples/args.batch_size)
         if args.test_run == 1:
