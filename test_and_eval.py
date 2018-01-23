@@ -54,41 +54,41 @@ class Evaluator:
         """
         print('Scores: ', scores)
         print('Model metrics: ', model.metrics_names)
-        print('y_pred shape before', y_pred.shape)
-        import pdb; pdb.set_trace()
 
-        if len(y_pred.shape) > 2: # If sequences, p
-            # y_pred = np.reshape(y_pred, (y_pred.shape[0]*y_pred.shape[1], 2))
+        if len(y_pred.shape) > 2: # If sequential data
             y_pred = np.argmax(y_pred, axis=2)
+            y_pred_list = [np_utils.to_categorical(x, num_classes=args.nb_labels) for x in y_pred]
+            y_pred = np.array(y_pred_list)
             y_pred = get_majority_vote_3d(y_pred)
-
-        print('y_pred shape after', y_pred.shape)
+        else:                     # If still frames
+            y_pred = np.argmax(y_pred, axis=1)
 
         if args.nb_labels != 2 or '3d' in args.model or '5d' in args.model:
+            # If sequences, get majority labels per window.
             y_test = np_utils.to_categorical(y_test, num_classes=args.nb_labels)
-            y_pred = np_utils.to_categorical(y_pred, num_classes=args.nb_labels)
-
-        # If sequences, get majority labels per window.
-        # y_pred = get_sequence_majority_labels(y_pred, args.seq_length, args.seq_stride)
-        y_test = get_sequence_majority_labels(y_test, args.seq_length, args.seq_stride)
-
-        pdb.set_trace()
+            y_test = get_sequence_majority_labels(y_test, args.seq_length, args.seq_stride)
 
         nb_preds = len(y_pred)
         nb_tests = len(y_test)
+
         if nb_preds != nb_tests:
             print("Warning, number of predictions not the same as the length of the y_test vector.")
             print("Y test length: ", nb_tests)
             print("Y pred length: ", nb_preds)
         y_test = y_test[:nb_preds]
+        y_test = np_utils.to_categorical(y_test, args.nb_labels)
 
         # Print labels and predictions.
+        print('y_test:', y_test)
+        print('y_pred:', y_pred)
 
-        print('y_test:')
-        print(y_test)
-        print('y_pred:')
-        print(y_pred)
+        self.print_and_save_evaluations(y_pred, y_test, args)
 
+
+    def print_and_save_evaluations(self, y_pred, y_test, args):
+        """
+        :params y_pred, y_test: 2D-arrays [nsamples, nclasses]
+        """
         if self.cr:
             cr = classification_report(y_test, y_pred)
             f = open(_make_cr_filename(args), 'w')
@@ -106,7 +106,6 @@ class Evaluator:
             print(cm, end="", file=f)
             f.close()
 
-
     def classification_report(self, y_test, y_pred):
         return classification_report(np.argmax(y_test, axis=1), y_pred,
                                      target_names=self.target_names,
@@ -118,6 +117,8 @@ class Evaluator:
         # just the below return line was before 5/9.
         # return confusion_matrix(np.argmax(y_test, axis=1), y_pred)
         return confusion_matrix(y_test, y_pred)
+
+
 
 
 def _make_cr_filename(args):
@@ -179,16 +180,14 @@ def get_majority_vote_3d(y_pred):
     :return: Array with 2 dims.
     """
     nb_samples = y_pred.shape[0]
-    seq_length = y_pred.shape[1]
     nb_classes = y_pred.shape[2]
-
-    new_array = np.zeros((nb_samples, nb_classes))
-    import pdb; pdb.set_trace()
+    majority_votes = np.zeros((nb_samples, nb_classes))
     for i in range(nb_samples):
         sample = y_pred[i]
         class_sums = []
         for c in range(nb_classes):
+            # Sum of votes for one class across sequence
             class_sum = sample[:,c].sum()
             class_sums.append(class_sum)
-        new_array[i, np.argmax(class_sums)] = 1
-    y_pred = new_array
+        majority_votes[i, np.argmax(class_sums)] = 1
+    return majority_votes
