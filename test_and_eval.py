@@ -58,18 +58,18 @@ class Evaluator:
         import pdb; pdb.set_trace()
 
         if len(y_pred.shape) > 2: # If sequences, p
-            y_pred = np.reshape(y_pred, (y_pred.shape[0]*y_pred.shape[1], 2))
+            # y_pred = np.reshape(y_pred, (y_pred.shape[0]*y_pred.shape[1], 2))
+            y_pred = np.argmax(y_pred, axis=2)
+            y_pred = get_majority_vote_3d(y_pred)
 
         print('y_pred shape after', y_pred.shape)
-
-        y_pred = np.argmax(y_pred, axis=1)
 
         if args.nb_labels != 2 or '3d' in args.model or '5d' in args.model:
             y_test = np_utils.to_categorical(y_test, num_classes=args.nb_labels)
             y_pred = np_utils.to_categorical(y_pred, num_classes=args.nb_labels)
 
         # If sequences, get majority labels per window.
-        y_pred = get_sequence_majority_labels(y_pred, args.seq_length, args.seq_stride)
+        # y_pred = get_sequence_majority_labels(y_pred, args.seq_length, args.seq_stride)
         y_test = get_sequence_majority_labels(y_test, args.seq_length, args.seq_stride)
 
         pdb.set_trace()
@@ -141,9 +141,6 @@ def get_sequence_majority_labels(y_per_frame, ws, stride):
     :return: np.ndarray
     """
 
-    import pdb;
-    pdb.set_trace()
-
     nb_frames = len(y_per_frame)
     valid = nb_frames - (ws - 1)
     nw = valid // stride
@@ -157,6 +154,7 @@ def get_sequence_majority_labels(y_per_frame, ws, stride):
         window_votes[window_index] = get_majority_vote_for_sequence(window,
                                                                     y_per_frame.shape[1])
 
+
     return window_votes
 
 
@@ -166,7 +164,6 @@ def get_majority_vote_for_sequence(sequence, nb_classes):
     :param sequence:
     :return:
     """
-    import pdb; pdb.set_trace()
     votes_per_class = np.zeros((nb_classes, 1))
     for i in range(len(sequence)):
         class_vote = np.argmax(sequence[i])
@@ -186,7 +183,7 @@ def get_majority_vote_3d(y_pred):
     nb_classes = y_pred.shape[2]
 
     new_array = np.zeros((nb_samples, nb_classes))
-
+    import pdb; pdb.set_trace()
     for i in range(nb_samples):
         sample = y_pred[i]
         class_sums = []
@@ -195,5 +192,3 @@ def get_majority_vote_3d(y_pred):
             class_sums.append(class_sum)
         new_array[i, np.argmax(class_sums)] = 1
     y_pred = new_array
-    return y_pred
-
