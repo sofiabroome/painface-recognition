@@ -75,7 +75,11 @@ class Evaluator:
             print("Warning, number of predictions not the same as the length of the y_test vector.")
             print("Y test length: ", nb_tests)
             print("Y pred length: ", nb_preds)
-        y_test = y_test[:nb_preds]
+            if nb_preds < nb_tests:
+                y_test = y_test[:nb_preds]
+            else:
+                y_pred = y_pred[:nb_tests]
+
         y_test = np_utils.to_categorical(y_test, args.nb_labels)
 
         # Print labels and predictions.
