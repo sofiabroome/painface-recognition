@@ -187,8 +187,9 @@ def get_data_2stream_5d_input(dh, horse_dfs, train_horses, test_horses, val_hors
 
 
 def run():
+    import pdb; pdb.set_trace()
     dh = DataHandler(kwargs.data_path, kwargs.of_path, (kwargs.input_width, kwargs.input_height),
-                         kwargs.seq_length, kwargs.batch_size, COLOR, kwargs.nb_labels)
+                         kwargs.seq_length, kwargs.seq_stride, kwargs.batch_size, COLOR, kwargs.nb_labels)
     ev = Evaluator(True, True, True, TARGET_NAMES, kwargs.batch_size)
 
     # Read or create the per-horse dataframes listing all the frame paths and labels.
@@ -326,7 +327,9 @@ if __name__ == '__main__':
     # model_fn = 'models/BEST_MODEL_2stream_5d_adam_LSTMunits_32_CONVfilters_16_concat_v4_t3_5hl_seq10_bs2.h5'
     # model_fn = 'models/BEST_MODEL_2stream_5d_adam_LSTMunits_32_CONVfilters_16_concat_v4_t2_5hl_seq10_bs2.h5'
     # model_fn = 'models/BEST_MODEL_2stream_5d_adam_LSTMunits_32_CONVfilters_16_concat_v4_t1_5hl_seq10_bs2.h5'
-    model_fn = 'models/BEST_MODEL_2stream_5d_adam_LSTMunits_32_CONVfilters_16_concat_v4_t0_5hl_seq10_bs2.h5'
+    # model_fn = 'models/BEST_MODEL_2stream_5d_adam_LSTMunits_32_CONVfilters_16_concat_v4_t0_5hl_seq10_bs2.h5'
+
+    model_fn = 'models/BEST_MODEL_2stream_5d_adam_LSTMunits_32_CONVfilters_16_concat_v4_t0_1hl_seq10_bs2_MAG.h5'
     
 # Parse the command line arguments
 
