@@ -227,23 +227,25 @@ class MyModel:
         two_stream_model = Model(inputs=[image_input, of_input], outputs=[output])
         return two_stream_model
 
+
     def conv3d_lstm(self, channels, top_layer=True, stateful=False):
         # Conv3d downsamples the time dimension. Which makes the coming dimensions weird.
         # Therefore, timedist conv.
         model = Sequential()
-        model.add(TimeDistributed(Convolution2D(filters=self.nb_conv_filters,
-                                                kernel_size=(self.kernel_size,
-                                                             self.kernel_size),
-                                                activation='relu'),
-                                  input_shape=(self.seq_length, self.input_shape[0], self.input_shape[1], 3),
-                                  batch_input_shape=(self.batch_size, self.seq_length,
-                                                     self.input_shape[0], self.input_shape[1], 3)))
+        model.add(Conv3D(filters=self.nb_conv_filters,
+                         kernel_size=(self.kernel_size, self.kernel_size, self.kernel_size),
+                         activation='relu'),
+                         input_shape=(self.seq_length, self.input_shape[0], self.input_shape[1], 3),
+                         batch_input_shape=(self.batch_size, self.seq_length,
+                                            self.input_shape[0], self.input_shape[1], 3))
         model.add(TimeDistributed(MaxPooling2D()))
         model.add(BatchNormalization())
-        model.add(TimeDistributed(Convolution2D(filters=self.nb_conv_filters,
-                                                kernel_size=(self.kernel_size, self.kernel_size),
-                                                activation='relu',
-                                                kernel_initializer='he_uniform')))
+        model.add(Conv3D(filters=self.nb_conv_filters,
+                         kernel_size=(self.kernel_size, self.kernel_size, self.kernel_size),
+                         activation='relu'),
+                         input_shape=(self.seq_length, self.input_shape[0], self.input_shape[1], 3),
+                         batch_input_shape=(self.batch_size, self.seq_length,
+                                            self.input_shape[0], self.input_shape[1], 3))
         model.add(TimeDistributed(MaxPooling2D()))
         model.add(BatchNormalization())
         # model.add(Conv3D(filters=self.nb_conv_filters,
@@ -295,6 +297,76 @@ class MyModel:
                 model.add(TimeDistributed(Dense(self.nb_labels, activation='softmax')))
                 # model.add(Dense(self.nb_labels, activation='softmax'))
         return model
+
+
+#     def conv3d_lstm(self, channels, top_layer=True, stateful=False):
+#         # Conv3d downsamples the time dimension. Which makes the coming dimensions weird.
+#         # Therefore, timedist conv.
+#         model = Sequential()
+#         model.add(TimeDistributed(Convolution2D(filters=self.nb_conv_filters,
+#                                                 kernel_size=(self.kernel_size,
+#                                                              self.kernel_size),
+#                                                 activation='relu'),
+#                                   input_shape=(self.seq_length, self.input_shape[0], self.input_shape[1], 3),
+#                                   batch_input_shape=(self.batch_size, self.seq_length,
+#                                                      self.input_shape[0], self.input_shape[1], 3)))
+#         model.add(TimeDistributed(MaxPooling2D()))
+#         model.add(BatchNormalization())
+#         model.add(TimeDistributed(Convolution2D(filters=self.nb_conv_filters,
+#                                                 kernel_size=(self.kernel_size, self.kernel_size),
+#                                                 activation='relu',
+#                                                 kernel_initializer='he_uniform')))
+#         model.add(TimeDistributed(MaxPooling2D()))
+#         model.add(BatchNormalization())
+#         # model.add(Conv3D(filters=self.nb_conv_filters,
+#         #                  kernel_size=(self.kernel_size, self.kernel_size, self.kernel_size),
+#         #                  padding='same',
+#         #                  input_shape=(self.seq_length, self.input_shape[0], self.input_shape[1], channels),
+#         #                  batch_input_shape=(None, self.seq_length, self.input_shape[0], self.input_shape[1], channels),
+#         #                  activation='relu', kernel_initializer='he_uniform'))
+#         # # model.add(MaxPooling3D())
+#         # model.add(BatchNormalization())
+#         # model.add(Conv3D(filters=self.nb_conv_filters,
+#         #                  kernel_size=(self.kernel_size, self.kernel_size, self.kernel_size),
+#         #                  padding='same',
+#         #                  input_shape=(self.seq_length, self.input_shape[0], self.input_shape[1], channels),
+#         #                  activation='relu', kernel_initializer='he_uniform'))
+#         # # model.add(MaxPooling3D())
+#         # model.add(BatchNormalization())
+#         model.add(TimeDistributed(Flatten()))
+#         model.add((LSTM(self.nb_lstm_units,
+#                         stateful=stateful,
+#                         dropout=self.dropout_2,
+#                         input_shape=(None, None, None),
+#                         return_sequences=True,
+#                         implementation=2)))
+#         model.add((LSTM(self.nb_lstm_units,
+#                         stateful=stateful,
+#                         dropout=self.dropout_2,
+#                         input_shape=(None, None, None),
+#                         return_sequences=True,
+#                         implementation=2)))
+#         model.add((LSTM(self.nb_lstm_units,
+#                         stateful=stateful,
+#                         dropout=self.dropout_2,
+#                         input_shape=(None, None, None),
+#                         return_sequences=True,
+#                         implementation=2)))
+#         model.add((LSTM(self.nb_lstm_units,
+#                         stateful=stateful,
+#                         dropout=self.dropout_2,
+#                         input_shape=(None, None, None),
+#                         return_sequences=True,
+#                         implementation=2)))
+#         if top_layer:
+#             if self.nb_labels == 2:
+#                 print("2 labels, using sigmoid activation instead of softmax.")
+#                 model.add(TimeDistributed(Dense(self.nb_labels, activation='sigmoid')))
+#                 # model.add(Dense(self.nb_labels, activation='sigmoid'))
+#             else:
+#                 model.add(TimeDistributed(Dense(self.nb_labels, activation='softmax')))
+#                 # model.add(Dense(self.nb_labels, activation='softmax'))
+#         return model
 
     def conv2d_lstm(self, channels, top_layer=True, stateful=False):
         model = Sequential()
