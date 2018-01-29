@@ -63,14 +63,13 @@ class Evaluator:
         else:                     # If still frames
             y_pred = np.argmax(y_pred, axis=1)
 
-        if args.nb_labels != 2 or '3d' in args.model or '5d' in args.model:
+        if args.nb_labels != 2 or args.nb_input_dims == 5:
             # If sequences, get majority labels per window.
             y_test = np_utils.to_categorical(y_test, num_classes=args.nb_labels)
             y_test = get_sequence_majority_labels(y_test, args.seq_length, args.seq_stride)
 
         nb_preds = len(y_pred)
         nb_tests = len(y_test)
-
         if nb_preds != nb_tests:
             print("Warning, number of predictions not the same as the length of the y_test vector.")
             print("Y test length: ", nb_tests)
@@ -101,7 +100,7 @@ class Evaluator:
             print(cr)
 
         if self.cm:
-            if args.nb_labels != 2 or '3d' in args.model or '5d' in args.model:
+            if args.nb_labels != 2 or args.nb_input_dims == 5:
                 cm = confusion_matrix(np.argmax(y_test, axis=1), np.argmax(y_pred, axis=1))
             else:
                 cm = confusion_matrix(y_test, y_pred)
