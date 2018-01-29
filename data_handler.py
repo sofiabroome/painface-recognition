@@ -465,8 +465,8 @@ class DataHandler:
         """
         df = pd.DataFrame(columns=['FileName', 'Path', 'Pain', 'Observer', 'Train'])
         c = 0
-        for path, dirs, files in os.walk(self.path):
-            for filename in files:
+        for path, dirs, files in sorted(os.walk(self.path)):
+            for filename in sorted(files):
                 total_path = join(path,filename)
                 if '.jpg' in filename:
                     if 'train' in total_path:
@@ -502,9 +502,9 @@ class DataHandler:
                                          'Train'])
         c = 0
         horse_path = self.path + 'horse_' + str(horse_id) + '/'
-        for path, dirs, files in os.walk(horse_path):
+        for path, dirs, files in sorted(os.walk(horse_path)):
             print(path)
-            for filename in files:
+            for filename in sorted(files):
                 total_path = join(path, filename)
                 print(total_path)
                 vid_id = get_video_id_stem_from_path(path)
