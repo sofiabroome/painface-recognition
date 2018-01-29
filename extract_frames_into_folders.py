@@ -44,7 +44,7 @@ if __name__ == '__main__':
     path_dict = dict((fn, p) for fn, p in zip(file_names, complete_paths))
 
     # Make all the subfolders for all the separate 60 sequences, in separate horse_id folders.
-    # NOTE: The horse_id folders need to be created beforehand.
+    # NOTE: The horse_id folders need to be created beforehand, in the data folder like so: data/horse_id.
     # Only need to do once. Therefore commented now... great coding practice.
     for h in range(1, 7):
         print("NEW HORSE")
@@ -135,15 +135,20 @@ if __name__ == '__main__':
 
             # JPG HALFASS QUALITY, MAYBE LOSSY, 15 FPS
             # NOTE:  Need to add qscale:v arg for higher frame rates, otherwise pixelated.
-            ffmpeg_command = ['ffmpeg', '-ss', start, '-i', video_path, '-qscale:v', str(4), '-t', length, '-vf',
-                              'scale=320:240', '-r', str(15), '-an', complete_output_path]
+            # ffmpeg_command = ['ffmpeg', '-ss', start, '-i', video_path, '-qscale:v', str(4), '-t', length, '-vf',
+            #                   'scale=320:240', '-r', str(15), '-an', complete_output_path]
 
-            print(ffmpeg_command)
+            #JPG 2FPS 128x128
+
+            ffmpeg_command = ['ffmpeg', '-ss', start, '-i', video_path, '-qscale:v', str(4), '-t', length, '-vf',
+                              'scale=128:128', '-r', str(2), '-an', complete_output_path]
+
 
             # TEST SETTINGS, JUST 3 FRAMES PER VIDEO:
             # ffmpeg_command = ['ffmpeg', '-ss', start, '-i', video_path, '-vcodec', 'png', '-t', '00:00:03', '-vf',
-            #                   'scale=320:240', '-r', str(1), '-an', complete_output_path]
+            #                   'scale=128:128', '-r', str(1), '-an', complete_output_path]
 
+            print(ffmpeg_command)
             subprocess.call(ffmpeg_command)
 
 
