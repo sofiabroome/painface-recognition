@@ -53,7 +53,7 @@ class DataHandler:
         while True:
             if train:
                 # Shuffle blocks between epochs.
-                df = shuffle_blocks(df)
+                df = shuffle_blocks(df, 'Video_ID')
             batch_index = 0
             for index, row in df.iterrows():
                 if batch_index == 0:
@@ -104,7 +104,7 @@ class DataHandler:
         while True:
             # Shuffle blocks between epochs.
             if train:
-                df = shuffle_blocks(df)
+                df = shuffle_blocks(df, 'Video_ID')
             batch_index = 0
             seq_index = 0
             for window_index in range(nw):
@@ -185,7 +185,7 @@ class DataHandler:
         while True:
             # Shuffle blocks between epochs if during training.
             if train:
-                df = shuffle_blocks(df)
+                df = shuffle_blocks(df, 'Video_ID')
             batch_index = 0
             seq_index = 0
             for index, row in df.iterrows():
@@ -239,7 +239,7 @@ class DataHandler:
         while True:
             if train:
                 # Shuffle blocks between epochs.
-                df = shuffle_blocks(df)
+                df = shuffle_blocks(df, 'Video_ID')
             batch_index = 0
             for index, row in df.iterrows():
                 if batch_index == 0:
@@ -303,7 +303,7 @@ class DataHandler:
         batch_index = 0
         while True:
             # Need not shuffle val gen right
-            # df = shuffle_blocks(df)
+            # df = shuffle_blocks(df, 'Video_ID')
             for index, row in df.iterrows():
                 if batch_index == 0:
                     X_list = []
@@ -344,7 +344,7 @@ class DataHandler:
         batch_index = 0
         while True:
             # Need not shuffle test gen right
-            # df = shuffle_blocks(df)
+            # df = shuffle_blocks(df, 'Video_ID')
             for index, row in df.iterrows():
                 if batch_index == 0:
                     X_list = []
@@ -381,7 +381,7 @@ class DataHandler:
         batch_index = 0
         while True:
             # Need not shuffle eval right
-            # df = shuffle_blocks(df)
+            # df = shuffle_blocks(df, 'Video_ID')
             for index, row in df.iterrows():
                 if batch_index == 0:
                     X_list = []
@@ -634,19 +634,20 @@ def round_to_batch_size(data_array, batch_size):
     return data_array_rounded
 
 
-def shuffle_blocks(df):
+def shuffle_blocks(df, key):
     """
     Takes a dataframe with all frames from all different sequences (which always
     lay in the same order) and shuffles the blocks of frames from separate videos,
     without altering the internal frame-ordering.
     The intention is that
-    :param df:
+    :param df: pd.Dataframe
+    :param key: str
     :return:
     """
-    vids = set(df['Video_ID'])
+    vids = set(df[key])
     df_blocks = []
     for v in vids:
-        df_block = df[df['Video_ID'] == v]
+        df_block = df[df[key] == v]
         df_blocks.append(df_block)
     random.shuffle(df_blocks)
     df = pd.concat(df_blocks)

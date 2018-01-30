@@ -90,7 +90,7 @@ def prepare_rgb_of_dataframe(dh,
                                                 test_horses,
                                                 horse_rgb_OF_dfs)
     df_rgb_and_of = pd.concat(horse_rgb_OF_dfs)
-    df_rgb_and_of = shuffle_blocks(df_rgb_and_of)
+    df_rgb_and_of = shuffle_blocks(df_rgb_and_of, 'Video_ID')
     return df_rgb_and_of
 
 
@@ -343,7 +343,6 @@ def run():
     print(args.batch_size)
     print('Sequence length:')
     print(args.seq_length)
-    print("(Normally they should be the same, except in 5D input mode.)")
 
     train_horses = ast.literal_eval(args.train_horses)
     test_horses = ast.literal_eval(args.test_horses)
@@ -389,7 +388,7 @@ def run():
     # Shuffle the different sequences (like 1_1a_1) so that they don't always
     # appear in the same order. Also done in training generator but we do it here so that
     # the validation set is more random as well.
-    df = shuffle_blocks(df) # The df-index is now shuffled as well, if that matters.
+    df = shuffle_blocks(df, 'Video_ID') # The df-index is now shuffled as well, if that matters.
     print("Total length of dataframe:", len(df))
 
     # Split training data so there is a held out validation set.
@@ -480,6 +479,7 @@ def run():
                                                df_test,
                                                df_val)
     train_generator, val_generator, test_generator, eval_generator = generators
+
 
     # Train the model
     best_model_path = train(model, args, nb_train_samples, nb_val_samples, VAL_FRACTION,
