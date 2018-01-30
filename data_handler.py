@@ -1,3 +1,4 @@
+import tensorflow as tf
 import pandas as pd
 import numpy as np
 import random
@@ -282,127 +283,6 @@ class DataHandler:
                     batch_index = 0
                     yield (X_array, y_array)
 
-    def prepare_val_image_generator(self, df, train, val, test):
-        """
-        Prepare the frames into labeled train and test sets, with help from the
-        DataFrame with .jpg-paths and labels for train and pain.
-        :param df: pd.DataFrame
-        :param train: Boolean
-        :param val: Boolean
-        :param test: Boolean
-        :return: np.ndarray, np.ndarray, np.ndarray, np.ndarray
-        """
-        if train:
-            df = df.loc[df['Train'] == 1]
-        elif val:
-            df = df.loc[df['Train'] == 1]
-        else:
-            df = df.loc[df['Train'] == 0]
-        print("LEN DF:")
-        print(len(df))
-        batch_index = 0
-        while True:
-            # Need not shuffle val gen right
-            # df = shuffle_blocks(df, 'Video_ID')
-            for index, row in df.iterrows():
-                if batch_index == 0:
-                    X_list = []
-                    y_list = []
-                x = self.get_image(row['Path'])
-                x /= 255
-                y = row['Pain']
-                X_list.append(x)
-                y_list.append(y)
-                batch_index += 1
-
-                if batch_index % self.batch_size == 0:
-                    X_array = np.array(X_list, dtype=np.float32)
-                    y_array = np.array(y_list, dtype=np.uint8)
-                    y_array = np_utils.to_categorical(y_array, num_classes=self.nb_labels)
-                    X_array, y_array = val_datagen.flow(X_array, y_array,
-                                                        batch_size=self.batch_size,
-                                                        shuffle=False).next()
-                    batch_index = 0
-                    yield (X_array, y_array)
-
-    def prepare_test_image_generator(self, df, train, val, test):
-        """
-        Prepare the frames into labeled train and test sets, with help from the
-        DataFrame with .jpg-paths and labels for train and pain.
-        :param df: pd.DataFrame
-        :param train: Boolean
-        :param val: Boolean
-        :param test: Boolean
-        :return: np.ndarray, np.ndarray, np.ndarray, np.ndarray
-        """
-        if train:
-            df = df.loc[df['Train'] == 1]
-        else:
-            df = df.loc[df['Train'] == 0]
-        print("LEN DF:")
-        print(len(df))
-        batch_index = 0
-        while True:
-            # Need not shuffle test gen right
-            # df = shuffle_blocks(df, 'Video_ID')
-            for index, row in df.iterrows():
-                if batch_index == 0:
-                    X_list = []
-                    y_list = []
-                x = self.get_image(row['Path'])
-                x /= 255
-                y = row['Pain']
-                X_list.append(x)
-                y_list.append(y)
-                batch_index += 1
-
-                if batch_index % self.batch_size == 0:
-                    X_array = np.array(X_list, dtype=np.float32)
-                    y_array = np.array(y_list, dtype=np.uint8)
-                    y_array = np_utils.to_categorical(y_array, num_classes=self.nb_labels)
-                    X_array, y_array = test_datagen.flow(X_array, y_array,
-                                                         batch_size=self.batch_size,
-                                                         shuffle=False).next()
-                    batch_index = 0
-                    yield (X_array, y_array)
-
-    def prepare_eval_image_generator(self, df, train, val, test):
-        """
-        Prepare the frames into labeled train and test sets, with help from the
-        DataFrame with .jpg-paths and labels for train and pain.
-        :param df: pd.DataFrame
-        :param train: Boolean
-        :param val: Boolean
-        :param test: Boolean
-        :return: np.ndarray, np.ndarray, np.ndarray, np.ndarray
-        """
-        print("LEN DF:")
-        print(len(df))
-        batch_index = 0
-        while True:
-            # Need not shuffle eval right
-            # df = shuffle_blocks(df, 'Video_ID')
-            for index, row in df.iterrows():
-                if batch_index == 0:
-                    X_list = []
-                    y_list = []
-                x = self.get_image(row['Path'])
-                x /= 255
-                y = row['Pain']
-                X_list.append(x)
-                y_list.append(y)
-                batch_index += 1
-
-                if batch_index % self.batch_size == 0:
-                    X_array = np.array(X_list, dtype=np.float32)
-                    y_array = np.array(y_list, dtype=np.uint8)
-                    y_array = np_utils.to_categorical(y_array, num_classes=self.nb_labels)
-                    X_array, y_array = eval_datagen.flow(X_array, y_array,
-                                                         batch_size=self.batch_size,
-                                                         shuffle=False).next()
-                    batch_index = 0
-                    yield (X_array, y_array)
-
     def get_image(self, path):
         if self.color:
             channels = 3
@@ -410,6 +290,19 @@ class DataHandler:
             channels = 1
         im = process_image(path, (self.image_size[0], self.image_size[1], channels))
         return im
+
+    def flip_images(self, images):
+        X_flip = []
+        tf.reset_default_graph()
+        X = tf.placeholder(tf.float32, shape=(self.image_size[0], self.image_size[1], 3))
+        tf_img1 = tf.image.flip_left_right(X)
+        with tf.Session() as sess:
+            sess.run(tf.global_variables_initializer())
+            for img in images:
+                flipped_imgs = sess.run([tf_img1], feed_dict={X: img})
+                X_flip.extend(flipped_imgs)
+        X_flip = np.array(X_flip, dtype=np.float32)
+        return X_flip
 
     # BELOW HANDLES DATA EXTRACTION WHEN THE DATA IS ORGANIZED IN TRAIN/TEST/PAIN/NOPAIN-FOLDERS
 
