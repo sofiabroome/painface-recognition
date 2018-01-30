@@ -107,9 +107,7 @@ class DataHandler:
             if train:
                 df = shuffle_blocks(df, 'Video_ID')
             batch_index = 0
-            seq_index = 0
             for window_index in range(nw):
-                # for index, row in df.iterrows():
                 start = window_index * ss
                 stop = start + ws
                 rows = df.iloc[start:stop]  # A new dataframe for the window in question.
@@ -117,11 +115,6 @@ class DataHandler:
                 X_seq_list = []
                 y_seq_list = []
                 flow_seq_list = []
-
-                # if seq_index == 0:
-                #     X_seq_list = []
-                #     y_seq_list = []
-                #     flow_seq_list = []
 
                 for index, row in rows.iterrows():
                     row = df.iloc[index]
@@ -138,17 +131,6 @@ class DataHandler:
                     X_seq_list.append(x)
                     y_seq_list.append(y)
                     flow_seq_list.append(flow)
-                    # seq_index += 1
-                    # if seq_index % self.seq_length == 0:
-                    #     if batch_index == 0:
-                    #         X_batch_list = []
-                    #         y_batch_list = []
-                    #         flow_batch_list = []
-                        # X_batch_list.append(X_seq_list)
-                        # y_batch_list.append(y_seq_list)
-                        # flow_batch_list.append(flow_seq_list)
-                        # seq_index = 0
-                        # batch_index += 1
                 if batch_index == 0:
                     X_batch_list = []
                     y_batch_list = []
@@ -180,37 +162,46 @@ class DataHandler:
         :param eval: Boolean
         :return: np.ndarray, np.ndarray, np.ndarray, np.ndarray
         """
-
+        nb_frames = len(df)
         print("LEN DF:")
-        print(len(df))
+        print(nb_frames)
+        ws = self.seq_length  # "Window size" in a sliding window.
+        ss = self.seq_stride  # Provide argument for slinding w. stride.
+        valid = nb_frames - (ws - 1)
+        nw = valid//ss  # Number of windows
+        print('Number of windows', nw)
         while True:
             # Shuffle blocks between epochs if during training.
             if train:
                 df = shuffle_blocks(df, 'Video_ID')
             batch_index = 0
-            seq_index = 0
-            for index, row in df.iterrows():
-                if seq_index == 0:
-                    X_seq_list = []
-                    y_seq_list = []
-                if data_type == 'rgb':
-                    x = self.get_image(row['Path'])
-                if data_type == 'of':
-                    x = np.load(row['OF_Path'])
-                    extra_channel = np.zeros((x.shape[0], x.shape[1], 1))
-                    x = np.concatenate((x, extra_channel), axis=2)
-                y = row['Pain']
-                X_seq_list.append(x)
-                y_seq_list.append(y)
-                seq_index += 1
-                if seq_index % self.seq_length == 0:
-                    if batch_index == 0:
-                        X_batch_list = []
-                        y_batch_list = []
-                    X_batch_list.append(X_seq_list)
-                    y_batch_list.append(y_seq_list)
-                    seq_index = 0
-                    batch_index += 1
+            for window_index in range(nw):
+                start = window_index * ss
+                stop = start + ws
+                rows = df.iloc[start:stop]  # A new dataframe for the window in question.
+
+                X_seq_list = []
+                y_seq_list = []
+
+                for index, row in rows.iterrows():
+                    row = df.iloc[index]
+                    if data_type == 'rgb':
+                        x = self.get_image(row['Path'])
+                    if data_type == 'of':
+                        x = np.load(row['OF_Path'])
+                        # If no magnitude:
+                        # extra_channel = np.zeros((x.shape[0], x.shape[1], 1))
+                        # x = np.concatenate((x, extra_channel), axis=2)
+                    y = row['Pain']
+                    X_seq_list.append(x)
+                    y_seq_list.append(y)
+
+                if batch_index == 0:
+                    X_batch_list = []
+                    y_batch_list = []
+                X_batch_list.append(X_seq_list)
+                y_batch_list.append(y_seq_list)
+                batch_index += 1
 
                 if batch_index % self.batch_size == 0 and not batch_index == 0:
                     X_array = np.array(X_batch_list, dtype=np.float32)
@@ -219,7 +210,6 @@ class DataHandler:
                         y_array = np_utils.to_categorical(y_array, num_classes=self.nb_labels)
                         y_array = np.reshape(y_array, (self.batch_size, -1, self.nb_labels))
                     batch_index = 0
-                    # print(X_array.shape, y_array.shape)
                     yield (X_array, y_array)
 
     def prepare_image_generator(self, df, data_type, train, val, test, evaluate):
