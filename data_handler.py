@@ -195,7 +195,7 @@ class DataHandler:
                     y = row['Pain']
                     X_seq_list.append(x)
                     y_seq_list.append(y)
-
+                X_seq_list = self.flip_images(X_seq_list)
                 if batch_index == 0:
                     X_batch_list = []
                     y_batch_list = []
@@ -284,7 +284,7 @@ class DataHandler:
     def flip_images(self, images):
         X_flip = []
         tf.reset_default_graph()
-        X = tf.placeholder(tf.float32, shape=(self.image_size[0], self.image_size[1], 3))
+        X = tf.placeholder(tf.float32, shape=(self.image_size[1], self.image_size[0], 3))
         tf_img1 = tf.image.flip_left_right(X)
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
