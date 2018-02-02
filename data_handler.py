@@ -195,7 +195,9 @@ class DataHandler:
                     y = row['Pain']
                     X_seq_list.append(x)
                     y_seq_list.append(y)
-                X_seq_list = self.flip_images(X_seq_list)
+                coin_toss = np.random.uniform(0, 1)
+                if coin_toss > 0.5:
+                    X_seq_list = self.flip_images(X_seq_list)
                 if batch_index == 0:
                     X_batch_list = []
                     y_batch_list = []
