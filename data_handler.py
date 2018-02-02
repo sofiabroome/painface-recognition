@@ -284,6 +284,7 @@ class DataHandler:
     def flip_images(self, images):
         X_flip = []
         tf.reset_default_graph()
+        # Tensorflow wants [height, width, channels] input below, hence [1] before [0].
         X = tf.placeholder(tf.float32, shape=(self.image_size[1], self.image_size[0], 3))
         tf_img1 = tf.image.flip_left_right(X)
         with tf.Session() as sess:
@@ -378,13 +379,9 @@ class DataHandler:
         :return: pd.DataFrame
         """
         df_csv = pd.read_csv('videos_overview_missingremoved.csv', sep=';')
-        horse_df = pd.DataFrame(columns=['Video_ID',
-                                         'Path',
-                                         'Pain',
-                                         'Observer',
-                                         'Train'])
-        c = 0
+        column_headers = ['Video_ID', 'Path', 'Pain', 'Observer', 'Train']
         horse_path = self.path + 'horse_' + str(horse_id) + '/'
+        big_list = []
         for path, dirs, files in sorted(os.walk(horse_path)):
             print(path)
             for filename in sorted(files):
@@ -396,12 +393,10 @@ class DataHandler:
                     train_field = -1
                     pain_field = csv_row.iloc[0]['Pain']
                     observer_field = csv_row.iloc[0]['Observer']
-                    horse_df.loc[c] = [vid_id,
-                                       total_path,
-                                       pain_field,
-                                       observer_field,
-                                       train_field]
-                    c += 1
+                    row_list = [vid_id, total_path, pain_field,
+                                observer_field, train_field]
+                    big_list.append(row_list)
+        horse_df = pd.DataFrame(big_list, columns=column_headers)
         return horse_df
 
     def save_OF_paths_to_df(self, horse_id, horse_df):
