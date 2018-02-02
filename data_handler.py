@@ -408,11 +408,13 @@ class DataHandler:
         :param horse_df: pd.DataFrame
         :return: pd.DataFrame
         """
-        OF_path_df = pd.DataFrame(columns=['OF_Path'])  # Instantiate an empty df
+        # OF_path_df = pd.DataFrame(columns=['OF_Path'])  # Instantiate an empty df
+        # of_header = ['OF_Path']
         c = 0  # Per horse frame counter.
         per_clip_frame_counter = 0
         old_path = 'NoPath'
         root_of_path = self.of_path + 'horse_' + str(horse_id) + '/'
+        of_path_list = []
 
         # Walk through all the files in the of-folders and put them in a
         # DataFrame column, in order (the same order they were extracted in.)
@@ -429,11 +431,10 @@ class DataHandler:
             old_path = path
             for filename in sorted(files):
                 total_path = join(path, filename)
-                if '.npy' in filename:  # (If it's an optical flow-array.)
+                if '.npy' in filename or '.jpg' in filename:        # (If it's an optical flow-array.)
                     if per_clip_frame_counter > nb_frames_in_clip:  # This can probably be removed but will
-                                                                    # leave it here for now.
-                        break
-                    OF_path_df.loc[c] = [total_path]
+                        break                                       # leave it here for now.
+                    of_path_list.append(total_path)
                     c += 1
                     per_clip_frame_counter += 1
 
@@ -452,7 +453,8 @@ class DataHandler:
 
         try:
             # Add column (concatenate)
-            horse_df.loc[:, 'OF_Path'] = pd.Series(OF_path_df['OF_Path'])
+            # horse_df.loc[:, 'OF_Path'] = pd.Series(OF_path_df['OF_Path'])
+            horse_df.loc[:, 'OF_Path'] = pd.Series(of_path_list)
         except AssertionError:
             print('Horse df and OF_df were not the same length and could not'
                   'be concatenated. Even despite having removed the last'
