@@ -4,6 +4,7 @@ from __future__ import division
 from extract_frames_into_folders import check_if_unique_in_df
 from image_processor import process_image
 from helpers import find_between
+from scipy.misc import imsave
 
 import pandas as pd
 import numpy as np
@@ -41,11 +42,10 @@ def get_path(file_name, path_dict):
     return path_dict.get(file_name + '.mts')
 
 
-def make_folders(frame_rate):
+def make_folders():
     """
-    This method only needs to be run once. It creates the per-horse folders
-    where to save the computed optical flow.
-    :param frame_rate: int (frames per second)
+    This method only needs to be run once. It creates the per-horse
+    and per-sequence folders where to save the computed optical flow.
     :return: None
     """
 
@@ -61,11 +61,9 @@ def make_folders(frame_rate):
         for vid in horse_df['Video_id']:
             occurences = check_if_unique_in_df(vid, df)
             if occurences == 1:
-                seq_dir_path = 'data/jpg_320_180_' + str(frame_rate) +\
-                               'fps_OF_magnitude/' + output_dir + '/' + vid
+                seq_dir_path = output_root_dir + output_dir + '/' + vid
             elif occurences > 1:
-                seq_dir_path = 'data/jpg_320_180_' + str(frame_rate) +\
-                               'fps_OF_magnitude/' + output_dir + '/' + vid + '_' + str(counter)
+                seq_dir_path = output_root_dir + output_dir + '/' + vid + '_' + str(counter)
                 if counter == occurences:
                     counter = 1
                 else:
@@ -112,8 +110,8 @@ def compute_optical_flow(ims, output_path_stem):
     # ADD MAGNITUDE AS THIRD CHANNEL (optional)
     extra_channel = get_flow_magnitude(flow)
     flow = np.concatenate((flow, extra_channel), axis=2)
-
-    np.save(output_path_stem + '.npy', flow)
+    flow = cv2.normalize(flow, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+    imsave(output_path_stem + '.jpg', flow)
 
     if args.viz:
         hsv = np.zeros(im1.shape, dtype=np.uint8)
@@ -127,9 +125,8 @@ def compute_optical_flow(ims, output_path_stem):
         cv2.imwrite(output_path_stem + '.jpg', im2W[:, :, ::-1] * 255)
 
 
-def iterate_over_frames():
-    root_dir = 'data/jpg_320_180_15fps/'
-    output_root_dir = 'data/jpg_320_180_15fps_OF_magnitude/'
+def iterate_over_frames(frequency):
+
     for horse_id in range(1, 7):
         csv_path = root_dir + 'horse_' + str(horse_id) + '.csv'
         horse_frames_df = pd.read_csv(csv_path, sep=',')
@@ -146,7 +143,7 @@ def iterate_over_frames():
                     per_video_counter = 0
                     old_vid_seq_name = vid_seq_name
                 counter_format = ("%06d" % (per_video_counter-1))  # -1 if I want to start at 1, otherwise 2.
-                if (per_video_counter % 15) == 2:
+                if (per_video_counter % frequency) == 2:
                     flow_output_path_stem = output_root_dir + 'horse_' + str(horse_id) + '/'\
                                             + vid_seq_name + '/flow_' + counter_format
                     print(flow_output_path_stem)
@@ -166,8 +163,15 @@ def iterate_over_frames():
 if __name__ == '__main__':
     # CSV with info about horses and their video sequences.
     df = pd.read_csv('videos_overview_missingremoved.csv', sep=';')
+    # Directory with the frames from which to extract the OF.
+    root_dir = 'data/jpg_128_128_15fps/'
+    # Output root directory (will contain subfolders for every sequence).
+    # Need to make this folder before running, and the horse_x folders in it.
+    output_root_dir = 'data/jpg_128_128_15fps_OF_magnitude/'
 
-    # Only need to make folders once.
-    # make_folders(frame_rate=15)
+    # Only need to make the subfolders of output_root_dir once.
+    # make_folders()
 
-    iterate_over_frames()
+    # Iterate over the frames in root_dir and compute the flows.
+    # Right now this is done for every 15th frame.
+    iterate_over_frames(frequency=15)
