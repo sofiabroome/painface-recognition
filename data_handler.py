@@ -118,11 +118,12 @@ class DataHandler:
 
                 for index, row in rows.iterrows():
                     row = df.iloc[index]
+
                     x = self.get_image(row['Path'])
-                    x /= 255  # Normalize to [0,1] since optical flow is on [0,1].
+                    # x /= 255  # Normalize to [0,1] since optical flow is on [0,1].
                     y = row['Pain']
-                    flow = self.get_image(row['OF_Path'])
                     # flow = np.load(row['OF_Path'])
+                    flow = self.get_image(row['Path'])
                     # Concatenate a third channel in order to comply w RGB images
                     # NOTE: If OF-path has 'magnitude' in it, no concatenation is needed and it already has 3 channels.
                     # Either just zeros, or the magnitude (can load magnitude directly now from file)
@@ -440,15 +441,14 @@ class DataHandler:
 
         # Now extend horse_df to contain both rgb and OF paths,
         # and then return whole thing.
-        nb_of_paths = len(of_path_list)
-        nb_rgb_frames = len(horse_df)
-        if nb_rgb_frames != nb_of_paths:
-            diff = nb_rgb_frames - nb_of_paths
+
+        if len(horse_df) != len(OF_path_df):
+            diff = len(horse_df) - len(OF_path_df)
             print("Differed by:", diff)
             # (They should only differ by one row.
             # Else an error should be raised when concatenating.)
             if diff < 0: # If the of-df was larger, reduce it
-                of_path_list = of_path_list[:diff]
+                OF_path_df = OF_path_df[:diff]
             else:  # Vice versa with horse-df
                 horse_df = horse_df[:-diff]
 
