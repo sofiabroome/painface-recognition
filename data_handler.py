@@ -443,17 +443,17 @@ class DataHandler:
 
         # Now extend horse_df to contain both rgb and OF paths,
         # and then return whole thing.
-
-        if len(horse_df) != len(OF_path_df):
-            diff = len(horse_df) - len(OF_path_df)
+        nb_of_paths = len(of_path_list)
+        nb_rgb_frames = len(horse_df)
+        if nb_rgb_frames != nb_of_paths:
+            diff = nb_rgb_frames - nb_of_paths
             print("Differed by:", diff)
             # (They should only differ by one row.
             # Else an error should be raised when concatenating.)
             if diff < 0: # If the of-df was larger, reduce it
-                OF_path_df = OF_path_df[:diff]
+                of_path_list = of_path_list[:diff]
             else:  # Vice versa with horse-df
                 horse_df = horse_df[:-diff]
-
         try:
             # Add column (concatenate)
             # horse_df.loc[:, 'OF_Path'] = pd.Series(OF_path_df['OF_Path'])
