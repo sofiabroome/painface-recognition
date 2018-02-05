@@ -20,8 +20,7 @@ pd.set_option('max_colwidth', 800)
 
 def df_val_split(df,
                  val_fraction,
-                 batch_size,
-                 round_to_batch=True):
+                 batch_size):
     """
     If args.val_fraction == 1, split the dataframe with training data into two parts,
     a training set and a held out validation set (the last specified fraction from the df).
