@@ -28,3 +28,4 @@
 --nb-input-dims,5,Number of input dimensions
 --val-fraction,0,Whether to use val fraction instead of separate horses (0 false 1 true)
 --data-type,'rgb',The type of input data
+--aug-flip,0,Whether to augment the dataset by flipping all sequences horizontally.

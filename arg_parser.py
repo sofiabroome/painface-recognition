@@ -77,6 +77,8 @@ def parse_arguments():
                         help="Whether to use val fract instead of separate horses. 0 false 1 true.")
     parser.add_argument('--data-type', nargs='?', type=str,
                         help='The type of input data')
+    parser.add_argument('--aug-flip', nargs='?', type=int,
+                        help='Whether to augment the dataset by flipping all sequences horizontally.')
     return parser.parse_args()
 
 
