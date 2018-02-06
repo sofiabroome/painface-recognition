@@ -118,11 +118,12 @@ class DataHandler:
 
                 for index, row in rows.iterrows():
                     row = df.iloc[index]
+
                     x = self.get_image(row['Path'])
-                    x /= 255  # Normalize to [0,1] since optical flow is on [0,1].
+                    # x /= 255  # Normalize to [0,1] since optical flow is on [0,1].
                     y = row['Pain']
-                    flow = self.get_image(row['OF_Path'])
                     # flow = np.load(row['OF_Path'])
+                    flow = self.get_image(row['Path'])
                     # Concatenate a third channel in order to comply w RGB images
                     # NOTE: If OF-path has 'magnitude' in it, no concatenation is needed and it already has 3 channels.
                     # Either just zeros, or the magnitude (can load magnitude directly now from file)
@@ -195,13 +196,18 @@ class DataHandler:
                     y = row['Pain']
                     X_seq_list.append(x)
                     y_seq_list.append(y)
-                coin_toss = np.random.uniform(0, 1)
-                if coin_toss > 0.5:
-                    X_seq_list = self.flip_images(X_seq_list)
+                # coin_toss = np.random.uniform(0, 1)
+                # if coin_toss > 0.5:
+                #     X_seq_list = self.flip_images(X_seq_list)
+                X_seq_list_flipped = self.flip_images(X_seq_list)
                 if batch_index == 0:
                     X_batch_list = []
                     y_batch_list = []
                 X_batch_list.append(X_seq_list)
+                y_batch_list.append(y_seq_list)
+                batch_index += 1
+
+                X_batch_list.append(X_seq_list_flipped)
                 y_batch_list.append(y_seq_list)
                 batch_index += 1
 
@@ -453,7 +459,6 @@ class DataHandler:
                 of_path_list = of_path_list[:diff]
             else:  # Vice versa with horse-df
                 horse_df = horse_df[:-diff]
-
         try:
             # Add column (concatenate)
             # horse_df.loc[:, 'OF_Path'] = pd.Series(OF_path_df['OF_Path'])
