@@ -359,7 +359,8 @@ def run():
                      args.seq_stride,
                      args.batch_size,
                      COLOR,
-                     args.nb_labels)
+                     args.nb_labels,
+                     args.aug_flip)
 
     ev = Evaluator(True, True, True, TARGET_NAMES, args.batch_size)
 

@@ -19,7 +19,7 @@ eval_datagen = ImageDataGenerator()
 
 class DataHandler:
     def __init__(self, path, of_path, image_size, seq_length,
-                 seq_stride, batch_size, color, nb_labels):
+                 seq_stride, batch_size, color, nb_labels, aug_flip):
         """
         Constructor for the DataHandler.
         :param path: str
@@ -36,6 +36,7 @@ class DataHandler:
         self.batch_size = batch_size
         self.color = color
         self.nb_labels = nb_labels
+        self.aug_flip = aug_flip
 
     def prepare_generator_2stream(self, df, train, val, test, evaluate):
         """
@@ -199,7 +200,6 @@ class DataHandler:
                 # coin_toss = np.random.uniform(0, 1)
                 # if coin_toss > 0.5:
                 #     X_seq_list = self.flip_images(X_seq_list)
-                X_seq_list_flipped = self.flip_images(X_seq_list)
                 if batch_index == 0:
                     X_batch_list = []
                     y_batch_list = []
@@ -207,9 +207,11 @@ class DataHandler:
                 y_batch_list.append(y_seq_list)
                 batch_index += 1
 
-                X_batch_list.append(X_seq_list_flipped)
-                y_batch_list.append(y_seq_list)
-                batch_index += 1
+                if self.aug_flip:
+                    X_seq_list_flipped = self.flip_images(X_seq_list)
+                    X_batch_list.append(X_seq_list_flipped)
+                    y_batch_list.append(y_seq_list)
+                    batch_index += 1
 
                 if batch_index % self.batch_size == 0 and not batch_index == 0:
                     X_array = np.array(X_batch_list, dtype=np.float32)
