@@ -15,31 +15,16 @@ class Evaluator:
         self.target_names = target_names
         self.batch_size = batch_size
 
-    def test(self, model, args, test_generator, eval_generator, nb_test_samples, X_test=None):
+    def test(self, model, args, test_generator, eval_generator, nb_steps, X_test=None):
         ###### If not a generator:
         #    y_pred = model.predict_classes(X_test, batch_size=model.batch_size)
-        ws = args.seq_length  # "Window size" in a sliding window.
-        ss = args.seq_stride  # Provide argument for slinding w. stride.
-
-        # SET TEST STEPS
-        if args.nb_input_dims == 5:
-            if args.seq_stride == args.seq_length:
-                nb_steps = int(nb_test_samples / (args.batch_size * args.seq_length))
-            else:
-                valid_test = nb_test_samples - (ws - 1)
-                nw_test = valid_test // ss  # Number of windows
-                nb_steps = int(nw_test / args.batch_size)
-        if args.nb_input_dims == 4:
-            nb_steps = int(nb_test_samples/args.batch_size)
-        if args.test_run == 1:
-            nb_steps = 2
 
         y_pred = model.predict_generator(test_generator,
-                                             steps=nb_steps,
-                                             verbose=1)
+                                         steps=nb_steps,
+                                         verbose=1)
         if self.acc:
             scores = model.evaluate_generator(eval_generator,
-                                                  steps=nb_steps)
+                                              steps=nb_steps)
         return y_pred, scores
 
     def evaluate(self, model, y_test, y_pred, scores, args):

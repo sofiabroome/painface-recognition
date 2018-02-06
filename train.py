@@ -10,15 +10,15 @@ config.gpu_options.allow_growth = True
 sess = tf.Session(config=config)
 
 
-def train(model_instance, args, nb_train_samples, nb_val_samples, val_fraction,
+def train(model_instance, args, train_steps, val_steps, val_fraction,
           generator=None, val_generator=None, X_train=None, y_train=None):
     """
     Train the model.
     :param model_instance: Model object from my file models.py | The model instance.
                            model_instance.model is the keras Sequential()-object.
     :param args: [mixed types] | Command line args
-    :param nb_train_samples: int
-    :param nb_val_samples: int
+    :param train_steps: int
+    :param val_steps: int
     :param val_fraction: float
     :param X_train: np.ndarray
     :param y_train: np.ndarray
@@ -47,35 +47,6 @@ def train(model_instance, args, nb_train_samples, nb_val_samples, val_fraction,
     pb = PrintBatch()
 
     if generator:
-
-        # SET TRAIN STEPS
-        if args.nb_input_dims == 5:
-            ws = args.seq_length  # "Window size" in a sliding window.
-            ss = args.seq_stride  # Step size in extracting windows.
-            if args.seq_length == args.seq_stride:
-                train_steps = int(nb_train_samples/(args.batch_size * args.seq_length))
-            else:
-                valid_train = nb_train_samples - (ws - 1)
-                nw_train = valid_train // ss  # Number of windows
-                train_steps = int(nw_train / args.batch_size)
-        if args.nb_input_dims == 4:
-            train_steps = int(nb_train_samples/args.batch_size)
-        if args.test_run == 1:
-            train_steps = 2
-
-        # SET VAL STEPS
-        if args.nb_input_dims == 5:
-            if args.seq_length == args.seq_stride:
-                val_steps = int(nb_val_samples / (args.batch_size * args.seq_length))
-            else:
-                valid_val = nb_val_samples - (ws - 1)
-                nw_val = valid_val // ss  # Number of windows
-                val_steps = int(nw_val / args.batch_size)
-        if args.nb_input_dims == 4:
-            val_steps = int(nb_val_samples / args.batch_size)
-        if args.test_run == 1:
-            val_steps = 2
-
         print("TRAIN STEPS:")
         print(train_steps)
         print("VAL STEPS:")

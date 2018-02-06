@@ -1,5 +1,6 @@
 import pandas as pd
 import keras
+import time
 import sys
 import ast
 import os
@@ -7,6 +8,7 @@ import os
 from data_handler import DataHandler, shuffle_blocks
 from test_and_eval import Evaluator
 from train import train
+import compute_steps
 import arg_parser
 import models
 
@@ -485,15 +487,34 @@ def run():
                                                df_val)
     train_generator, val_generator, test_generator, eval_generator = generators
 
+    if args.test_run == 1:
+        train_steps = 2
+        val_steps = 2
+        test_steps = 2
+    else:
+        start = time.time()
+        train_steps = compute_steps.compute_steps(df_train, args)
+        end = time.time()
+        print('Took {} s to compute training steps'.format(end - start))
+
+        start = time.time()
+        val_steps = compute_steps.compute_steps(df_val, args)
+        end = time.time()
+        print('Took {} s to compute validation steps'.format(end - start))
+
+        start = time.time()
+        test_steps = compute_steps.compute_steps(df_test, args)
+        end = time.time()
+        print('Took {} s to compute testing steps'.format(end - start))
 
     # Train the model
-    best_model_path = train(model, args, nb_train_samples, nb_val_samples, VAL_FRACTION,
+    best_model_path = train(model, args, train_steps, val_steps, VAL_FRACTION,
                             generator=train_generator, val_generator=val_generator)
 
     model = keras.models.load_model(best_model_path)
 
     # Get test predictions
-    y_preds, scores = ev.test(model, args, test_generator, eval_generator, nb_test_samples)
+    y_preds, scores = ev.test(model, args, test_generator, eval_generator, test_steps)
 
     # Get the ground truth for the test set
     y_test = df[df['Train'] == 0]['Pain'].values
