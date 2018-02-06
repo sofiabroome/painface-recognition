@@ -403,6 +403,12 @@ def run():
 
     print("Lengths dftr and df val:", len(df_train), len(df_val))
     df_test = df[df['Train'] == 0]
+
+    # Reset all indices so they're 0->N.
+    df_train.reset_index(drop=True, inplace=True)
+    df_val.reset_index(drop=True, inplace=True)
+    df_test.reset_index(drop=True, inplace=True)
+
     # Count the number of samples in each partition of the data.
     nb_train_samples = len(df_train)
     nb_val_samples = len(df_val)
