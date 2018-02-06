@@ -1,4 +1,4 @@
-from run import df_val_split
+from main import df_val_split
 import pandas as pd
 import arg_parser
 import sys
