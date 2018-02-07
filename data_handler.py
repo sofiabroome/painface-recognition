@@ -165,6 +165,7 @@ class DataHandler:
         :return: np.ndarray, np.ndarray, np.ndarray, np.ndarray
         """
         nb_frames = len(df)
+        seq_index = 0
         print("LEN DF:")
         print(nb_frames)
         ws = self.seq_length  # "Window size" in a sliding window.
@@ -172,6 +173,7 @@ class DataHandler:
         valid = nb_frames - (ws - 1)
         nw = valid//ss  # Number of windows
         print('Number of windows', nw)
+        this_index = 0
         while True:
             # Shuffle blocks between epochs if during training.
             if train:
@@ -187,6 +189,19 @@ class DataHandler:
 
                 for index, row in rows.iterrows():
                     row = df.iloc[index]
+                    vid_seq_name = row['Video_ID']
+
+                    if this_index == 0:
+                        print('First frame. Set oldname=vidname.')
+                        old_vid_seq_name = vid_seq_name # Set this variable (only once).
+                        this_index += 1  # This only happens once.
+
+                    if vid_seq_name != old_vid_seq_name:
+                        seq_index = 0
+                        # print('New sequence. Settin seq ind to 0 and start on new.')
+                        old_vid_seq_name = vid_seq_name
+                        break  # In that case want to jump to the next window.
+
                     if data_type == 'rgb':
                         x = self.get_image(row['Path'])
                     if data_type == 'of':
@@ -197,6 +212,7 @@ class DataHandler:
                     y = row['Pain']
                     X_seq_list.append(x)
                     y_seq_list.append(y)
+                    seq_index += 1
                 # coin_toss = np.random.uniform(0, 1)
                 # if coin_toss > 0.5:
                 #     X_seq_list = self.flip_images(X_seq_list)
