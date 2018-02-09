@@ -227,6 +227,7 @@ class DataHandler:
                     y_batch_list.append(y_seq_list)
 
                 if self.aug_flip:
+                    assert (self.batch_size % 2) == 0
                     X_seq_list_flipped = self.flip_images(X_seq_list)
                     X_batch_list.append(X_seq_list_flipped)
                     y_batch_list.append(y_seq_list)
