@@ -193,7 +193,7 @@ class DataHandler:
                     if this_index == 0:
                         print('First frame. Set oldname=vidname.')
                         old_vid_seq_name = vid_seq_name # Set this variable (only once).
-                        this_index += 1  # This only happens once.
+                        this_index += 1
 
                     if vid_seq_name != old_vid_seq_name:
                         seq_index = 0
@@ -224,6 +224,7 @@ class DataHandler:
                 if seq_index == self.seq_length:
                     X_batch_list.append(X_seq_list)
                     y_batch_list.append(y_seq_list)
+                    seq_index = 0
                     batch_index += 1
 
                     if self.aug_flip:
