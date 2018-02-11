@@ -188,7 +188,6 @@ class DataHandler:
                 y_seq_list = []
 
                 for index, row in rows.iterrows():
-                    row = df.iloc[index]
                     vid_seq_name = row['Video_ID']
 
                     if this_index == 0:
@@ -225,13 +224,14 @@ class DataHandler:
                 if seq_index == self.seq_length:
                     X_batch_list.append(X_seq_list)
                     y_batch_list.append(y_seq_list)
-
-                if self.aug_flip:
-                    assert (self.batch_size % 2) == 0
-                    X_seq_list_flipped = self.flip_images(X_seq_list)
-                    X_batch_list.append(X_seq_list_flipped)
-                    y_batch_list.append(y_seq_list)
                     batch_index += 1
+
+                    if self.aug_flip:
+                        assert (self.batch_size % 2) == 0
+                        X_seq_list_flipped = self.flip_images(X_seq_list)
+                        X_batch_list.append(X_seq_list_flipped)
+                        y_batch_list.append(y_seq_list)
+                        batch_index += 1
 
                 if batch_index % self.batch_size == 0 and not batch_index == 0:
                     X_array = np.array(X_batch_list, dtype=np.float32)
