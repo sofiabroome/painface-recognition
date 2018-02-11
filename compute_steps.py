@@ -42,7 +42,7 @@ def compute_steps(df, kwargs):
 
             seq_index += 1
 
-        if seq_index % kwargs.seq_length == 0:
+        if seq_index == kwargs.seq_length:
             # Everytime a full sequence is amassed, we reset the seq_ind,
             # and increment the batch_ind.
             seq_index = 0
