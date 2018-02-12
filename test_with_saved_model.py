@@ -1,12 +1,14 @@
 import tensorflow as tf
 import pandas as pd
 import keras
+import time
 import sys
 import ast
 import os
 
 from data_handler import DataHandler, shuffle_blocks
 from test_and_eval import Evaluator
+import compute_steps
 import arg_parser
 
 TARGET_NAMES = ['NO_PAIN', 'PAIN']
@@ -187,9 +189,12 @@ def get_data_2stream_5d_input(dh, horse_dfs, train_horses, test_horses, val_hors
 
 
 def run():
-    import pdb; pdb.set_trace()
-    dh = DataHandler(kwargs.data_path, kwargs.of_path, (kwargs.input_width, kwargs.input_height),
-                         kwargs.seq_length, kwargs.seq_stride, kwargs.batch_size, COLOR, kwargs.nb_labels)
+    dh = DataHandler(kwargs.data_path, kwargs.of_path, 
+                     (kwargs.input_width, kwargs.input_height),
+                     kwargs.seq_length, kwargs.seq_stride,
+                     kwargs.batch_size, COLOR,
+                     kwargs.nb_labels, kwargs.aug_flip)
+
     ev = Evaluator(True, True, True, TARGET_NAMES, kwargs.batch_size)
 
     # Read or create the per-horse dataframes listing all the frame paths and labels.
@@ -232,6 +237,12 @@ def run():
 
     print("Lengths dftr and df val:", len(df_train), len(df_val))
     df_test = df[df['Train'] == 0]
+    
+    # Reset all indices so they're 0->N.
+    df_train.reset_index(drop=True, inplace=True)
+    df_val.reset_index(drop=True, inplace=True)
+    df_test.reset_index(drop=True, inplace=True)
+    
     # Count the number of samples in each partition of the data.
     nb_train_samples = len(df_train)
     nb_val_samples = len(df_val)
@@ -272,10 +283,15 @@ def run():
 
     train_generator, val_generator, test_generator, eval_generator = generators
 
+    start = time.time()
+    test_steps = compute_steps.compute_steps(df_test, kwargs)
+    end = time.time()
+    print('Took {} s to compute testing steps'.format(end - start))
+
     model = load_model(model_fn)
 
     # Get test predictions
-    y_preds, scores = ev.test(model, kwargs, test_generator, eval_generator, nb_test_samples)
+    y_preds, scores = ev.test(model, kwargs, test_generator, eval_generator, test_steps)
 
     # Get the ground truth for the test set
     y_test = df[df['Train'] == 0]['Pain'].values
@@ -331,8 +347,10 @@ if __name__ == '__main__':
 
     # model_fn = 'models/BEST_MODEL_2stream_5d_adam_LSTMunits_32_CONVfilters_16_concat_v4_t0_1hl_seq10_bs2_MAG.h5'
 
-    model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg128_1fps_val4_t0_seq10_4hl_64ubs10_randomflip_aug.h5'
-    
+    # model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg128_1fps_val4_t0_seq10_4hl_64ubs10_randomflip_aug.h5'
+    # model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg128_1fps_val4_t2_seq10_4hl_64ubs10_randomflip_aug.h5'
+    # model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg128_1fps_val4_t2_seq10_4hl_64ubs10_randomflip_aug_run2.h5' 
+    model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg128_1fps_val4_t3_seq10_4hl_64ubs10_randomflip_aug_run2.h5'
 # Parse the command line arguments
 
 
