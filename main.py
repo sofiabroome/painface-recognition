@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import keras
 import time
 import sys
@@ -530,7 +531,7 @@ def run():
     y_preds = np.array([np_utils.to_categorical(x, num_classes=args.nb_labels) for x in y_preds])
 
     # Evaluate the model's performance
-    ev.evaluate(model, df_test, y_test, y_preds, scores, args)
+    ev.evaluate(model, y_test, y_preds, scores, args)
 
 if __name__ == '__main__':
 
