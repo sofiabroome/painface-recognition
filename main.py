@@ -520,8 +520,14 @@ def run():
     y_preds, scores = ev.test(model, args, test_generator, eval_generator, test_steps)
 
     # Get the ground truth for the test set
-    # y_test = df_test['Pain'].values
-    y_test = y_batches
+    y_test = np.array(y_batches)  # Now in format [nb_batches, batch_size, seq_length, nb_classes]
+    nb_batches = y_test.shape[0]
+    # Make 3D
+    y_test = np.reshape(y_test, (nb_batches*args.batch_size, args.seq_length, args.nb_labels))
+
+    # Put y_preds into same format as y_test, take the max probabilities.
+    y_preds = np.argmax(y, axis=2)
+    y_preds = np.array([np_utils.to_categorical(x, num_classes=args.nb_labels) for x in y_preds])
 
     # Evaluate the model's performance
     ev.evaluate(model, df_test, y_test, y_preds, scores, args)
