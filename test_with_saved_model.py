@@ -1,5 +1,7 @@
+from keras.utils import np_utils
 import tensorflow as tf
 import pandas as pd
+import numpy as np
 import keras
 import time
 import sys
@@ -235,7 +237,6 @@ def run():
         df_train = df[df['Train'] == 1]
         df_val = df[df['Train'] == 2]
 
-    print("Lengths dftr and df val:", len(df_train), len(df_val))
     df_test = df[df['Train'] == 0]
     
     # Reset all indices so they're 0->N.
@@ -248,19 +249,25 @@ def run():
     nb_val_samples = len(df_val)
     nb_test_samples = len(df_test)
 
+    print("Lengths dftr, dfval, dftest: ", nb_train_samples, nb_val_samples, nb_test_samples)
+
     # Prepare the training and testing data, format depends on model.
     # (5D/4D -- 2stream/1stream)
+    
+
     if kwargs.nb_input_dims == 5:
+
         if '2stream' in kwargs.model:
             print('5d input 2stream model')
             if kwargs.val_fraction == 0:
                 generators = get_data_2stream_5d_input(dh, horse_dfs, train_horses, test_horses, val_horses)
             if kwargs.val_fraction == 1:
                 generators = get_data_2stream_5d_input(dh, horse_dfs, train_horses, test_horses)
+
         else:
             print('5d input model')
             if kwargs.data_type == 'rgb':
-                generators = get_data_5d_input(dh, kwargs.data_type, df_train, df_test, df_val)
+                generators = get_data_5d_input(dh, kwargs.data_type, df_train=df_train, df_val=df_val, df_test=df_test)
             if kwargs.data_type == 'of':
                 print('OF INPUT ONLY')
                 if kwargs.val_fraction == 0:
@@ -268,23 +275,25 @@ def run():
                                                                       val_horses)
                 if kwargs.val_fraction == 1:
                     df_train, df_val, df_test = get_rgb_of_dataframes(dh, horse_dfs, train_horses, test_horses)
-                generators = get_data_5d_input(dh, kwargs.data_type, df_train, df_test, df_val)
+                generators = get_data_5d_input(dh, kwargs.data_type, df_train=df_train, df_val=df_val, df_test=df_test)
+
     if kwargs.nb_input_dims == 4:
         if '2stream' in kwargs.model:
             print('4d input 2stream model')
             generators = get_data_2stream_4d_input(dh, horse_dfs, train_horses, test_horses, val_horses)
+
         else:
             print('4d input model')
             if kwargs.data_type == 'rgb':
-                generators = get_data_4d_input(dh, kwargs.data_type, df_train, df_test, df_val)
+                generators = get_data_4d_input(dh, kwargs.data_type, df_train=df_train, df_val=df_val, df_test=df_test)
             if kwargs.data_type == 'of':
                 df_train, df_val, df_test = get_rgb_of_dataframes(dh, horse_dfs, train_horses, test_horses, val_horses)
-                generators = get_data_4d_input(dh, kwargs.data_type, df_train, df_test, df_val)
+                generators = get_data_4d_input(dh, kwargs.data_type, df_train=df_train, df_test=df_test, df_val=df_val)
 
     train_generator, val_generator, test_generator, eval_generator = generators
 
     start = time.time()
-    test_steps = compute_steps.compute_steps(df_test, kwargs)
+    test_steps, y_batches = compute_steps.compute_steps(df_test, kwargs)
     end = time.time()
     print('Took {} s to compute testing steps'.format(end - start))
 
@@ -294,7 +303,15 @@ def run():
     y_preds, scores = ev.test(model, kwargs, test_generator, eval_generator, test_steps)
 
     # Get the ground truth for the test set
-    y_test = df[df['Train'] == 0]['Pain'].values
+    # y_test = df_test.values
+    y_test = np.array(y_batches)  # Now in format [nb_batches, batch_size, seq_length, nb_classes]
+    nb_batches = y_test.shape[0]
+    # Make 3D
+    y_test = np.reshape(y_test, (nb_batches*kwargs.batch_size, kwargs.seq_length, kwargs.nb_labels))
+
+    # Put y_preds into same format as y_test, take the max probabilities.
+    y_preds = np.argmax(y_preds, axis=2)
+    y_preds = np.array([np_utils.to_categorical(x, num_classes=kwargs.nb_labels) for x in y_preds])
 
     # Evaluate the model's performance
     ev.evaluate(model, y_test, y_preds, scores, kwargs)
@@ -304,53 +321,14 @@ if __name__ == '__main__':
     arg_parser = arg_parser.ArgParser(len(sys.argv))
     kwargs = arg_parser.parse()
 
-    # model_fn = 'best_convoLSTM_models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t3_seq20.h5'
-    # model_fn = 'best_convoLSTM_models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t2_seq20.h5'
-    # model_fn = 'best_convoLSTM_models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t1_seq20.h5'
-    # model_fn = 'best_convoLSTM_models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t0_seq20.h5'
-
-    # model_fn = 'best_convoLSTM_models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t3_seq10_4conv.h5'
-    # model_fn = 'best_convoLSTM_models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t2_seq10_4conv.h5'
-    # model_fn = 'best_convoLSTM_models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t1_seq10_4conv.h5'
-
-    # model_fn = 'best_convoLSTM_models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t3_seq10_4conv_of.h5'
-    # model_fn = 'best_convoLSTM_models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t2_seq10_4conv_of.h5'
-
-    # model_fn = 'best_convoLSTM_models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t2_seq20_3convpool.h5'
-    # model_fn = 'best_convoLSTM_models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t3_seq20_3convpool.h5'
-    
-    # FROM TONIGHT
-    # model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t2_seq10_4conv_of.h5'
-    # model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t1_seq10_4conv.h5'
-    
-    
-    # model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t1_seq10_4conv_of.h5'
-    # model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t0_seq10_4conv.h5'
-    # model_fn = 'models/BEST_MODEL_inception_4d_input_adam_LSTMunits_64_CONVfilters_16_jpg_val4_t3_rgb.h5'
-    # model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t0_seq10_4conv_of.h5'
-
-    # model_fn = 'models/BEST_MODEL_2stream_5d_adam_LSTMunits_64_CONVfilters_16_val4_02finaldropout_rightsteps_t3_2conv4lstmseq10.h5'
-    # model_fn = 'models/BEST_MODEL_2stream_5d_adam_LSTMunits_64_CONVfilters_16_val4_02finaldropout_rightsteps_t2_2conv4lstmseq10.h5'
-    # model_fn = 'models/BEST_MODEL_2stream_5d_adam_LSTMunits_64_CONVfilters_16_val4_02finaldropout_rightsteps_t1_2conv4lstmseq10.h5'
-    # model_fn = 'models/BEST_MODEL_2stream_5d_adam_LSTMunits_64_CONVfilters_16_val4_02finaldropout_rightsteps_t0_2conv4lstmseq10.h5'
-    # model_fn = 'models/BEST_MODEL_inception_4d_input_adam_LSTMunits_64_CONVfilters_16_jpg_val4_t0_rgb22.h5'
-    # model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg_val4_t1_seq10_4conv_of3.h5'
-    # model_fn = 'models/BEST_MODEL_2stream_5d_adam_LSTMunits_32_CONVfilters_16_concat_v4_t3_5hl_seq10_bs2_run2.h5'
-    # model_fn = 'models/BEST_MODEL_2stream_5d_adam_LSTMunits_32_CONVfilters_16_concat_v4_t2_5hl_seq10_bs2_run2.h5'
-    # model_fn = 'models/BEST_MODEL_2stream_5d_adam_LSTMunits_32_CONVfilters_16_concat_v4_t1_5hl_seq10_bs2_run2.h5'
-    # model_fn = 'models/BEST_MODEL_2stream_5d_adam_LSTMunits_32_CONVfilters_16_concat_v4_t0_5hl_seq10_bs2_run2.h5'
-
-    # model_fn = 'models/BEST_MODEL_2stream_5d_adam_LSTMunits_32_CONVfilters_16_concat_v4_t3_5hl_seq10_bs2.h5'
-    # model_fn = 'models/BEST_MODEL_2stream_5d_adam_LSTMunits_32_CONVfilters_16_concat_v4_t2_5hl_seq10_bs2.h5'
-    # model_fn = 'models/BEST_MODEL_2stream_5d_adam_LSTMunits_32_CONVfilters_16_concat_v4_t1_5hl_seq10_bs2.h5'
-    # model_fn = 'models/BEST_MODEL_2stream_5d_adam_LSTMunits_32_CONVfilters_16_concat_v4_t0_5hl_seq10_bs2.h5'
-
     # model_fn = 'models/BEST_MODEL_2stream_5d_adam_LSTMunits_32_CONVfilters_16_concat_v4_t0_1hl_seq10_bs2_MAG.h5'
 
     # model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg128_1fps_val4_t0_seq10_4hl_64ubs10_randomflip_aug.h5'
     # model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg128_1fps_val4_t2_seq10_4hl_64ubs10_randomflip_aug.h5'
     # model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg128_1fps_val4_t2_seq10_4hl_64ubs10_randomflip_aug_run2.h5' 
-    model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg128_1fps_val4_t3_seq10_4hl_64ubs10_randomflip_aug_run2.h5'
+    # model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_64_CONVfilters_16_jpg128_1fps_val4_t3_seq10_4hl_64ubs10_randomflip_aug_run2.h5'
+    model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_32_CONVfilters_16_jpg128_2fps_val4_t0_seq10ss5_4hl_32ubs18_randomflip_aug_run2.h5'
+
 # Parse the command line arguments
 
 
