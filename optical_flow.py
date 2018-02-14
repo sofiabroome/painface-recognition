@@ -93,19 +93,35 @@ def get_flow_magnitude(flow):
 
 def compute_optical_flow(ims, output_path_stem):
     im1, im2 = ims[0], ims[1]
-    im1 = im1.astype(float) / 255.
-    im2 = im2.astype(float) / 255.
+    # im1 = im1.astype(float) / 255.
+    # im2 = im2.astype(float) / 255.
     s = time.time()
     # Compute the flow via Pyflow/Coarse2FineFlowWrapper.
     # https://github.com/pathak22/pyflow/blob/master/pyflow.pyx
     # u and are [h,w,2]-arrays (elements are float64 on [0,1])
-    u, v, im2W = pyflow.coarse2fine_flow(
-        im1, im2, alpha, ratio, minWidth, nOuterFPIterations, nInnerFPIterations,
-        nSORIterations, colType)
+    # Flow Options:
+    # alpha = 0.012
+    # ratio = 0.5625
+    # minWidth = 20
+    # nOuterFPIterations = 7
+    # nInnerFPIterations = 1
+    # nSORIterations = 30
+    # colType = 0  # 0 or default:RGB, 1:GRAY (but pass gray image with shape (h,w,1))
+    # Pyflow implementation:
+    # u, v, im2W = pyflow.coarse2fine_flow(
+    #     im1, im2, alpha, ratio, minWidth, nOuterFPIterations, nInnerFPIterations,
+    #     nSORIterations, colType)
+    # OpenCV G. Farneback dense implementation:
+    # print(im1.shape, im2.shape)
+    im1 = cv2.cvtColor(im1, cv2.COLOR_BGR2GRAY)
+    im2 = cv2.cvtColor(im2, cv2.COLOR_BGR2GRAY)
+    flow = cv2.calcOpticalFlowFarneback(im1, im2, flow=None, pyr_scale=0.5, levels=3,
+                                        winsize=15, iterations=3, poly_n=5,
+                                        poly_sigma=1.2, flags=0)
     e = time.time()
-    print('Time Taken: %.2f seconds for image of size (%d, %d, %d)' % (
-        e - s, im1.shape[0], im1.shape[1], im1.shape[2]))
-    flow = np.concatenate((u[..., None], v[..., None]), axis=2)
+    # print('Time Taken: %.2f seconds for image of size (%d, %d, %d)' % (
+    #     e - s, width, height, channels))
+    # flow = np.concatenate((u[..., None], v[..., None]), axis=2)
 
     # ADD MAGNITUDE AS THIRD CHANNEL (optional)
     extra_channel = get_flow_magnitude(flow)
@@ -140,19 +156,21 @@ def iterate_over_frames(frequency):
                 ims = []
             if counter >= 2:
                 if old_vid_seq_name != vid_seq_name:
+                    print('New clip!', counter, per_video_counter)
+                    print(vid_seq_name)
                     per_video_counter = 0
                     old_vid_seq_name = vid_seq_name
                 counter_format = ("%06d" % (per_video_counter-1))  # -1 if I want to start at 1, otherwise 2.
                 if (per_video_counter % frequency) == 2:
                     flow_output_path_stem = output_root_dir + 'horse_' + str(horse_id) + '/'\
                                             + vid_seq_name + '/flow_' + counter_format
-                    print(flow_output_path_stem)
+                    # print(flow_output_path_stem)
                     compute_optical_flow(ims, flow_output_path_stem)
                 ims[0] = ims[1]
                 ims.pop()
             frame_path = row[1]['Path']
             vid_seq_name = find_between(frame_path, 'horse_' + str(horse_id) + '/', '/frame')
-            im = process_image(frame_path, (320, 180, 3))
+            im = process_image(frame_path, (width, height, channels))
             ims.append(im)
             counter += 1
             per_video_counter += 1
@@ -167,7 +185,11 @@ if __name__ == '__main__':
     root_dir = 'data/jpg_128_128_15fps/'
     # Output root directory (will contain subfolders for every sequence).
     # Need to make this folder before running, and the horse_x folders in it.
-    output_root_dir = 'data/jpg_128_128_15fps_OF_magnitude/'
+    output_root_dir = 'data/jpg_128_128_15fps_OF_magnitude_cv2/'
+
+    width = 128
+    height = 128
+    channels = 3
 
     # Only need to make the subfolders of output_root_dir once.
     # make_folders()
