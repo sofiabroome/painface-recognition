@@ -404,18 +404,20 @@ def run():
         df_train = df[df['Train'] == 1]
         df_val = df[df['Train'] == 2]
 
-    print("Lengths dftr and df val:", len(df_train), len(df_val))
     df_test = df[df['Train'] == 0]
-
-    # Reset all indices so they're 0->N.
-    df_train.reset_index(drop=True, inplace=True)
-    df_val.reset_index(drop=True, inplace=True)
-    df_test.reset_index(drop=True, inplace=True)
 
     # Count the number of samples in each partition of the data.
     nb_train_samples = len(df_train)
     nb_val_samples = len(df_val)
     nb_test_samples = len(df_test)
+
+    print("Lengths dftr and df val:", nb_train_samples, nb_val_samples)
+    print('Lengths dftest: ', nb_test_samples)
+
+    # Reset all indices so they're 0->N.
+    df_train.reset_index(drop=True, inplace=True)
+    df_val.reset_index(drop=True, inplace=True)
+    df_test.reset_index(drop=True, inplace=True)
 
     # Prepare the training and testing data, format depends on model.
     # (5D/4D -- 2stream/1stream)
@@ -518,10 +520,10 @@ def run():
     y_preds, scores = ev.test(model, args, test_generator, eval_generator, test_steps)
 
     # Get the ground truth for the test set
-    y_test = df[df['Train'] == 0]['Pain'].values
+    y_test = df_test['Pain'].values
 
     # Evaluate the model's performance
-    ev.evaluate(model, y_test, y_preds, scores, args)
+    ev.evaluate(model, df_test, y_test, y_preds, scores, args)
 
 if __name__ == '__main__':
 
