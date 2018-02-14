@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import keras
 import time
 import sys
@@ -404,18 +405,20 @@ def run():
         df_train = df[df['Train'] == 1]
         df_val = df[df['Train'] == 2]
 
-    print("Lengths dftr and df val:", len(df_train), len(df_val))
     df_test = df[df['Train'] == 0]
-
-    # Reset all indices so they're 0->N.
-    df_train.reset_index(drop=True, inplace=True)
-    df_val.reset_index(drop=True, inplace=True)
-    df_test.reset_index(drop=True, inplace=True)
 
     # Count the number of samples in each partition of the data.
     nb_train_samples = len(df_train)
     nb_val_samples = len(df_val)
     nb_test_samples = len(df_test)
+
+    print("Lengths dftr and df val:", nb_train_samples, nb_val_samples)
+    print('Lengths dftest: ', nb_test_samples)
+
+    # Reset all indices so they're 0->N.
+    df_train.reset_index(drop=True, inplace=True)
+    df_val.reset_index(drop=True, inplace=True)
+    df_test.reset_index(drop=True, inplace=True)
 
     # Prepare the training and testing data, format depends on model.
     # (5D/4D -- 2stream/1stream)
@@ -438,9 +441,9 @@ def run():
             if args.data_type == 'rgb':
                 generators = get_data_5d_input(dh,
                                                args.data_type,
-                                               df_train,
-                                               df_test,
-                                               df_val)
+                                               df_train=df_train,
+                                               df_val=df_val,
+                                               df_test=df_test)
             if args.data_type == 'of':
                 print('OF INPUT ONLY')
                 if args.val_fraction == 0:
@@ -456,9 +459,9 @@ def run():
                                                                       test_horses)
                 generators = get_data_5d_input(dh,
                                                args.data_type,
-                                               df_train,
-                                               df_test,
-                                               df_val)
+                                               df_train=df_train,
+                                               df_val=df_val,
+                                               df_test=df_test)
     if args.nb_input_dims == 4:
         if '2stream' in args.model:
             print('4d input 2stream model')
@@ -472,9 +475,9 @@ def run():
             if args.data_type == 'rgb':
                 generators = get_data_4d_input(dh,
                                                args.data_type,
-                                               df_train,
-                                               df_test,
-                                               df_val)
+                                               df_train=df_train,
+                                               df_val=df_val,
+                                               df_test=df_test)
             if args.data_type == 'of':
                 df_train, df_val, df_test = get_rgb_of_dataframes(dh,
                                                                   horse_dfs,
@@ -483,9 +486,10 @@ def run():
                                                                   val_horses)
                 generators = get_data_4d_input(dh,
                                                args.data_type,
-                                               df_train,
-                                               df_test,
-                                               df_val)
+                                               df_train=df_train,
+                                               df_val=df_val,
+                                               df_test=df_test)
+
     train_generator, val_generator, test_generator, eval_generator = generators
 
     if args.test_run == 1:
@@ -494,17 +498,17 @@ def run():
         test_steps = 2
     else:
         start = time.time()
-        train_steps = compute_steps.compute_steps(df_train, args)
+        train_steps, _ = compute_steps.compute_steps(df_train, args)
         end = time.time()
         print('Took {} s to compute training steps'.format(end - start))
 
         start = time.time()
-        val_steps = compute_steps.compute_steps(df_val, args)
+        val_steps, _ = compute_steps.compute_steps(df_val, args)
         end = time.time()
         print('Took {} s to compute validation steps'.format(end - start))
 
         start = time.time()
-        test_steps = compute_steps.compute_steps(df_test, args)
+        test_steps, y_batches = compute_steps.compute_steps(df_test, args)
         end = time.time()
         print('Took {} s to compute testing steps'.format(end - start))
 
@@ -513,12 +517,18 @@ def run():
                             generator=train_generator, val_generator=val_generator)
 
     model = keras.models.load_model(best_model_path)
-
     # Get test predictions
     y_preds, scores = ev.test(model, args, test_generator, eval_generator, test_steps)
 
     # Get the ground truth for the test set
-    y_test = df[df['Train'] == 0]['Pain'].values
+    y_test = np.array(y_batches)  # Now in format [nb_batches, batch_size, seq_length, nb_classes]
+    nb_batches = y_test.shape[0]
+    # Make 3D
+    y_test = np.reshape(y_test, (nb_batches*args.batch_size, args.seq_length, args.nb_labels))
+
+    # Put y_preds into same format as y_test, take the max probabilities.
+    y_preds = np.argmax(y, axis=2)
+    y_preds = np.array([np_utils.to_categorical(x, num_classes=args.nb_labels) for x in y_preds])
 
     # Evaluate the model's performance
     ev.evaluate(model, y_test, y_preds, scores, args)
