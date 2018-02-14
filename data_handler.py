@@ -165,15 +165,17 @@ class DataHandler:
         :return: np.ndarray, np.ndarray, np.ndarray, np.ndarray
         """
         nb_frames = len(df)
-        seq_index = 0
-        print("LEN DF:")
-        print(nb_frames)
+        print("LEN DF, in prep_5d(): ", nb_frames)
+
         ws = self.seq_length  # "Window size" in a sliding window.
         ss = self.seq_stride  # Provide argument for slinding w. stride.
         valid = nb_frames - (ws - 1)
         nw = valid//ss  # Number of windows
         print('Number of windows', nw)
+
         this_index = 0
+        seq_index = 0
+
         while True:
             # Shuffle blocks between epochs if during training.
             if train:
