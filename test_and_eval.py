@@ -31,8 +31,8 @@ class Evaluator:
         """
         Compute confusion matrix and class report with F1-scores.
         :param model: Model object
-        :param y_test: np.ndarray (dim,)
-        :param y_pred: np.ndarray (dim, nb_classes)
+        :param y_test: np.ndarray (dim, seq_length, nb_classes)
+        :param y_pred: np.ndarray (dim, seq_length, nb_classes)
         :param scores: [np.ndarray]
         :param args: command line args
         :return: None
@@ -40,21 +40,17 @@ class Evaluator:
         print('Scores: ', scores)
         print('Model metrics: ', model.metrics_names)
 
+        assert(y_test.shape == y_pred.shape)
+
         if len(y_pred.shape) > 2: # If sequential data
-            y_pred = np.argmax(y_pred, axis=2)
-            y_pred_list = [np_utils.to_categorical(x, num_classes=args.nb_labels) for x in y_pred]
-            y_pred = np.array(y_pred_list)
             y_pred = get_majority_vote_3d(y_pred)
+            y_test = get_majority_vote_3d(y_test)
         else:                     # If still frames
             y_pred = np.argmax(y_pred, axis=1)
 
-        if args.nb_labels != 2 or args.nb_input_dims == 5:
-            # If sequences, get majority labels per window.
-            y_test = np_utils.to_categorical(y_test, num_classes=args.nb_labels)
-            y_test = get_sequence_majority_labels(y_test, args.seq_length, args.seq_stride)
-
         nb_preds = len(y_pred)
         nb_tests = len(y_test)
+
         if nb_preds != nb_tests:
             print("Warning, number of predictions not the same as the length of the y_test vector.")
             print("Y test length: ", nb_tests)
@@ -64,11 +60,9 @@ class Evaluator:
             else:
                 y_pred = y_pred[:nb_tests]
 
-        y_test = np_utils.to_categorical(y_test, args.nb_labels)
-
         # Print labels and predictions.
-        print('y_test:', y_test)
-        print('y_pred:', y_pred)
+        print('y_test and y_test.shape: ', y_test, y_test.shape)
+        print('y_pred and y_pred.shape: ', y_pred, y_pred.shape)
 
         self.print_and_save_evaluations(y_pred, y_test, args)
 
@@ -99,15 +93,6 @@ class Evaluator:
                                      target_names=self.target_names,
                                      digits=NB_DECIMALS)
 
-    def confusion_matrix(self, y_test, y_pred):
-        # y_test = np_utils.to_categorical(y_test, num_classes=2)
-        # y_pred = np_utils.to_categorical(y_pred, num_classes=2)
-        # just the below return line was before 5/9.
-        # return confusion_matrix(np.argmax(y_test, axis=1), y_pred)
-        return confusion_matrix(y_test, y_pred)
-
-
-
 
 def _make_cr_filename(args):
     return args.model + "_" + args.image_identifier + "_LSTM_UNITS_" +\
@@ -121,32 +106,6 @@ def _make_cm_filename(args):
                   str(args.nb_conv_filters) + "_CM.txt"
 
 
-def get_sequence_majority_labels(y_per_frame, ws, stride):
-    """
-    Get the majority labels for every sequence.
-    :param y_per_frame: np.ndarray
-    :param ws: int
-    :param stride: int
-    :return: np.ndarray
-    """
-
-    nb_frames = len(y_per_frame)
-    valid = nb_frames - (ws - 1)
-    nw = valid // stride
-
-    window_votes = np.zeros((nw, 1))
-
-    for window_index in range(nw):
-        start = window_index * stride
-        stop = start + ws
-        window = y_per_frame[start:stop]
-        window_votes[window_index] = get_majority_vote_for_sequence(window,
-                                                                    y_per_frame.shape[1])
-
-
-    return window_votes
-
-
 def get_majority_vote_for_sequence(sequence, nb_classes):
     """
     Get the most common class for one sequence.
@@ -157,13 +116,14 @@ def get_majority_vote_for_sequence(sequence, nb_classes):
     for i in range(len(sequence)):
         class_vote = np.argmax(sequence[i])
         votes_per_class[class_vote] += 1
-
-    return np.argmax(votes_per_class)
+    # Return random choice of the max if there's a tie.
+    return np.random.choice(np.flatnonzero(votes_per_class == votes_per_class.max()))
 
 
 def get_majority_vote_3d(y_pred):
     """
     I want to take the majority vote for every sequence.
+    If there's a tie the choice is randomized.
     :param y_pred: Array with 3 dimensions.
     :return: Array with 2 dims.
     """
@@ -177,5 +137,7 @@ def get_majority_vote_3d(y_pred):
             # Sum of votes for one class across sequence
             class_sum = sample[:,c].sum()
             class_sums.append(class_sum)
-        majority_votes[i, np.argmax(class_sums)] = 1
+        cs = np.array(class_sums)
+        max_class = np.random.choice(np.flatnonzero(cs == cs.max()))
+        majority_votes[i, max_class] = 1
     return majority_votes
