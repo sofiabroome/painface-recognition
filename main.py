@@ -352,18 +352,22 @@ def run():
     print('Horses to train on: ', train_horses)
     print('Horses to test on: ', test_horses)
 
-    model = models.MyModel(args)
-    dh = DataHandler(args.data_path,
-                     args.of_path,
-                     (args.input_width, args.input_height),
-                     args.seq_length,
-                     args.seq_stride,
-                     args.batch_size,
-                     COLOR,
-                     args.nb_labels,
-                     args.aug_flip)
+    model = models.MyModel(args=args)
+    dh = DataHandler(path=args.data_path,
+                     of_path=args.of_path,
+                     image_size=(args.input_width, args.input_height),
+                     seq_length=args.seq_length,
+                     seq_stride=args.seq_stride,
+                     batch_size=args.batch_size,
+                     color=COLOR,
+                     nb_labels=args.nb_labels,
+                     aug_flip=args.aug_flip)
 
-    ev = Evaluator(True, True, True, TARGET_NAMES, args.batch_size)
+    ev = Evaluator(acc=True,
+                   cm=True,
+                   cr=True,
+                   target_names=TARGET_NAMES,
+                   batch_size=args.batch_size)
 
     # Read or create the per-horse dataframes listing all the frame paths and labels.
     horse_dfs = read_or_create_horse_dfs(dh)  # Returns a list of dataframes, per horse.
@@ -373,17 +377,17 @@ def run():
         print("Using separate horse validation.")
         val_horses = ast.literal_eval(args.val_horses)
         print('Horses to validate on: ', val_horses)
-        horse_dfs = set_train_val_test_in_df(train_horses,
-                                             val_horses,
-                                             test_horses,
-                                             horse_dfs)
+        horse_dfs = set_train_val_test_in_df(train_horses=train_horses,
+                                             val_horses=val_horses,
+                                             test_horses=test_horses,
+                                             dfs=horse_dfs)
 
     if args.val_fraction == 1:
         print("Using validation fraction.")
         print("Val fract: ", VAL_FRACTION)
-        horse_dfs = set_train_test_in_df(train_horses,
-                                         test_horses,
-                                         horse_dfs)
+        horse_dfs = set_train_test_in_df(train_horses=train_horses,
+                                         test_horses=test_horses,
+                                         dfs=horse_dfs)
 
     # Put all the separate horse-dfs into one DataFrame.
     df = pd.concat(horse_dfs)
@@ -395,12 +399,10 @@ def run():
     print("Total length of dataframe:", len(df))
 
     # Split training data so there is a held out validation set.
-
     if args.val_fraction == 1:
-        df_train, df_val = df_val_split(df,
+        df_train, df_val = df_val_split(df=df,
                                         val_fraction=VAL_FRACTION,
-                                        batch_size=args.batch_size,
-                                        round_to_batch=round_to_batch)
+                                        batch_size=args.batch_size)
     if args.val_fraction == 0:
         df_train = df[df['Train'] == 1]
         df_val = df[df['Train'] == 2]
@@ -412,83 +414,88 @@ def run():
     nb_val_samples = len(df_val)
     nb_test_samples = len(df_test)
 
-    print("Lengths dftr and df val:", nb_train_samples, nb_val_samples)
-    print('Lengths dftest: ', nb_test_samples)
+    print("Lengths dftr, dfval and dftest: ", nb_train_samples, nb_val_samples, nb_test_samples)
 
     # Reset all indices so they're 0->N.
+    print('Resetting dataframe indices...')
     df_train.reset_index(drop=True, inplace=True)
     df_val.reset_index(drop=True, inplace=True)
     df_test.reset_index(drop=True, inplace=True)
 
     # Prepare the training and testing data, format depends on model.
     # (5D/4D -- 2stream/1stream)
+
     if args.nb_input_dims == 5:
+
         if '2stream' in args.model:
             print('5d input 2stream model')
             if args.val_fraction == 0:
-                generators = get_data_2stream_5d_input(dh,
-                                                       horse_dfs,
-                                                       train_horses,
-                                                       test_horses,
-                                                       val_horses)
+                generators = get_data_2stream_5d_input(dh=dh,
+                                                       horse_dfs=horse_dfs,
+                                                       train_horses=train_horses,
+                                                       test_horses=test_horses,
+                                                       val_horses=val_horses)
             if args.val_fraction == 1:
-                generators = get_data_2stream_5d_input(dh,
-                                                       horse_dfs,
-                                                       train_horses,
-                                                       test_horses)
+                generators = get_data_2stream_5d_input(dh=dh,
+                                                       horse_dfs=horse_dfs,
+                                                       train_horses=train_horses,
+                                                       test_horses=test_horses)
         else:
             print('5d input model')
             if args.data_type == 'rgb':
-                generators = get_data_5d_input(dh,
-                                               args.data_type,
+                print('Only RGB data')
+                generators = get_data_5d_input(dh=dh,
+                                               data_type=args.data_type,
                                                df_train=df_train,
                                                df_val=df_val,
                                                df_test=df_test)
             if args.data_type == 'of':
-                print('OF INPUT ONLY')
+                print('Only optical flow data')
                 if args.val_fraction == 0:
-                    df_train, df_val, df_test = get_rgb_of_dataframes(dh,
-                                                                      horse_dfs,
-                                                                      train_horses,
-                                                                      test_horses,
-                                                                      val_horses)
+                    df_train, df_val, df_test = get_rgb_of_dataframes(dh=dh,
+                                                                      horse_dfs=horse_dfs,
+                                                                      train_horses=train_horses,
+                                                                      test_horses=test_horses,
+                                                                      val_horses=val_horses)
                 if args.val_fraction == 1:
-                    df_train, df_val, df_test = get_rgb_of_dataframes(dh,
-                                                                      horse_dfs,
-                                                                      train_horses,
-                                                                      test_horses)
-                generators = get_data_5d_input(dh,
-                                               args.data_type,
+                    df_train, df_val, df_test = get_rgb_of_dataframes(dh=dh,
+                                                                      horse_dfs=horse_dfs,
+                                                                      train_horses=train_horses,
+                                                                      test_horses=test_horses)
+                generators = get_data_5d_input(dh=dh,
+                                               data_type=args.data_type,
                                                df_train=df_train,
                                                df_val=df_val,
                                                df_test=df_test)
     if args.nb_input_dims == 4:
         if '2stream' in args.model:
-            print('4d input 2stream model')
-            generators = get_data_2stream_4d_input(dh,
-                                                   horse_dfs,
-                                                   train_horses,
-                                                   test_horses,
-                                                   val_horses)
+            print('4d input 2stream model. Needs (quick) fix')
+            #  generators = get_data_2stream_4d_input(dh=dh,
+            #                                         horse_dfs,
+            #                                         train_horses,
+            #                                         test_horses,
+            #                                         val_horses)
         else:
             print('4d input model')
             if args.data_type == 'rgb':
-                generators = get_data_4d_input(dh,
-                                               args.data_type,
+                print('Only RGB data')
+                generators = get_data_4d_input(dh=dh,
+                                               data_type=args.data_type,
                                                df_train=df_train,
-                                               df_val=df_val,
-                                               df_test=df_test)
+                                               df_test=df_test,
+                                               df_val=df_val)
             if args.data_type == 'of':
-                df_train, df_val, df_test = get_rgb_of_dataframes(dh,
-                                                                  horse_dfs,
-                                                                  train_horses,
-                                                                  test_horses,
-                                                                  val_horses)
-                generators = get_data_4d_input(dh,
-                                               args.data_type,
+                print('Only optical flow data')
+                df_train, df_val, df_test = get_rgb_of_dataframes(dh=dh,
+                                                                  horse_dfs=horse_dfs,
+                                                                  train_horses=train_horses,
+                                                                  test_horses=test_horses,
+                                                                  val_horses=val_horses)
+                generators = get_data_4d_input(dh=dh,
+                                               data_type=args.data_type,
                                                df_train=df_train,
-                                               df_val=df_val,
-                                               df_test=df_test)
+                                               df_test=df_test,
+                                               df_val=df_val)
 
     train_generator, val_generator, test_generator, eval_generator = generators
 
@@ -513,25 +520,34 @@ def run():
         print('Took {} s to compute testing steps'.format(end - start))
 
     # Train the model
-    best_model_path = train(model, args, train_steps, val_steps, VAL_FRACTION,
-                            generator=train_generator, val_generator=val_generator)
+    best_model_path = train(model_instance=model,
+                            args=args,
+                            train_steps=train_steps,
+                            val_steps=val_steps,
+                            val_fraction=VAL_FRACTION,
+                            generator=train_generator,
+                            val_generator=val_generator)
 
     model = keras.models.load_model(best_model_path)
-    # Get test predictions
-    y_preds, scores = ev.test(model, args, test_generator, eval_generator, test_steps)
 
-    # Get the ground truth for the test set
+    # Get test predictions
+    y_preds, scores = ev.test(model=model, args=args,
+                              test_generator=test_generator,
+                              eval_generator=eval_generator,
+                              nb_steps=test_steps)
+
+    # Prepare the ground truth for the test set
     y_test = np.array(y_batches)  # Now in format [nb_batches, batch_size, seq_length, nb_classes]
     nb_batches = y_test.shape[0]
     # Make 3D
     y_test = np.reshape(y_test, (nb_batches*args.batch_size, args.seq_length, args.nb_labels))
 
-    # Put y_preds into same format as y_test, take the max probabilities.
-    y_preds = np.argmax(y, axis=2)
+    # Put y_preds into same format as y_test, first take the max probabilities.
+    y_preds = np.argmax(y_preds, axis=2)
     y_preds = np.array([np_utils.to_categorical(x, num_classes=args.nb_labels) for x in y_preds])
 
     # Evaluate the model's performance
-    ev.evaluate(model, y_test, y_preds, scores, args)
+    ev.evaluate(model=model, y_test=y_test, y_pred=y_preds, scores=scores, args=args)
 
 if __name__ == '__main__':
 
