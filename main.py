@@ -8,6 +8,7 @@ import os
 
 from data_handler import DataHandler, shuffle_blocks
 from test_and_eval import Evaluator
+from keras.utils import np_utils
 from train import train
 import compute_steps
 import arg_parser
