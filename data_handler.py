@@ -339,10 +339,7 @@ class DataHandler:
                     yield (X_array, y_array)
 
     def get_image(self, path):
-        if self.color:
-            channels = 3
-        else:
-            channels = 1
+        ch = 3 if self.color else 1
         im = process_image(path, (self.image_size[0], self.image_size[1], channels))
         return im
 
@@ -360,81 +357,35 @@ class DataHandler:
         X_flip = np.array(X_flip, dtype=np.float32)
         return X_flip
 
-    # BELOW HANDLES DATA EXTRACTION WHEN THE DATA IS ORGANIZED IN TRAIN/TEST/PAIN/NOPAIN-FOLDERS
-
-    def prepare_train_test(self, df):
+    def add_gaussian_noise(self, images):
         """
-        Prepare the frames into labeled train and test sets, with help from the
-        DataFrame with .jpg-paths and labels for train and pain.
-        :param df: pd.DataFrame
-        :return: np.ndarray, np.ndarray, np.ndarray, np.ndarray
+        This methods shadens the images with Gaussian noise.
         """
-        train_df = df.loc[df['Train'] == 1]
-        test_df = df.loc[df['Train'] == 0]
+        gaussian_noise_imgs = []
 
-        y_train = np.asarray(train_df['Pain'], dtype=np.uint8)
-        y_test = np.asarray(test_df['Pain'], dtype=np.uint8)
+        ch = 3 if self.color else 1
+        row, col = self.image_size
+    
+        mean = 0
+        sigma = 0.5
 
-        print("**************************************")
-        print("Inside prep traintest:")
-        print(y_train.shape)
-        print(y_test.shape)
-        from keras.utils import np_utils
-        y_train = np_utils.to_categorical(y_train)
-        y_test = np_utils.to_categorical(y_test)
-        print(y_train.shape)
-        print(y_test.shape)
-        print("**************************************")
+        imw_a = 0.4
+        imw_b = 0.65
+        im_weight = (imw_b - imw_a) * np.random.random() + imw_a
 
-        print('Before get train ims')
-        train_images_list = self._get_images_from_df(train_df)
-        print('Before get test ims')
-        test_images_list = self._get_images_from_df(test_df)
-        print('Before convert train to array')
-        X_train = np.asarray(train_images_list, dtype=np.float32)
-        print('Before convert test to array')
-        X_test = np.asarray(test_images_list, dtype=np.float32)
+        now_a = 0.2
+        now_b = 0.5
+        noise_weight = (now_b - now_a) * np.random.random() + now_a
 
-        # X_train_batch = make_even_sequences(train_images_list, self.seq_length)
-        # y_train_batch = np.asarray(make_even_sequences(y_train, self.seq_length), dtype=np.uint8)
-        # X_test_batch = make_even_sequences(test_images_list, self.seq_length)
-        # y_test_batch = np.asarray(make_even_sequences(y_test, self.seq_length), dtype=np.uint8)
-        #
-        # X_train = X_train_batch
-        # X_test = X_test_batch
-        # y_train = y_train_batch
-        # y_test = y_test_batch
+        gaussian = np.random.normal(mean, sigma, (row, col, ch)).astype(np.float32)
 
-        return X_train, y_train, X_test, y_test
+        for index, img in enumerate(images):
+            gaussian_img = cv2.addWeighted(img, im_weight, gaussian, noise_weight, 0)
+            gaussian_noise_imgs.append(gaussian_img)
+    
+        gaussian_noise_imgs = np.array(gaussian_noise_imgs, dtype=np.float32)
+        return gaussian_noise_imgs
 
-    def folders_to_df(self):
-        """
-        Create a DataFrame with annotations from the folder structure.
-        :return: pd.DataFrame
-        """
-        df = pd.DataFrame(columns=['FileName', 'Path', 'Pain', 'Observer', 'Train'])
-        c = 0
-        for path, dirs, files in sorted(os.walk(self.path)):
-            for filename in sorted(files):
-                total_path = join(path,filename)
-                if '.jpg' in filename:
-                    if 'train' in total_path:
-                        train_field = 1
-                    else:
-                        train_field = 0
-                    if 'pain' in total_path and 'no_pain' not in total_path:
-                        pain_field = 1
-                    else:
-                        pain_field = 0
-                    if 'observer' in total_path:
-                        observer_field = 1
-                    else:
-                        observer_field = 0
-                    df.loc[c] = [filename, total_path, pain_field, observer_field, train_field]
-                    c += 1
-        # A weird file .jpg appears in df, remove it.
-        df = df[df['FileName'] != '.jpg']
-        return df
 
     # TODO Merge the two below functions (horse_to_df and save_OF_paths_to_df, same functionality)
     def horse_to_df(self, horse_id):
