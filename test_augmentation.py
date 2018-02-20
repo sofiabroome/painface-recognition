@@ -103,7 +103,8 @@ def gaussian_noise_addition(input_tensor, std):
     noise = tf.random_normal(shape=tf.shape(input_tensor), mean=0.0, stddev=std, dtype=tf.float32) 
     return input_tensor + noise
 
-def adjust_lighting(img_paths, std, width, height):
+
+def adjust_lighting_by_gn(img_paths, std, width, height):
     X_adjusted = []
     tf.reset_default_graph()
     X = tf.placeholder(tf.float32, shape=(width, height, 3))
@@ -118,6 +119,23 @@ def adjust_lighting(img_paths, std, width, height):
 
     return X_adjusted
 
+
+def adjust_lighting(img_paths, delta, width, height):
+    X_adjusted = []
+    tf.reset_default_graph()
+    X = tf.placeholder(tf.float32, shape=(width, height, 3))
+    tf_img1 = tf.image.adjust_brightness(X, delta)
+    with tf.Session() as sess:
+        sess.run(tf.global_variables_initializer())
+        for index, img_path in enumerate(img_paths):
+            img = mpimg.imread(img_path)
+            transformed_imgs = sess.run([tf_img1], feed_dict={X: img})
+            X_adjusted.extend(transformed_imgs)
+    X_adjusted = np.array(X_adjusted, dtype=np.float32)
+
+    return X_adjusted
+
+
 if __name__ == '__main__':
     width = 128
     height = 128
@@ -128,30 +146,32 @@ if __name__ == '__main__':
 
     path_list = []
 
-    for i in range(20,30):
+    for i in range(80,90):
         p = path_root + str(i) + '.jpg'
         path_list.append(p)
 
     random_scale_for_crop = np.random.rand()
     crop_scale = random_scale_for_crop * 0.2
     illuminance_scale = np.random.uniform(0, 1)
+    brightness_delta = np.random.uniform(0, 0.2)
+    brightness_delta = 0.7
     std_gaussian_noise = np.random.uniform(0.2,0.5)    
-    std_gaussian_noise = 5
+    std_gaussian_noise = 7
     print('Crop scale: ', crop_scale)
     print('Contrast adjustment scale: ', illuminance_scale)
     print('Gaussian noise std: ', std_gaussian_noise)
+    print('Brightness delta: ', brightness_delta)
 
     cropped_ims = random_crop(path_list, width, height,
                               crop_scale, crop_width, crop_height)
     flipped_ims = flip_images(path_list, width, height)
     adjusted_contrast_ims = adjust_contrast(path_list, illuminance_scale, width, height)
-    adjusted_light_ims = adjust_lighting(path_list, std_gaussian_noise, width, height)
+    gn_adjusted_light_ims = adjust_lighting_by_gn(path_list, std_gaussian_noise, width, height)
+    adjusted_light_ims = adjust_lighting(path_list, brightness_delta, width, height)
 
     rows = 5
     cols = 5
     f, axarr = plt.subplots(rows, cols, figsize=(20,10))
-    # f.set_figheight(15)
-    # f.set_figwidth(15)
     for i in range(0, rows):
         for j in range(0, cols):
             if j == 0:
