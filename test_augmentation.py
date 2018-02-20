@@ -3,6 +3,7 @@ from matplotlib import pyplot as plt
 import matplotlib.image as mpimg
 import tensorflow as tf
 import numpy as np
+import cv2
 
 
 def get_image(path, width, height):
@@ -100,7 +101,7 @@ def adjust_contrast(img_paths, scale, width, height):
     return X_adjusted
 
 def gaussian_noise_addition(input_tensor, std):
-    noise = tf.random_normal(shape=tf.shape(input_tensor), mean=0.0, stddev=std, dtype=tf.float32) 
+    noise = tf.random_normal(shape=tf.shape(input_tensor), mean=0.0, stddev=std, dtype=tf.float32)
     return input_tensor + noise
 
 
@@ -118,6 +119,22 @@ def adjust_lighting_by_gn(img_paths, std, width, height):
     X_adjusted = np.array(X_adjusted, dtype=np.float32)
 
     return X_adjusted
+
+def add_gaussian_noise(img_paths, mean, std, width, height):
+    gaussian_noise_imgs = []
+
+    for index, img_path in enumerate(img_paths):
+        img = mpimg.imread(img_path)
+        row, col, _ = img.shape
+        gaussian = np.random.random((row, col, 1)).astype(np.float32)  # Continuous uniform...
+        gaussian = np.concatenate((gaussian, gaussian, gaussian), axis = 2)
+        gaussian_img = cv2.addWeighted(img, 0.75, 0.25 * gaussian, 0.25, 0)
+        gaussian_noise_imgs.append(gaussian_img)
+
+    gaussian_noise_imgs = np.array(gaussian_noise_imgs, dtype = np.float32)
+    return gaussian_noise_imgs
+
+
 
 
 def adjust_lighting(img_paths, delta, width, height):
@@ -166,7 +183,8 @@ if __name__ == '__main__':
                               crop_scale, crop_width, crop_height)
     flipped_ims = flip_images(path_list, width, height)
     adjusted_contrast_ims = adjust_contrast(path_list, illuminance_scale, width, height)
-    gn_adjusted_light_ims = adjust_lighting_by_gn(path_list, std_gaussian_noise, width, height)
+    # gn_adjusted_light_ims = adjust_lighting_by_gn(path_list, std_gaussian_noise, width, height)
+    gn_adjusted_light_ims = add_gaussian_noise(path_list, std_gaussian_noise, width, height)
     adjusted_light_ims = adjust_lighting(path_list, brightness_delta, width, height)
 
     rows = 5
