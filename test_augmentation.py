@@ -3,6 +3,7 @@ from matplotlib import pyplot as plt
 import matplotlib.image as mpimg
 import tensorflow as tf
 import numpy as np
+import cv2
 
 
 def get_image(path, width, height):
@@ -100,7 +101,7 @@ def adjust_contrast(img_paths, scale, width, height):
     return X_adjusted
 
 def gaussian_noise_addition(input_tensor, std):
-    noise = tf.random_normal(shape=tf.shape(input_tensor), mean=0.0, stddev=std, dtype=tf.float32) 
+    noise = tf.random_normal(shape=tf.shape(input_tensor), mean=0.0, stddev=std, dtype=tf.float32)
     return input_tensor + noise
 
 
@@ -118,6 +119,36 @@ def adjust_lighting_by_gn(img_paths, std, width, height):
     X_adjusted = np.array(X_adjusted, dtype=np.float32)
 
     return X_adjusted
+
+def add_gaussian_noise(img_paths, im_weight, noise_weight, width, height):
+    gaussian_noise_imgs = []
+
+    mean = 0
+    sigma = 0.5
+
+    row, col, ch = height, width, 3
+
+    gaussian = np.random.normal(mean, sigma, (row, col, ch)).astype(np.float32)
+
+    imw_a = 0.4
+    imw_b = 0.65
+    im_weight = (imw_b - imw_a) * np.random.random() + imw_a
+    
+    now_a = 0.2
+    now_b = 0.5
+    noise_weight = (now_b - now_a) * np.random.random() + now_a
+
+    print('Image weight: {}, noise weight: {}', im_weight, noise_weight)
+    for index, img_path in enumerate(img_paths):
+        img = mpimg.imread(img_path).astype(np.float32)
+
+        gaussian_img = cv2.addWeighted(img, im_weight, gaussian, noise_weight, 0)
+        gaussian_noise_imgs.append(gaussian_img)
+
+    gaussian_noise_imgs = np.array(gaussian_noise_imgs, dtype=np.float32)
+    return gaussian_noise_imgs
+
+
 
 
 def adjust_lighting(img_paths, delta, width, height):
@@ -166,31 +197,57 @@ if __name__ == '__main__':
                               crop_scale, crop_width, crop_height)
     flipped_ims = flip_images(path_list, width, height)
     adjusted_contrast_ims = adjust_contrast(path_list, illuminance_scale, width, height)
-    gn_adjusted_light_ims = adjust_lighting_by_gn(path_list, std_gaussian_noise, width, height)
+    # gn_adjusted_light_ims = adjust_lighting_by_gn(path_list, std_gaussian_noise, width, height)
+    mean = 0
+    gn_adjusted_light_ims = add_gaussian_noise(path_list, 0.25, 0.25 , width, height)
+    gn_adjusted_light_ims2 = add_gaussian_noise(path_list, 0.50, 0.5 , width, height)
+    gn_adjusted_light_ims3 = add_gaussian_noise(path_list, 0.6, 0.4, width, height)
+    gn_adjusted_light_ims4 = add_gaussian_noise(path_list, 0.9, 0.1, width, height)
     adjusted_light_ims = adjust_lighting(path_list, brightness_delta, width, height)
 
     rows = 5
     cols = 5
     f, axarr = plt.subplots(rows, cols, figsize=(20,10))
+    # for i in range(0, rows):
+    #     for j in range(0, cols):
+    #         if j == 0:
+    #             im = mpimg.imread(path_list[i])
+    #             axarr[i, j].imshow(im)
+    #         elif j == 1:
+    #             im = cropped_ims[i]
+    #             im /= 255
+    #             axarr[i, j].imshow(im)
+    #         elif j == 2:
+    #             im = flipped_ims[i]
+    #             im /= 255
+    #             axarr[i, j].imshow(im)
+    #         elif j == 3:
+    #             im = adjusted_contrast_ims[i]
+    #             im /= 255
+    #             axarr[i, j].imshow(im)
+    #         else:
+    #             im = gn_adjusted_light_ims[i]
+    #             im /= 255
+    #             axarr[i, j].imshow(im)
     for i in range(0, rows):
         for j in range(0, cols):
             if j == 0:
                 im = mpimg.imread(path_list[i])
                 axarr[i, j].imshow(im)
             elif j == 1:
-                im = cropped_ims[i]
+                im = gn_adjusted_light_ims[i]
                 im /= 255
                 axarr[i, j].imshow(im)
             elif j == 2:
-                im = flipped_ims[i]
+                im = gn_adjusted_light_ims2[i]
                 im /= 255
                 axarr[i, j].imshow(im)
             elif j == 3:
-                im = adjusted_contrast_ims[i]
+                im = gn_adjusted_light_ims3[i]
                 im /= 255
                 axarr[i, j].imshow(im)
             else:
-                im = adjusted_light_ims[i]
+                im = gn_adjusted_light_ims4[i]
                 im /= 255
                 axarr[i, j].imshow(im)
     plt.show()
