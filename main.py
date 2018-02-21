@@ -362,7 +362,9 @@ def run():
                      batch_size=args.batch_size,
                      color=COLOR,
                      nb_labels=args.nb_labels,
-                     aug_flip=args.aug_flip)
+                     aug_flip=args.aug_flip,
+                     aug_crop=args.aug_crop,
+                     aug_light=args.aug_light)
 
     ev = Evaluator(acc=True,
                    cm=True,
@@ -504,6 +506,7 @@ def run():
         train_steps = 2
         val_steps = 2
         test_steps = 2
+        y_test = df_test['Pain'].values
     else:
         start = time.time()
         train_steps, _ = compute_steps.compute_steps(df_train, args)
@@ -537,11 +540,19 @@ def run():
                               eval_generator=eval_generator,
                               nb_steps=test_steps)
 
-    # Prepare the ground truth for the test set
-    y_test = np.array(y_batches)  # Now in format [nb_batches, batch_size, seq_length, nb_classes]
-    nb_batches = y_test.shape[0]
-    # Make 3D
-    y_test = np.reshape(y_test, (nb_batches*args.batch_size, args.seq_length, args.nb_labels))
+    if args.test_run == 1:
+        nb_batches = y_preds.shape[0]
+        nb_total = nb_batches * args.batch_size * args.seq_length
+        y_test = np_utils.to_categorical(y_test)
+        y_test = y_test[:nb_total]
+        y_test = np.reshape(y_test, (nb_batches*args.batch_size, args.seq_length, args.nb_labels))
+        y_test = y_test[:nb_batches]
+    else:
+        # Get the ground truth for the test set
+        y_test = np.array(y_batches)  # Now in format [nb_batches, batch_size, seq_length, nb_classes]
+        nb_batches = y_test.shape[0]
+        # Make 3D
+        y_test = np.reshape(y_test, (nb_batches*args.batch_size, args.seq_length, args.nb_labels))
 
     # Put y_preds into same format as y_test, first take the max probabilities.
     y_preds = np.argmax(y_preds, axis=2)
