@@ -62,6 +62,12 @@ def compute_steps(df, kwargs):
             if kwargs.aug_flip:
                 y_batch_list.append(y_seq_list)
                 batch_index += 1
+            if kwargs.aug_crop:
+                y_batch_list.append(y_seq_list)
+                batch_index += 1
+            if kwargs.aug_light:
+                y_batch_list.append(y_seq_list)
+                batch_index += 1
 
         if batch_index % kwargs.batch_size == 0 and not batch_index == 0:
             y_array = np.array(y_batch_list, dtype=np.uint8)
