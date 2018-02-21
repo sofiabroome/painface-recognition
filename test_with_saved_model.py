@@ -195,7 +195,7 @@ def run():
                      (kwargs.input_width, kwargs.input_height),
                      kwargs.seq_length, kwargs.seq_stride,
                      kwargs.batch_size, COLOR,
-                     kwargs.nb_labels, kwargs.aug_flip)
+                     kwargs.nb_labels, kwargs.aug_flip, kwargs.aug_crop, kwargs.aug_light)
 
     ev = Evaluator(True, True, True, TARGET_NAMES, kwargs.batch_size)
 
