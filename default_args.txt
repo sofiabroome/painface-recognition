@@ -29,3 +29,5 @@
 --val-fraction,0,Whether to use val fraction instead of separate horses (0 false 1 true)
 --data-type,'rgb',The type of input data
 --aug-flip,0,Whether to augment the dataset by flipping all sequences horizontally.
+--aug-crop,0,Whether to augment the dataset by cropping the frames of all sequences randomly, but consistently within one sequence.
+--aug-light,0,Whether to augment the dataset by changing the brightness of an entire sequence.

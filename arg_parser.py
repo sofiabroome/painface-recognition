@@ -79,6 +79,10 @@ def parse_arguments():
                         help='The type of input data')
     parser.add_argument('--aug-flip', nargs='?', type=int,
                         help='Whether to augment the dataset by flipping all sequences horizontally.')
+    parser.add_argument('--aug-crop', nargs='?', type=int,
+                        help='Whether to augment the dataset by cropping the frames of all sequences randomly, but consistently within one sequence.')
+    parser.add_argument('--aug-light', nargs='?', type=int,
+                        help='Whether to augment the dataset by changing the brightness of an entire sequence.')
     return parser.parse_args()
 
 

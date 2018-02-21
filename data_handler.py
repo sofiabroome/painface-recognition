@@ -2,9 +2,11 @@ import tensorflow as tf
 import pandas as pd
 import numpy as np
 import random
+import cv2
 import os
 
 from keras.preprocessing.image import ImageDataGenerator
+from matplotlib import pyplot as plt
 from keras.utils import np_utils
 from os.path import join
 
@@ -19,7 +21,8 @@ eval_datagen = ImageDataGenerator()
 
 class DataHandler:
     def __init__(self, path, of_path, image_size, seq_length,
-                 seq_stride, batch_size, color, nb_labels, aug_flip):
+                 seq_stride, batch_size, color, nb_labels,
+                 aug_flip, aug_crop, aug_light):
         """
         Constructor for the DataHandler.
         :param path: str
@@ -37,6 +40,8 @@ class DataHandler:
         self.color = color
         self.nb_labels = nb_labels
         self.aug_flip = aug_flip
+        self.aug_crop = aug_crop
+        self.aug_light = aug_light
 
     def prepare_generator_2stream(self, df, train, val, test, evaluate):
         """
@@ -107,6 +112,13 @@ class DataHandler:
         this_index = 0
         seq_index = 0
 
+        # Make sure that no augmented sequences are thrown away,
+        # because we really want to augment the dataset.
+
+        nb_aug = self.aug_flip + self.aug_crop + self.aug_light
+        batch_requirement = 1 + nb_aug  # Normal sequence plus augmented sequences.
+        assert (self.batch_size % batch_requirement) == 0
+
         while True:
             # Shuffle blocks between epochs.
             if train:
@@ -162,7 +174,6 @@ class DataHandler:
                     seq_index = 0
                     
                     if self.aug_flip:
-                        assert (self.batch_size % 2) == 0  # Otherwise we might overwrite seqs.
                         # Flip both RGB and flow arrays
                         X_seq_list_flipped = self.flip_images(X_seq_list)
                         flow_seq_list_flipped = self.flip_images(flow_seq_list)
@@ -207,6 +218,13 @@ class DataHandler:
 
         this_index = 0
         seq_index = 0
+        
+        # Make sure that no augmented sequences are thrown away,
+        # because we really want to augment the dataset.
+
+        nb_aug = self.aug_flip + self.aug_crop + self.aug_light
+        batch_requirement = 1 + nb_aug  # Normal sequence plus augmented sequences.
+        assert (self.batch_size % batch_requirement) == 0
 
         while True:
             # Shuffle blocks between epochs if during training.
@@ -247,10 +265,6 @@ class DataHandler:
                     y_seq_list.append(y)
                     seq_index += 1
 
-                # coin_toss = np.random.uniform(0, 1)
-                # if coin_toss > 0.5:
-                #     X_seq_list = self.flip_images(X_seq_list)
-
                 if batch_index == 0:
                     X_batch_list = []
                     y_batch_list = []
@@ -262,11 +276,27 @@ class DataHandler:
                     batch_index += 1
 
                     if self.aug_flip:
-                        assert (self.batch_size % 2) == 0
                         X_seq_list_flipped = self.flip_images(X_seq_list)
                         X_batch_list.append(X_seq_list_flipped)
                         y_batch_list.append(y_seq_list)
                         batch_index += 1
+
+                    if self.aug_crop:
+                        crop_size = 99
+                        X_seq_list_cropped = self.random_crop_resize(X_seq_list,
+                                                                     crop_size, crop_size)
+                        X_batch_list.append(X_seq_list_cropped)
+                        y_batch_list.append(y_seq_list)
+                        batch_index += 1
+
+                    if self.aug_light:
+                        X_seq_list_shaded = self.add_gaussian_noise(X_seq_list)
+                        X_batch_list.append(X_seq_list_shaded)
+                        y_batch_list.append(y_seq_list)
+                        batch_index += 1
+
+                    # plot_augmentation(X_seq_list, X_seq_list_flipped, X_seq_list_cropped,
+                    #                   X_seq_list_shaded, seq_index, batch_index, window_index)
 
                 if batch_index % self.batch_size == 0 and not batch_index == 0:
                     X_array = np.array(X_batch_list, dtype=np.float32)
@@ -339,10 +369,7 @@ class DataHandler:
                     yield (X_array, y_array)
 
     def get_image(self, path):
-        if self.color:
-            channels = 3
-        else:
-            channels = 1
+        channels = 3 if self.color else 1
         im = process_image(path, (self.image_size[0], self.image_size[1], channels))
         return im
 
@@ -360,83 +387,84 @@ class DataHandler:
         X_flip = np.array(X_flip, dtype=np.float32)
         return X_flip
 
-    # BELOW HANDLES DATA EXTRACTION WHEN THE DATA IS ORGANIZED IN TRAIN/TEST/PAIN/NOPAIN-FOLDERS
-
-    def prepare_train_test(self, df):
+    def add_gaussian_noise(self, images):
         """
-        Prepare the frames into labeled train and test sets, with help from the
-        DataFrame with .jpg-paths and labels for train and pain.
-        :param df: pd.DataFrame
-        :return: np.ndarray, np.ndarray, np.ndarray, np.ndarray
+        This methods shadens the images with Gaussian noise.
         """
-        train_df = df.loc[df['Train'] == 1]
-        test_df = df.loc[df['Train'] == 0]
+        gaussian_noise_imgs = []
 
-        y_train = np.asarray(train_df['Pain'], dtype=np.uint8)
-        y_test = np.asarray(test_df['Pain'], dtype=np.uint8)
+        ch = 3 if self.color else 1
+        row, col = self.image_size
+    
+        mean = 0
+        sigma = 0.5
 
-        print("**************************************")
-        print("Inside prep traintest:")
-        print(y_train.shape)
-        print(y_test.shape)
-        from keras.utils import np_utils
-        y_train = np_utils.to_categorical(y_train)
-        y_test = np_utils.to_categorical(y_test)
-        print(y_train.shape)
-        print(y_test.shape)
-        print("**************************************")
+        imw_a = 0.55
+        imw_b = 0.7
+        im_weight = (imw_b - imw_a) * np.random.random() + imw_a
 
-        print('Before get train ims')
-        train_images_list = self._get_images_from_df(train_df)
-        print('Before get test ims')
-        test_images_list = self._get_images_from_df(test_df)
-        print('Before convert train to array')
-        X_train = np.asarray(train_images_list, dtype=np.float32)
-        print('Before convert test to array')
-        X_test = np.asarray(test_images_list, dtype=np.float32)
+        now_a = 0.2
+        now_b = 0.4
+        noise_weight = (now_b - now_a) * np.random.random() + now_a
 
-        # X_train_batch = make_even_sequences(train_images_list, self.seq_length)
-        # y_train_batch = np.asarray(make_even_sequences(y_train, self.seq_length), dtype=np.uint8)
-        # X_test_batch = make_even_sequences(test_images_list, self.seq_length)
-        # y_test_batch = np.asarray(make_even_sequences(y_test, self.seq_length), dtype=np.uint8)
-        #
-        # X_train = X_train_batch
-        # X_test = X_test_batch
-        # y_train = y_train_batch
-        # y_test = y_test_batch
+        gaussian = np.random.normal(mean, sigma, (row, col, ch)).astype(np.float32)
 
-        return X_train, y_train, X_test, y_test
+        for img in images:
+            gaussian_img = cv2.addWeighted(img, im_weight, gaussian, noise_weight, 0)
+            gaussian_noise_imgs.append(gaussian_img)
+    
+        gaussian_noise_imgs = np.array(gaussian_noise_imgs, dtype=np.float32)
+        return gaussian_noise_imgs
 
-    def folders_to_df(self):
+    def random_crop_resize(self, images, target_height, target_width):
         """
-        Create a DataFrame with annotations from the folder structure.
-        :return: pd.DataFrame
+        Random crop but consistent across sequence.
+        :param images:
+        :param target_height:
+        :param target_width:
+        :return:
         """
-        df = pd.DataFrame(columns=['FileName', 'Path', 'Pain', 'Observer', 'Train'])
-        c = 0
-        for path, dirs, files in sorted(os.walk(self.path)):
-            for filename in sorted(files):
-                total_path = join(path,filename)
-                if '.jpg' in filename:
-                    if 'train' in total_path:
-                        train_field = 1
-                    else:
-                        train_field = 0
-                    if 'pain' in total_path and 'no_pain' not in total_path:
-                        pain_field = 1
-                    else:
-                        pain_field = 0
-                    if 'observer' in total_path:
-                        observer_field = 1
-                    else:
-                        observer_field = 0
-                    df.loc[c] = [filename, total_path, pain_field, observer_field, train_field]
-                    c += 1
-        # A weird file .jpg appears in df, remove it.
-        df = df[df['FileName'] != '.jpg']
-        return df
+        random_scale_for_crop_w = np.random.rand()
+        random_scale_for_crop_h = np.random.rand()
+
+        crop_scale_w = random_scale_for_crop_w * 0.2
+        crop_scale_h = random_scale_for_crop_h * 0.2
+        # print('Crop scale w and h: ', crop_scale_w, crop_scale_h)
+
+        width = self.image_size[0]
+        height = self.image_size[1]
+        offset_height = crop_scale_h * height
+        offset_width = crop_scale_w * width
+
+        # y1 x1 are relative starting heights and widths in the crop box.
+        # [[0, 0, 1, 1]] would mean no crop and just resize.
+    
+        y1 = offset_height/(height-1)
+        x1 = offset_width/(width-1)
+        y2 = (offset_height + target_height)/(height-1)
+        x2 = (offset_width + target_width)/(width-1)
+    
+        boxes = np.array([[y1, x1, y2, x2]], dtype=np.float32)
+        box_ind = np.array([0], dtype=np.int32)
+        crop_size = np.array([height, width], dtype=np.int32)
+    
+        X_crops = []
+        tf.reset_default_graph()
+        X = tf.placeholder(tf.float32, shape=(1, width, height, 3))
+        tf_img1 = tf.image.crop_and_resize(X, boxes, box_ind, crop_size)
+
+        with tf.Session() as sess:
+            sess.run(tf.global_variables_initializer())
+            for img in images:
+                batch_img = np.expand_dims(img, axis = 0)
+                cropped_imgs = sess.run([tf_img1], feed_dict={X: batch_img})
+                X_crops.extend(cropped_imgs)
+        X_crops = np.array(X_crops, dtype=np.float32)
+        X_crops = np.reshape(X_crops, (self.seq_length, width, height, 3))
+        return X_crops
 
     # TODO Merge the two below functions (horse_to_df and save_OF_paths_to_df, same functionality)
+
     def horse_to_df(self, horse_id):
         """
         Create a DataFrame with all the frames with annotations from a csv-file.
@@ -546,6 +574,30 @@ class DataHandler:
             images.append(im)
         return images
 
+def plot_augmentation(X_seq_list, flipped, cropped, shaded,
+                      seq_index, batch_index, window_index):
+    rows = 4
+    cols = 10
+    f, axarr = plt.subplots(rows, cols, figsize=(20,10))
+    for i in range(0, rows):
+        for j in range(0, cols):
+            if i == 0:
+                im = X_seq_list[j]
+                im /= 255
+                axarr[i, j].imshow(im)
+            elif i == 1:
+                im = flipped[j]
+                im /= 255
+                axarr[i, j].imshow(im)
+            elif i == 2:
+                im = cropped[j]
+                im /= 255
+                axarr[i, j].imshow(im)
+            else:
+                im = shaded[j]
+                im /= 255
+                axarr[i, j].imshow(im)
+    plt.savefig('seq_{}_batch_{}_wi_{}.png'.format(seq_index, batch_index, window_index))
 
 def get_video_id_stem_from_path(path):
     _, vid_id = split_string_at_last_occurence_of_certain_char(path, '/')
