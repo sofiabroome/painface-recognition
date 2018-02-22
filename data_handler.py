@@ -1,4 +1,7 @@
 import tensorflow as tf
+import matplotlib
+matplotlib.use('agg')
+import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import random
@@ -6,7 +9,6 @@ import cv2
 import os
 
 from keras.preprocessing.image import ImageDataGenerator
-from matplotlib import pyplot as plt
 from keras.utils import np_utils
 from os.path import join
 
