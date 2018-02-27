@@ -314,8 +314,8 @@ class DataHandler:
                         y_batch_list.append(y_seq_list)
                         batch_index += 1
 
-                    plot_augmentation(train, val, test, evaluate, X_seq_list, X_seq_list_flipped, X_seq_list_cropped,
-                                      X_seq_list_shaded, seq_index, batch_index, window_index)
+                    # plot_augmentation(train, val, test, evaluate, X_seq_list, X_seq_list_flipped, X_seq_list_cropped,
+                    #                   X_seq_list_shaded, seq_index, batch_index, window_index)
 
                 if batch_index % self.batch_size == 0 and not batch_index == 0:
                     X_array = np.array(X_batch_list, dtype=np.float32)
