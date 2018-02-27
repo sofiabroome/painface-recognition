@@ -182,18 +182,18 @@ if __name__ == '__main__':
     # CSV with info about horses and their video sequences.
     df = pd.read_csv('videos_overview_missingremoved.csv', sep=';')
     # Directory with the frames from which to extract the OF.
-    root_dir = 'data/jpg_128_128_15fps/'
+    root_dir = 'data/jpg_128_128_16fps/'
     # Output root directory (will contain subfolders for every sequence).
     # Need to make this folder before running, and the horse_x folders in it.
-    output_root_dir = 'data/jpg_128_128_15fps_OF_magnitude_cv2/'
+    output_root_dir = 'data/jpg_128_128_16fps_OF_magnitude_cv2/'
 
     width = 128
     height = 128
     channels = 3
 
     # Only need to make the subfolders of output_root_dir once.
-    # make_folders()
+    make_folders()
 
     # Iterate over the frames in root_dir and compute the flows.
     # Right now this is done for every 15th frame.
-    iterate_over_frames(frequency=15)
+    iterate_over_frames(frequency=8)
