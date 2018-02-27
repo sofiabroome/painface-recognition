@@ -30,7 +30,6 @@ def check_if_unique_in_df(file_name, df):
 if __name__ == '__main__':
     df = pd.read_csv('videos_overview_missingremoved.csv', sep=';')
     root_dir = 'data/Experimental_pain/'
-    exclude_prefixes = ('__', '.')  # exclusion prefixes
     complete_paths = []
     file_names = []
     filename = -1
@@ -148,10 +147,15 @@ if __name__ == '__main__':
             # ffmpeg_command = ['ffmpeg', '-ss', start, '-i', video_path, '-qscale:v', str(4), '-t', length, '-vf',
             #                   'scale=128:128', '-r', str(15), '-an', complete_output_path]
 
-            #JPG 1FPS 128x128
-
+            #JPG 16FPS 128x128
+            
             ffmpeg_command = ['ffmpeg', '-ss', start, '-i', video_path, '-qscale:v', str(4), '-t', length, '-vf',
-                              'scale=128:128', '-r', str(1), '-an', complete_output_path]
+                              'scale=128:128', '-r', str(16), '-an', complete_output_path]
+
+            # #JPG 1FPS 128x128
+
+            # ffmpeg_command = ['ffmpeg', '-ss', start, '-i', video_path, '-qscale:v', str(4), '-t', length, '-vf',
+            #                   'scale=128:128', '-r', str(1), '-an', complete_output_path]
 
 
             # TEST SETTINGS, JUST 3 FRAMES PER VIDEO:
