@@ -152,12 +152,6 @@ class DataHandler:
                     y = row['Pain']
                     flow = self.get_image(row['OF_Path'])
 
-                    # Concatenate a third channel in order to comply w RGB images
-                    # NOTE: If OF-path has 'magnitude' in it, no concatenation is needed and it already has 3 channels.
-                    # Either just zeros, or the magnitude (can load magnitude directly now from file)
-                    # extra_channel = np.zeros((flow.shape[0], flow.shape[1], 1))
-                    # flow = np.concatenate((flow, extra_channel), axis=2)
-
                     X_seq_list.append(x)
                     y_seq_list.append(y)
                     flow_seq_list.append(flow)
@@ -183,6 +177,29 @@ class DataHandler:
                         X_batch_list.append(X_seq_list_flipped)
                         y_batch_list.append(y_seq_list)
                         flow_batch_list.append(flow_seq_list_flipped)
+                        batch_index += 1
+
+                    if self.aug_crop:
+                        crop_size = 99
+                        # Flip both RGB and flow arrays
+                        X_seq_list_cropped = self.random_crop_resize(X_seq_list,
+                                                                     crop_size, crop_size)
+                        flow_seq_list_cropped = self.random_crop_resize(flow_seq_list,
+                                                                        crop_size, crop_size)
+                        # Append to the respective batch lists
+                        X_batch_list.append(X_seq_list_cropped)
+                        y_batch_list.append(y_seq_list)
+                        flow_batch_list.append(flow_seq_list_cropped)
+                        batch_index += 1
+
+                    if self.aug_light:
+                        # Flip both RGB and flow arrays
+                        X_seq_list_shaded = self.add_gaussian_noise(X_seq_list)
+                        flow_seq_list_shaded = self.add_gaussian_noise(flow_seq_list)
+                        # Append to the respective batch lists
+                        X_batch_list.append(X_seq_list_shaded)
+                        y_batch_list.append(y_seq_list)
+                        flow_batch_list.append(flow_seq_list_shaded)
                         batch_index += 1
 
                 if batch_index % self.batch_size == 0 and not batch_index == 0:
@@ -503,8 +520,6 @@ class DataHandler:
         :param horse_df: pd.DataFrame
         :return: pd.DataFrame
         """
-        # OF_path_df = pd.DataFrame(columns=['OF_Path'])  # Instantiate an empty df
-        # of_header = ['OF_Path']
         c = 0  # Per horse frame counter.
         per_clip_frame_counter = 0
         old_path = 'NoPath'
@@ -512,7 +527,8 @@ class DataHandler:
         of_path_list = []
 
         # Walk through all the files in the of-folders and put them in a
-        # DataFrame column, in order (the same order they were extracted in.)
+        # list, in order (the same order they were extracted in.)
+
         for path, dirs, files in sorted(os.walk(root_of_path)):
             print(path)
             video_id = get_video_id_from_path(path)
@@ -547,8 +563,6 @@ class DataHandler:
             else:  # Vice versa with horse-df
                 horse_df = horse_df[:-diff]
         try:
-            # Add column (concatenate)
-            # horse_df.loc[:, 'OF_Path'] = pd.Series(OF_path_df['OF_Path'])
             horse_df.loc[:, 'OF_Path'] = pd.Series(of_path_list)
         except AssertionError:
             print('Horse df and OF_df were not the same length and could not'
