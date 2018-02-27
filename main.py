@@ -212,19 +212,19 @@ def get_data_5d_input(dh,
     train_generator = dh.prepare_image_generator_5D(df_train,
                                                     data_type=data_type,
                                                     train=True, val=False,
-                                                    test=False, eval=False)
+                                                    test=False, evaluate=False)
     val_generator = dh.prepare_image_generator_5D(df_val,
                                                   data_type=data_type,
                                                   train=False, val=True,
-                                                  test=False, eval=False)
+                                                  test=False, evaluate=False)
     test_generator = dh.prepare_image_generator_5D(df_test,
                                                    data_type=data_type,
                                                    train=False, val=False,
-                                                   test=True, eval=False)
+                                                   test=True, evaluate=False)
     eval_generator = dh.prepare_image_generator_5D(df_test,
                                                    data_type=data_type,
                                                    train=False, val=False,
-                                                   test=False, eval=True)
+                                                   test=False, evaluate=True)
     generators = (train_generator, val_generator, test_generator, eval_generator)
     return generators
 
