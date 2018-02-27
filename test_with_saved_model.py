@@ -205,6 +205,9 @@ def run():
     train_horses = ast.literal_eval(kwargs.train_horses)
     test_horses = ast.literal_eval(kwargs.test_horses)
 
+    print('Horses to train on: ', train_horses)
+    print('Horses to test on: ', test_horses)
+
     # Set the train-column to 1 (train), 2 (val) or 0 (test).
     if kwargs.val_fraction == 0:
         print("Using separate horse validation.")
