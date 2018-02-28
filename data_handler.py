@@ -214,7 +214,7 @@ class DataHandler:
                     batch_index = 0
                     yield [X_array, flow_array], [y_array]
 
-    def prepare_image_generator_5D(self, df, data_type, train, val, test, eval):
+    def prepare_image_generator_5D(self, df, data_type, train, val, test, evaluate):
         """
         Prepare the frames into labeled train and test sets, with help from the
         DataFrame with .jpg-paths and labels for train and pain.
@@ -223,7 +223,7 @@ class DataHandler:
         :param train: Boolean
         :param val: Boolean
         :param test: Boolean
-        :param eval: Boolean
+        :param evaluate: Boolean
         :return: np.ndarray, np.ndarray, np.ndarray, np.ndarray
         """
         nb_frames = len(df)
@@ -268,7 +268,6 @@ class DataHandler:
 
                     if vid_seq_name != old_vid_seq_name:
                         seq_index = 0
-                        # print('New sequence. Settin seq ind to 0 and start on new.')
                         old_vid_seq_name = vid_seq_name
                         break  # In that case want to jump to the next window.
 
@@ -314,7 +313,7 @@ class DataHandler:
                         y_batch_list.append(y_seq_list)
                         batch_index += 1
 
-                    # plot_augmentation(X_seq_list, X_seq_list_flipped, X_seq_list_cropped,
+                    # plot_augmentation(train, val, test, evaluate, X_seq_list, X_seq_list_flipped, X_seq_list_cropped,
                     #                   X_seq_list_shaded, seq_index, batch_index, window_index)
 
                 if batch_index % self.batch_size == 0 and not batch_index == 0:
@@ -590,13 +589,16 @@ class DataHandler:
             images.append(im)
         return images
 
-def plot_augmentation(X_seq_list, flipped, cropped, shaded,
+def plot_augmentation(train, val, test, evaluate, X_seq_list, flipped, cropped, shaded,
                       seq_index, batch_index, window_index):
     rows = 4
     cols = 10
     f, axarr = plt.subplots(rows, cols, figsize=(20,10))
     for i in range(0, rows):
         for j in range(0, cols):
+            axarr[i, j].set_xticks([])
+            axarr[i, j].set_yticks([])
+            # axarr[i, j].set_aspect('equal')
             if i == 0:
                 im = X_seq_list[j]
                 im /= 255
@@ -613,7 +615,24 @@ def plot_augmentation(X_seq_list, flipped, cropped, shaded,
                 im = shaded[j]
                 im /= 255
                 axarr[i, j].imshow(im)
-    plt.savefig('seq_{}_batch_{}_wi_{}.png'.format(seq_index, batch_index, window_index))
+    plt.tick_params(axis='both', which='both', bottom='off', left='off')
+    f.subplots_adjust(wspace=0, hspace=0)
+    plt.subplots_adjust(wspace=0, hspace=0)
+    # plt.axis('off')
+    # plt.tight_layout()
+    if train:
+        partition = 1
+    elif val:
+        partition = 2
+    elif test:
+        partition = 3
+    else:
+        partition = 4
+    plt.savefig('seq_{}_batch_{}_wi_{}_part_{}.png'.format(seq_index,
+                                                           batch_index,
+                                                           window_index,
+                                                           partition))
+    plt.close()
 
 def get_video_id_stem_from_path(path):
     _, vid_id = split_string_at_last_occurence_of_certain_char(path, '/')
