@@ -55,17 +55,6 @@ def read_or_create_horse_dfs(dh):
     return horse_dfs
 
 
-def prepare_rgb_of_dataframe(dh, horse_dfs, train_horses, test_horses, val_horses=None):
-    horse_rgb_OF_dfs = read_or_create_horse_rgb_and_OF_dfs(dh, horse_dfs)
-    if kwargs.val_fraction == 0:
-        horse_rgb_OF_dfs = set_train_val_test_in_df(train_horses, val_horses, test_horses, horse_rgb_OF_dfs)
-    else:
-        horse_rgb_OF_dfs = set_train_test_in_df(train_horses, test_horses, horse_rgb_OF_dfs)
-    df_rgb_and_of = pd.concat(horse_rgb_OF_dfs)
-    df_rgb_and_of = shuffle_blocks(df_rgb_and_of, 'Video_ID')
-    return df_rgb_and_of
-
-
 def read_or_create_horse_rgb_and_OF_dfs(dh, horse_dfs):
     # Read or create the per-horse optical flow files listing all the frame paths and labels.
     horse_rgb_OF_dfs = []
@@ -152,40 +141,43 @@ def get_data_2stream_4d_input(dh, df_train_rgbof, df_val_rgbof, df_test_rgbof):
     return generators
 
 
-def get_rgb_of_dataframes(dh, horse_dfs, train_horses, test_horses, val_horses=None):
-    if kwargs.val_fraction == 0:
-        df_rgb_and_of = prepare_rgb_of_dataframe(dh, horse_dfs, train_horses, test_horses, val_horses)
-        df_train_rgbof = df_rgb_and_of[df_rgb_and_of['Train'] == 1]
-        df_val_rgbof = df_rgb_and_of[df_rgb_and_of['Train'] == 2]
-    if kwargs.val_fraction == 1:
-        df_rgb_and_of = prepare_rgb_of_dataframe(dh, horse_dfs, train_horses, test_horses)
-        df_train_rgbof, df_val_rgbof = df_val_split(df_rgb_and_of,
-                                                    VAL_FRACTION,
-                                                    batch_size=kwargs.batch_size,
-                                                    round_to_batch=True)
-    df_test_rgbof = df_rgb_and_of[df_rgb_and_of['Train'] == 0]
-    return df_train_rgbof, df_val_rgbof, df_test_rgbof
-
-
-def get_data_2stream_5d_input(dh, horse_dfs, train_horses, test_horses, val_horses=None):
+def get_data_2stream_5d_input(dh,
+                              df_train_rgbof,
+                              df_val_rgbof,
+                              df_test_rgbof):
     """
-    Prepare the training and testing data for 5D-input (batches of sequences of frames)
+    Prepare the training and testing data for 5D-input
+    (batches of sequences of frames).
+    :param dh: DataHandler object
+    :param horse_dfs: [pd.DataFrame]
+    :param train_horses: [int]
+    :param test_horses: [int]
+    :param val_horses: [int]
+    :return: (4-tuple of Generator objects)
     """
-    print("2stream model of some sort.", kwargs.model)
-    # Read or create the per-horse optical flow files listing all the frame paths and labels.
-    df_train_rgbof, df_val_rgbof, df_test_rgbof = get_rgb_of_dataframes(dh, horse_dfs,
-                                                                        train_horses,
-                                                                        test_horses,
-                                                                        val_horses)
+    print("2stream model of some sort.", args.model)
+
     print("Using the 5D generator for 2stream")
-    train_generator = dh.prepare_2stream_image_generator_5D(df_train_rgbof, train=True,
-                                                            val=False, test=False, evaluate=False)
-    val_generator = dh.prepare_2stream_image_generator_5D(df_val_rgbof, train=False,
-                                                          val=True, test=False, evaluate=False)
-    test_generator = dh.prepare_2stream_image_generator_5D(df_test_rgbof, train=False,
-                                                           val=False, test=True, evaluate=False)
-    eval_generator = dh.prepare_2stream_image_generator_5D(df_test_rgbof, train=False,
-                                                           val=False, test=False, evaluate=True)
+    train_generator = dh.prepare_2stream_image_generator_5D(df_train_rgbof,
+                                                            train=True,
+                                                            val=False,
+                                                            test=False,
+                                                            evaluate=False)
+    val_generator = dh.prepare_2stream_image_generator_5D(df_val_rgbof,
+                                                          train=False,
+                                                          val=True,
+                                                          test=False,
+                                                          evaluate=False)
+    test_generator = dh.prepare_2stream_image_generator_5D(df_test_rgbof,
+                                                           train=False,
+                                                           val=False,
+                                                           test=True,
+                                                           evaluate=False)
+    eval_generator = dh.prepare_2stream_image_generator_5D(df_test_rgbof,
+                                                           train=False,
+                                                           val=False,
+                                                           test=False,
+                                                           evaluate=True)
     generators = (train_generator, val_generator, test_generator, eval_generator)
     return generators
 
@@ -201,6 +193,10 @@ def run():
 
     # Read or create the per-horse dataframes listing all the frame paths and labels.
     horse_dfs = read_or_create_horse_dfs(dh)
+
+    if '2stream' in kwargs.model or kwargs.data_type == 'of':
+        horse_dfs = read_or_create_horse_rgb_and_OF_dfs(dh=dh,
+                                                        horse_dfs=horse_dfs)
 
     train_horses = ast.literal_eval(kwargs.train_horses)
     test_horses = ast.literal_eval(kwargs.test_horses)
@@ -262,36 +258,43 @@ def run():
 
         if '2stream' in kwargs.model:
             print('5d input 2stream model')
-            if kwargs.val_fraction == 0:
-                generators = get_data_2stream_5d_input(dh, horse_dfs, train_horses, test_horses, val_horses)
-            if kwargs.val_fraction == 1:
-                generators = get_data_2stream_5d_input(dh, horse_dfs, train_horses, test_horses)
-
+            generators = get_data_2stream_5d_input(dh=dh,
+                                                   df_train_rgbof=df_train,
+                                                   df_val_rgbof=df_val,
+                                                   df_test_rgbof=df_test)
         else:
             print('5d input model')
             if kwargs.data_type == 'rgb':
-                generators = get_data_5d_input(dh, kwargs.data_type, df_train=df_train, df_val=df_val, df_test=df_test)
+                print('Only RGB data')
             if kwargs.data_type == 'of':
                 print('OF INPUT ONLY')
-                if kwargs.val_fraction == 0:
-                    df_train, df_val, df_test = get_rgb_of_dataframes(dh, horse_dfs, train_horses, test_horses,
-                                                                      val_horses)
-                if kwargs.val_fraction == 1:
-                    df_train, df_val, df_test = get_rgb_of_dataframes(dh, horse_dfs, train_horses, test_horses)
-                generators = get_data_5d_input(dh, kwargs.data_type, df_train=df_train, df_val=df_val, df_test=df_test)
+            generators = get_data_5d_input(dh=dh,
+                                           data_type=kwargs.data_type,
+                                           df_train=df_train,
+                                           df_val=df_val,
+                                           df_test=df_test)
 
     if kwargs.nb_input_dims == 4:
         if '2stream' in kwargs.model:
             print('4d input 2stream model')
-            generators = get_data_2stream_4d_input(dh, horse_dfs, train_horses, test_horses, val_horses)
+            generators = get_data_2stream_4d_input(dh,
+                                                   horse_dfs,
+                                                   train_horses,
+                                                   test_horses,
+                                                   val_horses)
 
         else:
             print('4d input model')
             if kwargs.data_type == 'rgb':
-                generators = get_data_4d_input(dh, kwargs.data_type, df_train=df_train, df_val=df_val, df_test=df_test)
+                print('Only RGB data')
             if kwargs.data_type == 'of':
-                df_train, df_val, df_test = get_rgb_of_dataframes(dh, horse_dfs, train_horses, test_horses, val_horses)
-                generators = get_data_4d_input(dh, kwargs.data_type, df_train=df_train, df_test=df_test, df_val=df_val)
+                print('OF INPUT ONLY')
+
+            generators = get_data_4d_input(dh,
+                                           kwargs.data_type,
+                                           df_train=df_train,
+                                           df_val=df_val,
+                                           df_test=df_test)
 
     train_generator, val_generator, test_generator, eval_generator = generators
 
