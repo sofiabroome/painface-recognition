@@ -306,7 +306,7 @@ def run():
     # Read or create the per-horse dataframes listing all the frame paths and labels.
     horse_dfs = read_or_create_horse_dfs(dh)  # Returns a list of dataframes, per horse.
 
-    if '2stream' in args.model or args.data_type == 'of'::
+    if '2stream' in args.model or args.data_type == 'of':
         horse_dfs = read_or_create_horse_rgb_and_OF_dfs(dh=dh,
                                                         horse_dfs=horse_dfs)
     # Set the train-column to 1 (train), 2 (val) or 0 (test).
