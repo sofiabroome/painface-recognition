@@ -14,6 +14,14 @@ def compute_steps(df, kwargs):
     :param kwargs: command line flags
     :return: int
     """
+    if kwargs.nb_input_dims == 4:
+        ns = len(df)
+        ns_rounded = ns - ns % kwargs.batch_size
+        df = df.iloc[:ns_rounded]
+        nb_steps = int(len(df)/kwargs.batch_size)
+        y_test = df['Pain'].values
+        return nb_steps, y_test
+
     nb_steps = 0  # AKA global number of batches.
     batch_index = 0  # Keeps track of number of samples put in batch so far.
     seq_index = 0

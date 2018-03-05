@@ -45,8 +45,6 @@ class Evaluator:
         if len(y_pred.shape) > 2: # If sequential data
             y_pred = get_majority_vote_3d(y_pred)
             y_test = get_majority_vote_3d(y_test)
-        else:                     # If still frames
-            y_pred = np.argmax(y_pred, axis=1)
 
         nb_preds = len(y_pred)
         nb_tests = len(y_test)
