@@ -72,7 +72,9 @@ class Evaluator:
         :params y_pred, y_test: 2D-arrays [nsamples, nclasses]
         """
         if self.cr:
-            cr = classification_report(y_test, y_pred)
+            cr = classification_report(y_test, y_pred,
+                                       target_names=self.target_names,
+                                       digits=NB_DECIMALS)
             f = open(_make_cr_filename(args), 'w')
             print(cr, end="", file=f)
             f.close()
@@ -87,11 +89,6 @@ class Evaluator:
             f = open(_make_cm_filename(args), 'w')
             print(cm, end="", file=f)
             f.close()
-
-    def classification_report(self, y_test, y_pred):
-        return classification_report(np.argmax(y_test, axis=1), y_pred,
-                                     target_names=self.target_names,
-                                     digits=NB_DECIMALS)
 
 
 def _make_cr_filename(args):
