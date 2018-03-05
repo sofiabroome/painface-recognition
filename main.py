@@ -410,17 +410,17 @@ def run():
         y_batches = df_test['Pain'].values
     else:
         start = time.time()
-        train_steps, _ = compute_steps.compute_steps(df_train, args)
+        train_steps, _ = compute_steps.compute_steps(df_train, train=True, args=args)
         end = time.time()
         print('Took {} s to compute training steps'.format(end - start))
 
         start = time.time()
-        val_steps, _ = compute_steps.compute_steps(df_val, args)
+        val_steps, _ = compute_steps.compute_steps(df_val, train=False, args=args)
         end = time.time()
         print('Took {} s to compute validation steps'.format(end - start))
 
         start = time.time()
-        test_steps, y_batches = compute_steps.compute_steps(df_test, args)
+        test_steps, y_batches = compute_steps.compute_steps(df_test, train=False, args=args)
         end = time.time()
         print('Took {} s to compute testing steps'.format(end - start))
 

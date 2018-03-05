@@ -6,11 +6,12 @@ import arg_parser
 import sys
 
 
-def compute_steps(df, kwargs):
+def compute_steps(df, train, kwargs):
     """
     Computes the ultimate number of valid steps given that sometimes the last
     sequence doesn't fit within the same video clip.
     :param df: pd.DataFrame
+    :param train: Boolean
     :param kwargs: command line flags
     :return: int
     """
@@ -67,13 +68,13 @@ def compute_steps(df, kwargs):
             y_batch_list.append(y_seq_list)
             seq_index = 0
             batch_index += 1
-            if kwargs.aug_flip:
+            if train and kwargs.aug_flip:
                 y_batch_list.append(y_seq_list)
                 batch_index += 1
-            if kwargs.aug_crop:
+            if train and kwargs.aug_crop:
                 y_batch_list.append(y_seq_list)
                 batch_index += 1
-            if kwargs.aug_light:
+            if train and kwargs.aug_light:
                 y_batch_list.append(y_seq_list)
                 batch_index += 1
 
