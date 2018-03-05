@@ -164,7 +164,7 @@ class DataHandler:
                     batch_index += 1
                     seq_index = 0
                     
-                    if train and self.aug_flip:
+                    if train and (self.aug_flip == 1):
                         # Flip both RGB and flow arrays
                         X_seq_list_flipped = self.flip_images(X_seq_list)
                         flow_seq_list_flipped = self.flip_images(flow_seq_list)
@@ -174,7 +174,7 @@ class DataHandler:
                         flow_batch_list.append(flow_seq_list_flipped)
                         batch_index += 1
 
-                    if train and self.aug_crop:
+                    if train and (self.aug_crop == 1):
                         crop_size = 99
                         # Flip both RGB and flow arrays
                         X_seq_list_cropped = self.random_crop_resize(X_seq_list,
@@ -187,7 +187,7 @@ class DataHandler:
                         flow_batch_list.append(flow_seq_list_cropped)
                         batch_index += 1
 
-                    if train and self.aug_light:
+                    if train and (self.aug_light == 1):
                         # Flip both RGB and flow arrays
                         X_seq_list_shaded = self.add_gaussian_noise(X_seq_list)
                         flow_seq_list_shaded = self.add_gaussian_noise(flow_seq_list)
@@ -288,13 +288,13 @@ class DataHandler:
                     seq_index = 0
                     batch_index += 1
 
-                    if train and self.aug_flip:
+                    if train and (self.aug_flip == 1):
                         X_seq_list_flipped = self.flip_images(X_seq_list)
                         X_batch_list.append(X_seq_list_flipped)
                         y_batch_list.append(y_seq_list)
                         batch_index += 1
 
-                    if train and self.aug_crop:
+                    if train and (self.aug_crop == 1):
                         crop_size = 99
                         X_seq_list_cropped = self.random_crop_resize(X_seq_list,
                                                                      crop_size, crop_size)
@@ -302,7 +302,7 @@ class DataHandler:
                         y_batch_list.append(y_seq_list)
                         batch_index += 1
 
-                    if train and self.aug_light:
+                    if train and (self.aug_light == 1):
                         X_seq_list_shaded = self.add_gaussian_noise(X_seq_list)
                         X_batch_list.append(X_seq_list_shaded)
                         y_batch_list.append(y_seq_list)

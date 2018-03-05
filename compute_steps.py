@@ -68,13 +68,13 @@ def compute_steps(df, train, kwargs):
             y_batch_list.append(y_seq_list)
             seq_index = 0
             batch_index += 1
-            if train and kwargs.aug_flip:
+            if train and (kwargs.aug_flip==1):
                 y_batch_list.append(y_seq_list)
                 batch_index += 1
-            if train and kwargs.aug_crop:
+            if train and (kwargs.aug_crop==1):
                 y_batch_list.append(y_seq_list)
                 batch_index += 1
-            if train and kwargs.aug_light:
+            if train and (kwargs.aug_light==1):
                 y_batch_list.append(y_seq_list)
                 batch_index += 1
 
