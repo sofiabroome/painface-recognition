@@ -299,7 +299,7 @@ def run():
     train_generator, val_generator, test_generator, eval_generator = generators
 
     start = time.time()
-    test_steps, y_batches = compute_steps.compute_steps(df_test, kwargs)
+    test_steps, y_batches = compute_steps.compute_steps(df_test, train=False, kwargs=kwargs)
     end = time.time()
     print('Took {} s to compute testing steps'.format(end - start))
 
