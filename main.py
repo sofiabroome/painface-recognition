@@ -442,6 +442,8 @@ def run():
                               nb_steps=test_steps)
 
     if args.nb_input_dims == 5:
+        # Get the ground truth for the test set
+        y_test = np.array(y_batches)  # Now in format [nb_batches, batch_size, seq_length, nb_classes]
         if args.test_run == 1:
             nb_batches = y_preds.shape[0]
             nb_total = nb_batches * args.batch_size * args.seq_length
@@ -450,8 +452,6 @@ def run():
             y_test = np.reshape(y_test, (nb_batches*args.batch_size, args.seq_length, args.nb_labels))
             y_test = y_test[:nb_batches]
         else:
-            # Get the ground truth for the test set
-            y_test = np.array(y_batches)  # Now in format [nb_batches, batch_size, seq_length, nb_classes]
             nb_batches = y_test.shape[0]
             # Make 3D
             y_test = np.reshape(y_test, (nb_batches*args.batch_size, args.seq_length, args.nb_labels))
