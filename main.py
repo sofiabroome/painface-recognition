@@ -46,90 +46,91 @@ def df_val_split(df,
     return df_train, df_val
 
 
-def read_or_create_horse_dfs(dh):
+def read_or_create_subject_dfs(dh, subject_ids):
     """
-    Read or create the per-horse dataframes listing
+    Read or create the per-subject dataframes listing
     all the frame paths and corresponding labels and metadata.
     :param dh: DataHandler
     :return: [pd.Dataframe]
     """
-    horse_dfs = []
-    for horse in range(1, 7):
+    subject_dfs = []
+    for subject_id in subject_ids:
         print(args.data_path)
-        horse_csv_path = args.data_path + 'horse_' + str(horse) + '.csv'
-        if os.path.isfile(horse_csv_path):
-            hdf = pd.read_csv(horse_csv_path)
+        subject_csv_path = args.data_path + subject_id + '.csv'
+        if os.path.isfile(subject_csv_path):
+            sdf = pd.read_csv(subject_csv_path)
         else:
-            print('Making a DataFrame for horse id: ', horse)
-            hdf = dh.horse_to_df(horse)
-            hdf.to_csv(path_or_buf=horse_csv_path)
-        horse_dfs.append(hdf)
-    return horse_dfs
+            print('Making a DataFrame for subject id: ', subject_id)
+            sdf = dh.subject_to_df(subject_id)
+            sdf.to_csv(path_or_buf=subject_csv_path)
+        subject_dfs.append(sdf)
+    return subject_dfs
 
 
-def read_or_create_horse_rgb_and_OF_dfs(dh,
-                                        horse_dfs):
+def read_or_create_subject_rgb_and_OF_dfs(dh,
+                                          subject_ids,
+                                          subject_dfs):
     """
-    Read or create the per-horse optical flow files listing
+    Read or create the per-subject optical flow files listing
     all the frame paths and labels.
     :param dh: DataHandler object
-    :param horse_dfs: [pd.DataFrame]
+    :param subject_dfs: [pd.DataFrame]
     :return: [pd.DataFrame]
     """
-    horse_rgb_OF_dfs = []
-    for horse_id in range(1, 7):
+    subject_rgb_OF_dfs = []
+    for subject_id in subject_ids:
         print(args.data_path)
-        horse_of_csv_path = dh.of_path + '/horse_' + str(horse_id) + '.csv'
-        if os.path.isfile(horse_of_csv_path):
-            hdf = pd.read_csv(horse_of_csv_path)
+        subject_of_csv_path = dh.of_path + str(subject_id) + '.csv'
+        if os.path.isfile(subject_of_csv_path):
+            sdf = pd.read_csv(subject_of_csv_path)
         else:
-            print('Making a DataFrame for horse id: ', horse_id)
-            hdf = dh.save_OF_paths_to_df(horse_id,
-                                         horse_dfs[horse_id-1])
-            hdf.to_csv(path_or_buf=horse_of_csv_path)
-        horse_rgb_OF_dfs.append(hdf)
-    return horse_rgb_OF_dfs
+            print('Making a DataFrame for subject id: ', subject_id)
+            sdf = dh.save_OF_paths_to_df(subject_id,
+                                         subject_dfs[subject_id-1])
+            sdf.to_csv(path_or_buf=subject_of_csv_path)
+        subject_rgb_OF_dfs.append(sdf)
+    return subject_rgb_OF_dfs
 
 
-def set_train_val_test_in_df(train_horses,
-                             val_horses,
-                             test_horses,
+def set_train_val_test_in_df(train_subjects,
+                             val_subjects,
+                             test_subjects,
                              dfs):
     """
-    Mark in input dataframe which horses to use for train, val or test.
+    Mark in input dataframe which subjects to use for train, val or test.
     Used when args.val_fraction == 0.
-    :param train_horses: [int]
-    :param val_horses: [int]
-    :param test_horses: [int]
+    :param train_subjects: [int]
+    :param val_subjects: [int]
+    :param test_subjects: [int]
     :param dfs: [pd.DataFrame]
     :return: [pd.DataFrame]
     """
-    for trh in train_horses:
+    for trh in train_subjects:
         dfs[trh]['Train'] = 1
 
-    for vh in val_horses:
+    for vh in val_subjects:
         dfs[vh]['Train'] = 2
 
-    for teh in test_horses:
+    for teh in test_subjects:
         dfs[teh]['Train'] = 0
     return dfs
 
 
-def set_train_test_in_df(train_horses,
-                         test_horses,
+def set_train_test_in_df(train_subjects,
+                         test_subjects,
                          dfs):
     """
-    Mark in input dataframe which horses to use for train or test.
+    Mark in input dataframe which subjects to use for train or test.
     Used when args.val_fraction == 1.
-    :param train_horses: [int]
-    :param test_horses: [int]
+    :param train_subjects: [int]
+    :param test_subjects: [int]
     :param dfs: [pd.DataFrame]
     :return: [pd.DataFrame]
     """
-    for trh in train_horses:
+    for trh in train_subjects:
         dfs[trh]['Train'] = 1
 
-    for teh in test_horses:
+    for teh in test_subjects:
         dfs[teh]['Train'] = 0
     return dfs
 
@@ -235,10 +236,10 @@ def get_data_2stream_5d_input(dh,
     Prepare the training and testing data for 5D-input
     (batches of sequences of frames).
     :param dh: DataHandler object
-    :param horse_dfs: [pd.DataFrame]
-    :param train_horses: [int]
-    :param test_horses: [int]
-    :param val_horses: [int]
+    :param subject_dfs: [pd.DataFrame]
+    :param train_subjects: [int]
+    :param test_subjects: [int]
+    :param val_subjects: [int]
     :return: (4-tuple of Generator objects)
     """
     print("2stream model of some sort.", args.model)
@@ -271,22 +272,26 @@ def get_data_2stream_5d_input(dh,
 def run():
 
     # Some initial print outs to keep track of the training mode,
-    # what horses and batch size etc.
+    # what subjects and batch size etc.
 
     print('Batch size:')
     print(args.batch_size)
     print('Sequence length:')
     print(args.seq_length)
 
-    train_horses = ast.literal_eval(args.train_horses)
-    test_horses = ast.literal_eval(args.test_horses)
+    subject_ids = pd.read_csv(args.subjects_overview)['Subject'].values
 
-    print('Horses to train on: ', train_horses)
-    print('Horses to test on: ', test_horses)
+    train_subjects = ast.literal_eval(args.train_subjects)
+    test_subjects = ast.literal_eval(args.test_subjects)
+
+    print('Horses to train on: ', train_subjects)
+    print('Horses to test on: ', test_subjects)
 
     model = models.MyModel(args=args)
     dh = DataHandler(path=args.data_path,
                      of_path=args.of_path,
+                     clip_list_file=args.data_path + 'overview.csv',
+                     data_columns= ['Pain'],  # Here one can append f. ex. 'Observer'
                      image_size=(args.input_width, args.input_height),
                      seq_length=args.seq_length,
                      seq_stride=args.seq_stride,
@@ -303,31 +308,32 @@ def run():
                    target_names=TARGET_NAMES,
                    batch_size=args.batch_size)
 
-    # Read or create the per-horse dataframes listing all the frame paths and labels.
-    horse_dfs = read_or_create_horse_dfs(dh)  # Returns a list of dataframes, per horse.
+    # Read or create the per-subject dataframes listing all the frame paths and labels.
+    subject_dfs = read_or_create_subject_dfs(dh, subject_ids)  # Returns a list of dataframes, per subject.
 
     if '2stream' in args.model or args.data_type == 'of':
-        horse_dfs = read_or_create_horse_rgb_and_OF_dfs(dh=dh,
-                                                        horse_dfs=horse_dfs)
+        subject_dfs = read_or_create_subject_rgb_and_OF_dfs(dh=dh,
+                                                            subject_ids=subject_ids,
+                                                            subject_dfs=subject_dfs)
     # Set the train-column to 1 (train), 2 (val) or 0 (test).
     if args.val_fraction == 0:
-        print("Using separate horse validation.")
-        val_horses = ast.literal_eval(args.val_horses)
-        print('Horses to validate on: ', val_horses)
-        horse_dfs = set_train_val_test_in_df(train_horses=train_horses,
-                                             val_horses=val_horses,
-                                             test_horses=test_horses,
-                                             dfs=horse_dfs)
+        print("Using separate subject validation.")
+        val_subjects = ast.literal_eval(args.val_subjects)
+        print('Horses to validate on: ', val_subjects)
+        subject_dfs = set_train_val_test_in_df(train_subjects=train_subjects,
+                                             val_subjects=val_subjects,
+                                             test_subjects=test_subjects,
+                                             dfs=subject_dfs)
 
     if args.val_fraction == 1:
         print("Using validation fraction.")
         print("Val fract: ", VAL_FRACTION)
-        horse_dfs = set_train_test_in_df(train_horses=train_horses,
-                                         test_horses=test_horses,
-                                         dfs=horse_dfs)
+        subject_dfs = set_train_test_in_df(train_subjects=train_subjects,
+                                         test_subjects=test_subjects,
+                                         dfs=subject_dfs)
 
-    # Put all the separate horse-dfs into one DataFrame.
-    df = pd.concat(horse_dfs)
+    # Put all the separate subject-dfs into one DataFrame.
+    df = pd.concat(subject_dfs)
 
     # Shuffle the different sequences (like 1_1a_1) so that they don't always
     # appear in the same order. Also done in training generator but we do it here so that
@@ -385,10 +391,10 @@ def run():
         if '2stream' in args.model:
             print('4d input 2stream model. Needs (quick) fix')
             #  generators = get_data_2stream_4d_input(dh=dh,
-            #                                         horse_dfs,
-            #                                         train_horses,
-            #                                         test_horses,
-            #                                         val_horses)
+            #                                         subject_dfs,
+            #                                         train_subjects,
+            #                                         test_subjects,
+            #                                         val_subjects)
         else:
             print('4d input model')
             if args.data_type == 'rgb':
