@@ -1,5 +1,5 @@
 from keras.layers import Convolution2D, MaxPooling2D, MaxPooling3D, LSTM, Dense, Flatten
-from keras.layers import Dropout, BatchNormalization, concatenate, add, Input, Conv3D
+from keras.layers import Dropout, BatchNormalization, concatenate, add, Input, Conv3D, multiply
 from keras.layers.convolutional_recurrent import ConvLSTM2D
 from keras.layers.wrappers import TimeDistributed
 from keras.optimizers import Adam, Adagrad, Adadelta
@@ -192,7 +192,8 @@ class MyModel:
         of_input = Input(shape=(None, self.input_shape[0], self.input_shape[1], 3))
         encoded_of = of_model(of_input)
         
-        merged = add([encoded_image, encoded_of])
+        # merged = add([encoded_image, encoded_of])
+        merged = multiply([encoded_image, encoded_of])
         # merged = concatenate([encoded_image, encoded_of], axis=-1)
         merged = Dropout(.2)(merged)
         # dense = Dense(self.nb_dense_units, activation='relu')(merged)

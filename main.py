@@ -413,20 +413,20 @@ def run():
         train_steps = 2
         val_steps = 2
         test_steps = 2
-        y_test = df_test['Pain'].values
+        y_batches = df_test['Pain'].values
     else:
         start = time.time()
-        train_steps, _ = compute_steps.compute_steps(df_train, args)
+        train_steps, _ = compute_steps.compute_steps(df_train, train=True, kwargs=args)
         end = time.time()
         print('Took {} s to compute training steps'.format(end - start))
 
         start = time.time()
-        val_steps, _ = compute_steps.compute_steps(df_val, args)
+        val_steps, _ = compute_steps.compute_steps(df_val, train=False, kwargs=args)
         end = time.time()
         print('Took {} s to compute validation steps'.format(end - start))
 
         start = time.time()
-        test_steps, y_batches = compute_steps.compute_steps(df_test, args)
+        test_steps, y_batches = compute_steps.compute_steps(df_test, train=False, kwargs=args)
         end = time.time()
         print('Took {} s to compute testing steps'.format(end - start))
 
@@ -447,23 +447,33 @@ def run():
                               eval_generator=eval_generator,
                               nb_steps=test_steps)
 
-    if args.test_run == 1:
-        nb_batches = y_preds.shape[0]
-        nb_total = nb_batches * args.batch_size * args.seq_length
-        y_test = np_utils.to_categorical(y_test)
-        y_test = y_test[:nb_total]
-        y_test = np.reshape(y_test, (nb_batches*args.batch_size, args.seq_length, args.nb_labels))
-        y_test = y_test[:nb_batches]
-    else:
+    if args.nb_input_dims == 5:
         # Get the ground truth for the test set
         y_test = np.array(y_batches)  # Now in format [nb_batches, batch_size, seq_length, nb_classes]
-        nb_batches = y_test.shape[0]
-        # Make 3D
-        y_test = np.reshape(y_test, (nb_batches*args.batch_size, args.seq_length, args.nb_labels))
+        if args.test_run == 1:
+            nb_batches = y_preds.shape[0]
+            nb_total = nb_batches * args.batch_size * args.seq_length
+            y_test = np_utils.to_categorical(y_test)
+            y_test = y_test[:nb_total]
+            y_test = np.reshape(y_test, (nb_batches*args.batch_size, args.seq_length, args.nb_labels))
+            y_test = y_test[:nb_batches]
+        else:
+            nb_batches = y_test.shape[0]
+            # Make 3D
+            y_test = np.reshape(y_test, (nb_batches*args.batch_size, args.seq_length, args.nb_labels))
+
+    if args.nb_input_dims == 4:
+        y_test = np.array(y_batches)
 
     # Put y_preds into same format as y_test, first take the max probabilities.
-    y_preds = np.argmax(y_preds, axis=2)
-    y_preds = np.array([np_utils.to_categorical(x, num_classes=args.nb_labels) for x in y_preds])
+    if args.nb_input_dims == 5:
+        y_preds = np.argmax(y_preds, axis=2)
+        y_preds = np.array([np_utils.to_categorical(x, num_classes=args.nb_labels) for x in y_preds])
+    
+    if args.nb_input_dims == 4:
+        y_preds = np.argmax(y_preds, axis=1)
+        if args.test_run == 1:
+            y_test = y_test[:len(y_preds)]
 
     # Evaluate the model's performance
     ev.evaluate(model=model, y_test=y_test, y_pred=y_preds, scores=scores, args=args)

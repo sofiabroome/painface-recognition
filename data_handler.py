@@ -166,7 +166,7 @@ class DataHandler:
                     batch_index += 1
                     seq_index = 0
                     
-                    if self.aug_flip:
+                    if train and (self.aug_flip == 1):
                         # Flip both RGB and flow arrays
                         X_seq_list_flipped = self.flip_images(X_seq_list)
                         flow_seq_list_flipped = self.flip_images(flow_seq_list)
@@ -176,7 +176,7 @@ class DataHandler:
                         flow_batch_list.append(flow_seq_list_flipped)
                         batch_index += 1
 
-                    if self.aug_crop:
+                    if train and (self.aug_crop == 1):
                         crop_size = 99
                         # Flip both RGB and flow arrays
                         X_seq_list_cropped = self.random_crop_resize(X_seq_list,
@@ -189,7 +189,7 @@ class DataHandler:
                         flow_batch_list.append(flow_seq_list_cropped)
                         batch_index += 1
 
-                    if self.aug_light:
+                    if train and (self.aug_light == 1):
                         # Flip both RGB and flow arrays
                         X_seq_list_shaded = self.add_gaussian_noise(X_seq_list)
                         flow_seq_list_shaded = self.add_gaussian_noise(flow_seq_list)
@@ -198,6 +198,12 @@ class DataHandler:
                         y_batch_list.append(y_seq_list)
                         flow_batch_list.append(flow_seq_list_shaded)
                         batch_index += 1
+
+                    # if train:
+                    #     plot_augmentation(train, val, test, evaluate, 1, X_seq_list, X_seq_list_flipped, X_seq_list_cropped,
+                    #                       X_seq_list_shaded, seq_index, batch_index, window_index)
+                    #     plot_augmentation(train, val, test, evaluate, 0, flow_seq_list, flow_seq_list_flipped, flow_seq_list_cropped,
+                    #                       flow_seq_list_shaded, seq_index, batch_index, window_index)
 
                 if batch_index % self.batch_size == 0 and not batch_index == 0:
                     X_array = np.array(X_batch_list, dtype=np.float32)
@@ -271,7 +277,7 @@ class DataHandler:
                     if data_type == 'rgb':
                         x = self.get_image(row['Path'])
                     if data_type == 'of':
-                        x = np.load(row['OF_Path'])
+                        x = self.get_image(row['OF_Path'])
                         # If no magnitude:
                         # extra_channel = np.zeros((x.shape[0], x.shape[1], 1))
                         # x = np.concatenate((x, extra_channel), axis=2)
@@ -290,13 +296,13 @@ class DataHandler:
                     seq_index = 0
                     batch_index += 1
 
-                    if self.aug_flip:
+                    if train and (self.aug_flip == 1):
                         X_seq_list_flipped = self.flip_images(X_seq_list)
                         X_batch_list.append(X_seq_list_flipped)
                         y_batch_list.append(y_seq_list)
                         batch_index += 1
 
-                    if self.aug_crop:
+                    if train and (self.aug_crop == 1):
                         crop_size = 99
                         X_seq_list_cropped = self.random_crop_resize(X_seq_list,
                                                                      crop_size, crop_size)
@@ -304,14 +310,15 @@ class DataHandler:
                         y_batch_list.append(y_seq_list)
                         batch_index += 1
 
-                    if self.aug_light:
+                    if train and (self.aug_light == 1):
                         X_seq_list_shaded = self.add_gaussian_noise(X_seq_list)
                         X_batch_list.append(X_seq_list_shaded)
                         y_batch_list.append(y_seq_list)
                         batch_index += 1
 
-                    # plot_augmentation(train, val, test, evaluate, X_seq_list, X_seq_list_flipped, X_seq_list_cropped,
-                    #                   X_seq_list_shaded, seq_index, batch_index, window_index)
+                    # if train:
+                    #     plot_augmentation(train, val, test, evaluate, 1, X_seq_list, X_seq_list_flipped, X_seq_list_cropped,
+                    #                       X_seq_list_shaded, seq_index, batch_index, window_index)
 
                 if batch_index % self.batch_size == 0 and not batch_index == 0:
                     X_array = np.array(X_batch_list, dtype=np.float32)
@@ -573,7 +580,7 @@ class DataHandler:
             images.append(im)
         return images
 
-def plot_augmentation(train, val, test, evaluate, X_seq_list, flipped, cropped, shaded,
+def plot_augmentation(train, val, test, evaluate, rgb, X_seq_list, flipped, cropped, shaded,
                       seq_index, batch_index, window_index):
     rows = 4
     cols = 10
@@ -612,10 +619,11 @@ def plot_augmentation(train, val, test, evaluate, X_seq_list, flipped, cropped, 
         partition = 3
     else:
         partition = 4
-    plt.savefig('seq_{}_batch_{}_wi_{}_part_{}.png'.format(seq_index,
+    plt.savefig('seq_{}_batch_{}_wi_{}_part_{}_rgb_{}.png'.format(seq_index,
                                                            batch_index,
                                                            window_index,
-                                                           partition))
+                                                           partition,
+                                                           rgb))
     plt.close()
 
 def get_video_id_stem_from_path(path):

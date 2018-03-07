@@ -111,19 +111,19 @@ def get_data_5d_input(dh, data_type, df_train, df_val, df_test):
     train_generator = dh.prepare_image_generator_5D(df_train,
                                                     data_type=data_type,
                                                     train=True,
-                                                    val=False, test=False, eval=False)
+                                                    val=False, test=False, evaluate=False)
     val_generator = dh.prepare_image_generator_5D(df_val,
                                                   data_type=data_type,
                                                   train=False,
-                                                  val=True, test=False, eval=False)
+                                                  val=True, test=False, evaluate=False)
     test_generator = dh.prepare_image_generator_5D(df_test,
                                                    data_type=data_type,
                                                    train=False,
-                                                   val=False, test=True, eval=False)
+                                                   val=False, test=True, evaluate=False)
     eval_generator = dh.prepare_image_generator_5D(df_test,
                                                    data_type=data_type,
                                                    train=False,
-                                                   val=False, test=False, eval=True)
+                                                   val=False, test=False, evaluate=True)
     generators = (train_generator, val_generator, test_generator, eval_generator)
     return generators
 
@@ -299,7 +299,7 @@ def run():
     train_generator, val_generator, test_generator, eval_generator = generators
 
     start = time.time()
-    test_steps, y_batches = compute_steps.compute_steps(df_test, kwargs)
+    test_steps, y_batches = compute_steps.compute_steps(df_test, train=False, kwargs=kwargs)
     end = time.time()
     print('Took {} s to compute testing steps'.format(end - start))
 
@@ -327,11 +327,15 @@ if __name__ == '__main__':
     arg_parser = arg_parser.ArgParser(len(sys.argv))
     kwargs = arg_parser.parse()
 
+    # model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_32_CONVfilters_16_jpg128_2fps_val4_t0_seq10ss10_4hl_32ubs16_flipcropshade.h5'    
+    # model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_32_CONVfilters_16_jpg128_2fps_val4_t0_seq10ss10_4hl_32ubs16_flipcropshade_run2.h5'    
+    # model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_32_CONVfilters_16_jpg128_2fps_val4_t5_seq10ss10_4hl_32ubs16_flipcropshade_run4.h5'    
+
     # model_fn = 'models_hg/BEST_MODEL_2stream_5d_adadelta_LSTMunits_32_CONVfilters_16_add_v4_t3_4hl_128jpg2fps_seq10_bs8_MAG_adadelta_flipcropshade.h5'
     # model_fn = 'models/BEST_MODEL_2stream_5d_adadelta_LSTMunits_32_CONVfilters_16_add_v4_t5_4hl_128jpg2fps_seq10_bs8_MAG_adadelta_flipcropshade_run3.h5'
     # model_fn = 'models/BEST_MODEL_2stream_5d_adadelta_LSTMunits_32_CONVfilters_16_add_v4_t5_4hl_128jpg2fps_seq10_bs8_MAG_adadelta_flipcropshade_run2.h5'
-    # model_fn = 'models_hg/BEST_MODEL_2stream_5d_adadelta_LSTMunits_32_CONVfilters_16_add_v4_t3_4hl_128jpg2fps_seq10_bs8_MAG_adadelta_flipcropshade_run4.h5'
-    model_fn = 'models_hg/BEST_MODEL_2stream_5d_adadelta_LSTMunits_32_CONVfilters_16_add_v4_t1_4hl_128jpg2fps_seq10_bs8_MAG_adadelta_flipcropshade_run5.h5'
+    # model_fn = 'models/BEST_MODEL_2stream_5d_adadelta_LSTMunits_32_CONVfilters_16_add_v4_t0_4hl_128jpg2fps_seq10_bs8_MAG_adadelta_flipcropshade_run4.h5'
+    model_fn = 'models/BEST_MODEL_2stream_5d_adadelta_LSTMunits_32_CONVfilters_16_add_v4_t5_4hl_128jpg2fps_seq10_bs8_MAG_adadelta_flipcropshade_run5.h5'
 
 # Parse the command line arguments
 

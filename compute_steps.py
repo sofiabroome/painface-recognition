@@ -6,14 +6,23 @@ import arg_parser
 import sys
 
 
-def compute_steps(df, kwargs):
+def compute_steps(df, train, kwargs):
     """
     Computes the ultimate number of valid steps given that sometimes the last
     sequence doesn't fit within the same video clip.
     :param df: pd.DataFrame
+    :param train: Boolean
     :param kwargs: command line flags
     :return: int
     """
+    if kwargs.nb_input_dims == 4:
+        ns = len(df)
+        ns_rounded = ns - ns % kwargs.batch_size
+        df = df.iloc[:ns_rounded]
+        nb_steps = int(len(df)/kwargs.batch_size)
+        y_test = df['Pain'].values
+        return nb_steps, y_test
+
     nb_steps = 0  # AKA global number of batches.
     batch_index = 0  # Keeps track of number of samples put in batch so far.
     seq_index = 0
@@ -59,13 +68,13 @@ def compute_steps(df, kwargs):
             y_batch_list.append(y_seq_list)
             seq_index = 0
             batch_index += 1
-            if kwargs.aug_flip:
+            if train and (kwargs.aug_flip==1):
                 y_batch_list.append(y_seq_list)
                 batch_index += 1
-            if kwargs.aug_crop:
+            if train and (kwargs.aug_crop==1):
                 y_batch_list.append(y_seq_list)
                 batch_index += 1
-            if kwargs.aug_light:
+            if train and (kwargs.aug_light==1):
                 y_batch_list.append(y_seq_list)
                 batch_index += 1
 
