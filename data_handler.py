@@ -197,6 +197,12 @@ class DataHandler:
                         flow_batch_list.append(flow_seq_list_shaded)
                         batch_index += 1
 
+                    # if train:
+                    #     plot_augmentation(train, val, test, evaluate, 1, X_seq_list, X_seq_list_flipped, X_seq_list_cropped,
+                    #                       X_seq_list_shaded, seq_index, batch_index, window_index)
+                    #     plot_augmentation(train, val, test, evaluate, 0, flow_seq_list, flow_seq_list_flipped, flow_seq_list_cropped,
+                    #                       flow_seq_list_shaded, seq_index, batch_index, window_index)
+
                 if batch_index % self.batch_size == 0 and not batch_index == 0:
                     X_array = np.array(X_batch_list, dtype=np.float32)
                     y_array = np.array(y_batch_list, dtype=np.uint8)
@@ -269,7 +275,7 @@ class DataHandler:
                     if data_type == 'rgb':
                         x = self.get_image(row['Path'])
                     if data_type == 'of':
-                        x = np.load(row['OF_Path'])
+                        x = self.get_image(row['OF_Path'])
                         # If no magnitude:
                         # extra_channel = np.zeros((x.shape[0], x.shape[1], 1))
                         # x = np.concatenate((x, extra_channel), axis=2)
@@ -308,8 +314,9 @@ class DataHandler:
                         y_batch_list.append(y_seq_list)
                         batch_index += 1
 
-                    # plot_augmentation(train, val, test, evaluate, X_seq_list, X_seq_list_flipped, X_seq_list_cropped,
-                    #                   X_seq_list_shaded, seq_index, batch_index, window_index)
+                    # if train:
+                    #     plot_augmentation(train, val, test, evaluate, 1, X_seq_list, X_seq_list_flipped, X_seq_list_cropped,
+                    #                       X_seq_list_shaded, seq_index, batch_index, window_index)
 
                 if batch_index % self.batch_size == 0 and not batch_index == 0:
                     X_array = np.array(X_batch_list, dtype=np.float32)
@@ -568,7 +575,7 @@ class DataHandler:
             images.append(im)
         return images
 
-def plot_augmentation(train, val, test, evaluate, X_seq_list, flipped, cropped, shaded,
+def plot_augmentation(train, val, test, evaluate, rgb, X_seq_list, flipped, cropped, shaded,
                       seq_index, batch_index, window_index):
     rows = 4
     cols = 10
@@ -607,10 +614,11 @@ def plot_augmentation(train, val, test, evaluate, X_seq_list, flipped, cropped, 
         partition = 3
     else:
         partition = 4
-    plt.savefig('seq_{}_batch_{}_wi_{}_part_{}.png'.format(seq_index,
+    plt.savefig('seq_{}_batch_{}_wi_{}_part_{}_rgb_{}.png'.format(seq_index,
                                                            batch_index,
                                                            window_index,
-                                                           partition))
+                                                           partition,
+                                                           rgb))
     plt.close()
 
 def get_video_id_stem_from_path(path):
