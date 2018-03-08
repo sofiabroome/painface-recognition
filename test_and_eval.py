@@ -1,17 +1,16 @@
 import numpy as np
-
-from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score
 from keras.utils import np_utils
 
 NB_DECIMALS = 4
 
 
 class Evaluator:
-
-    def __init__(self, acc, cm, cr, target_names, batch_size):
+    def __init__(self, acc, cm, cr, auc, target_names, batch_size):
         self.acc = acc
         self.cr = cr
         self.cm = cm
+        self.auc = auc
         self.target_names = target_names
         self.batch_size = batch_size
 
@@ -87,6 +86,17 @@ class Evaluator:
             f = open(_make_cm_filename(args), 'w')
             print(cm, end="", file=f)
             f.close()
+
+        if self.auc:
+            auc_weighted = roc_auc_score(y_test, y_pred, average='weighted')
+            auc_macro = roc_auc_score(y_test, y_pred, average='macro')
+            auc_micro = roc_auc_score(y_test, y_pred, average='micro')
+            with open('auc' + args.image_identifier +'.txt', 'w') as f:
+                # print('Filename:', filename, file=f) 
+                print('Weighted AUC: ', auc_weighted, file=f)
+                print('Macro AUC: ', auc_macro, file=f)
+                print('Micro AUC: ', auc_micro, file=f)
+                f.close()
 
 
 def _make_cr_filename(args):
