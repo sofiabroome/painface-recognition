@@ -305,6 +305,7 @@ def run():
     ev = Evaluator(acc=True,
                    cm=True,
                    cr=True,
+                   auc=True,
                    target_names=TARGET_NAMES,
                    batch_size=args.batch_size)
 
