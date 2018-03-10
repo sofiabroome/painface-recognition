@@ -96,6 +96,7 @@ models/
 Logs/
 examples/
 practical_scripts/
+metadata/
 
 # Mac-stuff
 .DS_Store
