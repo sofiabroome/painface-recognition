@@ -55,12 +55,14 @@ def parse_arguments():
                         help="Batch size")
     parser.add_argument('--round-to-batch', nargs='?', type=int,
                         help='Choose whether to round the last batch to the specified batch size')
-    parser.add_argument('--train-horses', nargs='?', type=str,
-                        help="List of horse-id:s to train on, choosing from range(0,6): ex [0,1,2,3]")
-    parser.add_argument('--val-horses', nargs='?', type=str,
-                        help="List of horse-id:s to validate on, choosing from range(0,6): ex [4,5]")
-    parser.add_argument('--test-horses', nargs='?', type=str,
-                        help="List of horse-id:s to test on, choosing from range(0,6): ex [4,5]")
+    parser.add_argument('--train-subjects', nargs='?', type=str,
+                        help="List of subject-id:s to train on, choosing from range(0,6): ex [0,1,2,3]")
+    parser.add_argument('--val-subjects', nargs='?', type=str,
+                        help="List of subject-id:s to validate on, choosing from range(0,6): ex [4,5]")
+    parser.add_argument('--test-subjects', nargs='?', type=str,
+                        help="List of subject-id:s to test on, choosing from range(0,6): ex [4,5]")
+    parser.add_argument('--subjects-overview', nargs='?', type=str,
+                        help="List with ID:s of subjects in dataset.")
     parser.add_argument('--image-identifier', nargs='?', type=str,
                         help='Choose some string to identify the image of the training process')
     parser.add_argument('--test-run', nargs='?', type=int,
@@ -74,7 +76,7 @@ def parse_arguments():
     parser.add_argument('--nb-input-dims', nargs='?', type=int,
                         help="Number of input dimensions")
     parser.add_argument('--val-fraction', nargs='?', type=int,
-                        help="Whether to use val fract instead of separate horses. 0 false 1 true.")
+                        help="Whether to use val fract instead of separate subjects. 0 false 1 true.")
     parser.add_argument('--data-type', nargs='?', type=str,
                         help='The type of input data')
     parser.add_argument('--aug-flip', nargs='?', type=int,
