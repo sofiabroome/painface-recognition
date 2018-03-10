@@ -95,6 +95,7 @@ data_test/
 models/
 Logs/
 examples/
+practical_scripts/
 
 # Mac-stuff
 .DS_Store
