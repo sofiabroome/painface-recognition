@@ -17,9 +17,9 @@ from image_processor import process_image
 
 
 class DataHandler:
-    def __init__(self, path, of_path, image_size, seq_length,
-                 seq_stride, batch_size, color, nb_labels,
-                 aug_flip, aug_crop, aug_light):
+    def __init__(self, path, of_path, clip_list_file, data_columns, 
+                 image_size, seq_length, seq_stride, batch_size, 
+                 color, nb_labels, aug_flip, aug_crop, aug_light):
         """
         Constructor for the DataHandler.
         :param path: str
@@ -30,6 +30,8 @@ class DataHandler:
         """
         self.path = path
         self.of_path = of_path
+        self.data_columns = data_columns
+        self.clip_list_file = clip_list_file
         self.image_size = image_size
         self.seq_length = seq_length
         self.seq_stride = seq_stride
@@ -467,48 +469,51 @@ class DataHandler:
         X_crops = np.reshape(X_crops, (self.seq_length, width, height, 3))
         return X_crops
 
-    # TODO Merge the two below functions (horse_to_df and save_OF_paths_to_df, same functionality)
+    # TODO Merge the two below functions (subject_to_df and save_OF_paths_to_df, same functionality)
 
-    def horse_to_df(self, horse_id):
+    def subject_to_df(self, subject_id):
         """
         Create a DataFrame with all the frames with annotations from a csv-file.
-        :param horse_id: int
+        :param subject_id: int
         :return: pd.DataFrame
         """
-        df_csv = pd.read_csv('videos_overview_missingremoved.csv', sep=';')
-        column_headers = ['Video_ID', 'Path', 'Pain', 'Observer', 'Train']
-        horse_path = self.path + 'horse_' + str(horse_id) + '/'
+        df_csv = pd.read_csv(self.clip_list_file, sep=',')
+        column_headers = ['Video_ID', 'Path', 'Train']
+        for dc in self.data_columns:
+            column_headers.append(dc)
+        print(column_headers)
+        subject_path = self.path + subject_id + '/'
         big_list = []
-        for path, dirs, files in sorted(os.walk(horse_path)):
+        for path, dirs, files in sorted(os.walk(subject_path)):
             print(path)
             for filename in sorted(files):
                 total_path = join(path, filename)
                 print(total_path)
                 vid_id = get_video_id_stem_from_path(path)
-                csv_row = df_csv.loc[df_csv['Video_id'] == vid_id]
+                csv_row = df_csv.loc[df_csv['Video_ID'] == vid_id]
                 if '.jpg' in filename or '.png' in filename:
                     train_field = -1
-                    pain_field = csv_row.iloc[0]['Pain']
-                    observer_field = csv_row.iloc[0]['Observer']
-                    row_list = [vid_id, total_path, pain_field,
-                                observer_field, train_field]
+                    row_list = [vid_id, total_path, train_field]
+                    for dc in self.data_columns:
+                        field = csv_row.iloc[0][dc]
+                        row_list.append(field)
                     big_list.append(row_list)
-        horse_df = pd.DataFrame(big_list, columns=column_headers)
-        return horse_df
+        subject_df = pd.DataFrame(big_list, columns=column_headers)
+        return subject_df
 
-    def save_OF_paths_to_df(self, horse_id, horse_df):
+    def save_OF_paths_to_df(self, subject_id, subject_df):
         """
         Create a DataFrame with all the optical flow paths with annotations
-        from a csv-file, then join it with the existing horse df with rgb paths,
+        from a csv-file, then join it with the existing subject df with rgb paths,
         at simultaneous frames.
-        :param horse_id: int
-        :param horse_df: pd.DataFrame
+        :param subject_id: int
+        :param subject_df: pd.DataFrame
         :return: pd.DataFrame
         """
-        c = 0  # Per horse frame counter.
+        c = 0  # Per subject frame counter.
         per_clip_frame_counter = 0
         old_path = 'NoPath'
-        root_of_path = self.of_path + 'horse_' + str(horse_id) + '/'
+        root_of_path = self.of_path + 'subject_' + str(subject_id) + '/'
         of_path_list = []
 
         # Walk through all the files in the of-folders and put them in a
@@ -517,13 +522,13 @@ class DataHandler:
         for path, dirs, files in sorted(os.walk(root_of_path)):
             print(path)
             video_id = get_video_id_from_path(path)
-            nb_frames_in_clip = len(horse_df.loc[horse_df['Path'].str.contains(video_id)])
+            nb_frames_in_clip = len(subject_df.loc[subject_df['Path'].str.contains(video_id)])
             print(video_id)
             if old_path != path and c != 0:  # If entering a new folder
                 per_clip_frame_counter = 0
                 if '1fps' in self.of_path: # To match the #pictures with #of I disregard the first frame.
-                    horse_df.drop(c, inplace=True)  # Delete first element
-                    horse_df.reset_index(drop=True, inplace=True)  # And adjust the index
+                    subject_df.drop(c, inplace=True)  # Delete first element
+                    subject_df.reset_index(drop=True, inplace=True)  # And adjust the index
             old_path = path
             for filename in sorted(files):
                 total_path = join(path, filename)
@@ -534,10 +539,10 @@ class DataHandler:
                     c += 1
                     per_clip_frame_counter += 1
 
-        # Now extend horse_df to contain both rgb and OF paths,
+        # Now extend subject_df to contain both rgb and OF paths,
         # and then return whole thing.
         nb_of_paths = len(of_path_list)
-        nb_rgb_frames = len(horse_df)
+        nb_rgb_frames = len(subject_df)
         if nb_rgb_frames != nb_of_paths:
             diff = nb_rgb_frames - nb_of_paths
             print("Differed by:", diff)
@@ -545,16 +550,16 @@ class DataHandler:
             # Else an error should be raised when concatenating.)
             if diff < 0: # If the of-df was larger, reduce it
                 of_path_list = of_path_list[:diff]
-            else:  # Vice versa with horse-df
-                horse_df = horse_df[:-diff]
+            else:  # Vice versa with subject-df
+                subject_df = subject_df[:-diff]
         try:
-            horse_df.loc[:, 'OF_Path'] = pd.Series(of_path_list)
+            subject_df.loc[:, 'OF_Path'] = pd.Series(of_path_list)
         except AssertionError:
             print('Horse df and OF_df were not the same length and could not'
                   'be concatenated. Even despite having removed the last'
-                  'element of horse df which should be 1 longer.')
+                  'element of subject df which should be 1 longer.')
 
-        return horse_df
+        return subject_df
 
     def _get_images_from_df(self, df):
         """
