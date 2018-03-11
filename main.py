@@ -78,7 +78,7 @@ def read_or_create_subject_rgb_and_OF_dfs(dh,
     :return: [pd.DataFrame]
     """
     subject_rgb_OF_dfs = []
-    for subject_id in subject_ids:
+    for ind, subject_id in enumerate(subject_ids):
         print(args.data_path)
         subject_of_csv_path = dh.of_path + str(subject_id) + '.csv'
         if os.path.isfile(subject_of_csv_path):
@@ -86,7 +86,7 @@ def read_or_create_subject_rgb_and_OF_dfs(dh,
         else:
             print('Making a DataFrame for subject id: ', subject_id)
             sdf = dh.save_OF_paths_to_df(subject_id,
-                                         subject_dfs[subject_id-1])
+                                         subject_dfs[ind])
             sdf.to_csv(path_or_buf=subject_of_csv_path)
         subject_rgb_OF_dfs.append(sdf)
     return subject_rgb_OF_dfs
@@ -291,7 +291,7 @@ def run():
     dh = DataHandler(path=args.data_path,
                      of_path=args.of_path,
                      clip_list_file=args.data_path + 'overview.csv',
-                     data_columns= ['Pain'],  # Here one can append f. ex. 'Observer'
+                     data_columns=['Pain'],  # Here one can append f. ex. 'Observer'
                      image_size=(args.input_width, args.input_height),
                      seq_length=args.seq_length,
                      seq_stride=args.seq_stride,
@@ -308,7 +308,6 @@ def run():
                    auc=True,
                    target_names=TARGET_NAMES,
                    batch_size=args.batch_size)
-
     # Read or create the per-subject dataframes listing all the frame paths and labels.
     subject_dfs = read_or_create_subject_dfs(dh, subject_ids)  # Returns a list of dataframes, per subject.
 
@@ -322,16 +321,16 @@ def run():
         val_subjects = ast.literal_eval(args.val_subjects)
         print('Horses to validate on: ', val_subjects)
         subject_dfs = set_train_val_test_in_df(train_subjects=train_subjects,
-                                             val_subjects=val_subjects,
-                                             test_subjects=test_subjects,
-                                             dfs=subject_dfs)
+                                               val_subjects=val_subjects,
+                                               test_subjects=test_subjects,
+                                               dfs=subject_dfs)
 
     if args.val_fraction == 1:
         print("Using validation fraction.")
         print("Val fract: ", VAL_FRACTION)
         subject_dfs = set_train_test_in_df(train_subjects=train_subjects,
-                                         test_subjects=test_subjects,
-                                         dfs=subject_dfs)
+                                           test_subjects=test_subjects,
+                                           dfs=subject_dfs)
 
     # Put all the separate subject-dfs into one DataFrame.
     df = pd.concat(subject_dfs)
@@ -447,37 +446,42 @@ def run():
                               test_generator=test_generator,
                               eval_generator=eval_generator,
                               nb_steps=test_steps)
-
     if args.nb_input_dims == 5:
         # Get the ground truth for the test set
         y_test = np.array(y_batches)  # Now in format [nb_batches, batch_size, seq_length, nb_classes]
         if args.test_run == 1:
-            nb_batches = y_preds.shape[0]
+            nb_batches = int(y_preds.shape[0]/args.batch_size)
             nb_total = nb_batches * args.batch_size * args.seq_length
-            y_test = np_utils.to_categorical(y_test)
             y_test = y_test[:nb_total]
-            y_test = np.reshape(y_test, (nb_batches*args.batch_size, args.seq_length, args.nb_labels))
-            y_test = y_test[:nb_batches]
+            y_test = np_utils.to_categorical(y_test, num_classes=args.nb_labels)
+            y_test = np.reshape(y_test, (nb_batches*args.batch_size,
+                                         args.seq_length,
+                                         args.nb_labels))
+            # y_test = y_test[:nb_batches]
         else:
             nb_batches = y_test.shape[0]
             # Make 3D
-            y_test = np.reshape(y_test, (nb_batches*args.batch_size, args.seq_length, args.nb_labels))
+            y_test = np.reshape(y_test, (nb_batches*args.batch_size,
+                                         args.seq_length,
+                                         args.nb_labels))
 
     if args.nb_input_dims == 4:
         y_test = np.array(y_batches)
 
     # Put y_preds into same format as y_test, first take the max probabilities.
     if args.nb_input_dims == 5:
-        y_preds = np.argmax(y_preds, axis=2)
-        y_preds = np.array([np_utils.to_categorical(x, num_classes=args.nb_labels) for x in y_preds])
+        y_preds_argmax = np.argmax(y_preds, axis=2)
+        tesst = np.array([x.shape for x in y_preds])
+        y_preds_argmax = np.array([np_utils.to_categorical(x,
+                                   num_classes=args.nb_labels) for x in y_preds_argmax])
     
     if args.nb_input_dims == 4:
-        y_preds = np.argmax(y_preds, axis=1)
+        y_preds_argmax = np.argmax(y_preds, axis=1)
         if args.test_run == 1:
             y_test = y_test[:len(y_preds)]
-
     # Evaluate the model's performance
-    ev.evaluate(model=model, y_test=y_test, y_pred=y_preds, scores=scores, args=args)
+    ev.evaluate(model=model, y_test=y_test, y_pred=y_preds_argmax,
+                softmax_predictions=y_preds, scores=scores, args=args)
 
 if __name__ == '__main__':
 

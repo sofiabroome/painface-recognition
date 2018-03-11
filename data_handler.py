@@ -513,7 +513,7 @@ class DataHandler:
         c = 0  # Per subject frame counter.
         per_clip_frame_counter = 0
         old_path = 'NoPath'
-        root_of_path = self.of_path + 'subject_' + str(subject_id) + '/'
+        root_of_path = self.of_path + subject_id + '/'
         of_path_list = []
 
         # Walk through all the files in the of-folders and put them in a
@@ -554,6 +554,7 @@ class DataHandler:
                 subject_df = subject_df[:-diff]
         try:
             subject_df.loc[:, 'OF_Path'] = pd.Series(of_path_list)
+            subject_df['Train'] = -1
         except AssertionError:
             print('Horse df and OF_df were not the same length and could not'
                   'be concatenated. Even despite having removed the last'

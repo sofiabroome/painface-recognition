@@ -1,0 +1,6 @@
+             precision    recall  f1-score   support
+
+    NO_PAIN     0.5263    0.9988    0.6894      1731
+       PAIN     0.8667    0.0083    0.0164      1569
+
+avg / total     0.6881    0.5279    0.3694      3300

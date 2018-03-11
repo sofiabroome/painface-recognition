@@ -24,7 +24,7 @@ def check_if_unique_in_df(file_name, df):
     param df: pd.DataFrame
     :return: int [nb occurences of sequences from the same video clip]
     """
-    return len(df[df['Video_id'] == file_name])
+    return len(df[df['Video_ID'] == file_name])
 
 
 if __name__ == '__main__':
