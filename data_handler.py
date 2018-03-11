@@ -526,7 +526,7 @@ class DataHandler:
             print(video_id)
             if old_path != path and c != 0:  # If entering a new folder
                 per_clip_frame_counter = 0
-                if '1fps' in self.of_path: # To match the #pictures with #of I disregard the first frame.
+                if '1fps' in self.of_path or 'ShoulderPain' in self.of_path: # To match the #pictures with #of I disregard the first frame.
                     subject_df.drop(c, inplace=True)  # Delete first element
                     subject_df.reset_index(drop=True, inplace=True)  # And adjust the index
             old_path = path
@@ -554,7 +554,7 @@ class DataHandler:
                 subject_df = subject_df[:-diff]
         try:
             subject_df.loc[:, 'OF_Path'] = pd.Series(of_path_list)
-            subject_df['Train'] = -1
+            subject_df.loc['Train'] = -1
         except AssertionError:
             print('Horse df and OF_df were not the same length and could not'
                   'be concatenated. Even despite having removed the last'
