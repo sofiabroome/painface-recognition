@@ -26,7 +26,7 @@ class Evaluator:
                                               steps=nb_steps)
         return y_pred, scores
 
-    def evaluate(self, model, y_test, y_pred, scores, args):
+    def evaluate(self, model, y_test, y_pred, softmax_predictions, scores, args):
         """
         Compute confusion matrix and class report with F1-scores.
         :param model: Model object
@@ -43,6 +43,7 @@ class Evaluator:
 
         if len(y_pred.shape) > 2: # If sequential data
             y_pred = get_majority_vote_3d(y_pred)
+            softmax_predictions = get_majority_vote_3d(softmax_predictions)
             y_test = get_majority_vote_3d(y_test)
 
         nb_preds = len(y_pred)
@@ -61,10 +62,10 @@ class Evaluator:
         print('y_test and y_test.shape: ', y_test, y_test.shape)
         print('y_pred and y_pred.shape: ', y_pred, y_pred.shape)
 
-        self.print_and_save_evaluations(y_pred, y_test, args)
+        self.print_and_save_evaluations(y_test, y_pred, softmax_predictions, args)
 
 
-    def print_and_save_evaluations(self, y_pred, y_test, args):
+    def print_and_save_evaluations(self, y_test, y_pred, softmax_predictions, args):
         """
         :params y_pred, y_test: 2D-arrays [nsamples, nclasses]
         """
@@ -88,9 +89,9 @@ class Evaluator:
             f.close()
 
         if self.auc:
-            auc_weighted = roc_auc_score(y_test, y_pred, average='weighted')
-            auc_macro = roc_auc_score(y_test, y_pred, average='macro')
-            auc_micro = roc_auc_score(y_test, y_pred, average='micro')
+            auc_weighted = roc_auc_score(y_test, softmax_predictions, average='weighted')
+            auc_macro = roc_auc_score(y_test, softmax_predictions, average='macro')
+            auc_micro = roc_auc_score(y_test, softmax_predictions, average='micro')
             print('Weighted AUC: ', auc_weighted)
             print('Macro AUC: ', auc_macro)
             print('Micro AUC: ', auc_micro)
@@ -149,3 +150,4 @@ def get_majority_vote_3d(y_pred):
         max_class = np.random.choice(np.flatnonzero(cs == cs.max()))
         majority_votes[i, max_class] = 1
     return majority_votes
+
