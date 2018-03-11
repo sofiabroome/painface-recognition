@@ -53,12 +53,14 @@ def make_folders():
     # in separate horse_id folders.
     # The horse_id folders need to be created beforehand, once.
 
-    for h in range(1, 7):
-        print("NEW HORSE")
+    subject_ids = subject_ID_df['Subject'].values
+
+    for ind, subject_id in enumerate(subject_ids):
+        print("NEW SUBJECT")
         counter = 1  # Counter of non-unique videos.
-        output_dir = 'horse_' + str(h)
-        horse_df = df.loc[df['Horse'] == h]
-        for vid in horse_df['Video_id']:
+        output_dir = subject_id
+        subject_df = df.loc[df['Subject'] == subject_id]
+        for vid in subject_df['Video_ID']:
             occurences = check_if_unique_in_df(vid, df)
             if occurences == 1:
                 seq_dir_path = output_root_dir + output_dir + '/' + vid
@@ -143,13 +145,17 @@ def compute_optical_flow(ims, output_path_stem):
 
 def iterate_over_frames(frequency):
 
-    for horse_id in range(1, 7):
-        csv_path = root_dir + 'horse_' + str(horse_id) + '.csv'
-        horse_frames_df = pd.read_csv(csv_path, sep=',')
+    subject_ids = subject_ID_df['Subject'].values
+
+    for subject_id in subject_ids:
+        print(subject_id)
+        csv_path = root_dir + subject_id + '.csv'
+        print(csv_path)
+        subject_frames_df = pd.read_csv(csv_path, sep=',')
         counter = 0
         per_video_counter = 0
         # Every row in the df contains 1 video frame.
-        for row in horse_frames_df.iterrows():
+        for row in subject_frames_df.iterrows():
             if counter == 0:
                 # The ims list will always contain maximum 2 images, between
                 # which images the optical flow will be computed.
@@ -161,15 +167,22 @@ def iterate_over_frames(frequency):
                     per_video_counter = 0
                     old_vid_seq_name = vid_seq_name
                 counter_format = ("%06d" % (per_video_counter-1))  # -1 if I want to start at 1, otherwise 2.
-                if (per_video_counter % frequency) == 2:
-                    flow_output_path_stem = output_root_dir + 'horse_' + str(horse_id) + '/'\
-                                            + vid_seq_name + '/flow_' + counter_format
-                    # print(flow_output_path_stem)
-                    compute_optical_flow(ims, flow_output_path_stem)
+                # if (per_video_counter % frequency) == 2:
+                #     flow_output_path_stem = output_root_dir + subject_id +  '/'\
+                #                             + vid_seq_name + '/flow_' + counter_format
+                #     # print(flow_output_path_stem)
+                #     compute_optical_flow(ims, flow_output_path_stem)
+                flow_output_path_stem = output_root_dir + subject_id +  '/'\
+                                        + vid_seq_name + '/flow_' + counter_format
+                # print(flow_output_path_stem)
+                compute_optical_flow(ims, flow_output_path_stem)
                 ims[0] = ims[1]
                 ims.pop()
             frame_path = row[1]['Path']
-            vid_seq_name = find_between(frame_path, 'horse_' + str(horse_id) + '/', '/frame')
+            # Shoulder pain
+            vid_seq_name = find_between(frame_path, subject_id + '/', '/')
+            # Equine data
+            # vid_seq_name = find_between(frame_path, subject_id + '/', '/frame')
             im = process_image(frame_path, (width, height, channels))
             ims.append(im)
             counter += 1
@@ -179,16 +192,24 @@ def iterate_over_frames(frequency):
 
 
 if __name__ == '__main__':
-    # CSV with info about horses and their video sequences.
-    df = pd.read_csv('videos_overview_missingremoved.csv', sep=';')
+    # CSV with info about all the video sequences.
+    # df = pd.read_csv('videos_overview_missingremoved.csv', sep=';')
+    df = pd.read_csv('shoulder_pain_overview.csv')
+
+    # CSV with unique subject overview.
+    # subject_IDs = pd.read_csv('horse_subjects.csv')
+    subject_ID_df = pd.read_csv('shoulder_pain_subjects.csv')
+    
     # Directory with the frames from which to extract the OF.
-    root_dir = 'data/jpg_128_128_16fps/'
+    # root_dir = 'data/jpg_128_128_16fps/'
+    root_dir = 'data/ShoulderPain_172x129/Images/'
     # Output root directory (will contain subfolders for every sequence).
     # Need to make this folder before running, and the horse_x folders in it.
-    output_root_dir = 'data/jpg_128_128_16fps_OF_magnitude_cv2/'
+    # output_root_dir = 'data/jpg_128_128_16fps_OF_magnitude_cv2/'
+    output_root_dir = 'data/ShoulderPain172x129_OF_cv2/'
 
-    width = 128
-    height = 128
+    width = 172
+    height = 129
     channels = 3
 
     # Only need to make the subfolders of output_root_dir once.
@@ -196,4 +217,4 @@ if __name__ == '__main__':
 
     # Iterate over the frames in root_dir and compute the flows.
     # Right now this is done for every 15th frame.
-    iterate_over_frames(frequency=8)
+    iterate_over_frames(frequency=1)

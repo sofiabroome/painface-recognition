@@ -65,9 +65,9 @@ if __name__ == '__main__':
     clip_info = []
     column_headers = ['Path', 'Video_ID', 'Pain', 'Start']
 
-    output_dir = 'data/random_sequences/'
-    lo = 100
-    hi = 1000
+    output_dir = 'data/random_sequences_extra_videos/'
+    lo = 1000
+    hi = 1600
     random_ints = list(set([int(random.uniform(lo, hi)) for i in range(500)]))
     random.shuffle(random_ints)
 
@@ -76,7 +76,7 @@ if __name__ == '__main__':
     for h in range(1, 7):
 
         print("NEW HORSE")
-        horse_df = df.loc[df['Horse'] == h]
+        horse_df = df.loc[df['Subject'] == h]
 
         for ind, row in horse_df.iterrows():
             video_length = row['Length']
@@ -113,5 +113,5 @@ if __name__ == '__main__':
             subprocess.call(ffmpeg_command)
 
     clip_info_df = pd.DataFrame(clip_info, columns=column_headers)
-    clip_info_df.to_csv(path_or_buf='clip_info.csv')
+    clip_info_df.to_csv(path_or_buf='data/random_sequences_extra_videos/clip_info.csv')
 

@@ -1,4 +1,4 @@
-Horse;Video_id;Length;Trial;Pain;Start;End;Observer
+Subject;Video_id;Length;Trial;Pain;Start;End;Observer
 1;1_1a;00:03:49;Baseline;0;00:00:00;00:03:49;0
 1;1_1a;00:02:11;Baseline;0;00:03:49;00:06:00;0
 1;1_1a;00:16:16;Baseline;0;00:06:00;00:22:16;0
