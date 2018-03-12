@@ -13,6 +13,13 @@ class Evaluator:
         self.auc = auc
         self.target_names = target_names
         self.batch_size = batch_size
+        self.test_set = None
+
+    def set_test_set(self, df_test):
+        """
+        :param df_test: pd.DataFrame with all info about the test set.
+        """
+        self.test_set = df_test
 
     def test(self, model, args, test_generator, eval_generator, nb_steps, X_test=None):
         ###### If not a generator:
@@ -26,7 +33,7 @@ class Evaluator:
                                               steps=nb_steps)
         return y_pred, scores
 
-    def evaluate(self, model, y_test, y_pred, softmax_predictions, scores, args):
+    def evaluate(self, model, y_test, y_pred, softmax_predictions, scores, args, y_paths):
         """
         Compute confusion matrix and class report with F1-scores.
         :param model: Model object
@@ -40,6 +47,8 @@ class Evaluator:
         print('Model metrics: ', model.metrics_names)
 
         assert(y_test.shape == y_pred.shape)
+
+        self.look_at_classifications(args, softmax_predictions, y_paths)
 
         if len(y_pred.shape) > 2: # If sequential data
             y_pred = get_majority_vote_3d(y_pred)
@@ -64,6 +73,17 @@ class Evaluator:
 
         self.print_and_save_evaluations(y_test, y_pred, softmax_predictions, args)
 
+
+    def look_at_classifications(self, args, y_pred, softmax_predictions):
+        sh = softmax_predictions.shape
+        print(sh)
+        total_frames = sh[0] * sh[1]
+        print('Total number of frames classified: ', total_frames)
+        print(self.test_set.head())
+        plain_list = np.reshape(softmax_predictions, (total_frames, args.nb_labels))
+        
+        import ipdb; ipdb.set_trace()
+        
 
     def print_and_save_evaluations(self, y_test, y_pred, softmax_predictions, args):
         """

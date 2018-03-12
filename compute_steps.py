@@ -36,6 +36,7 @@ def compute_steps(df, train, kwargs):
     nw = valid // ss  # Number of windows
 
     y_batches = []  # List where to put all the y_arrays generated.
+    y_batches_paths = []
 
     for window_index in range(nw):
         start = window_index * ss
@@ -43,6 +44,7 @@ def compute_steps(df, train, kwargs):
         rows = df.iloc[start:stop]  # A new dataframe for the window in question.
 
         y_seq_list = []
+        y_seq_list_paths = []
 
         for index, row in rows.iterrows():
             vid_seq_name = row['Video_ID']
@@ -57,25 +59,33 @@ def compute_steps(df, train, kwargs):
                 old_vid_seq_name = vid_seq_name
                 break  # In that case want to jump to the next window.
             y = row['Pain']
+            y_path = row['Path']
             y_seq_list.append(y)
+            y_seq_list_paths.append(y_path)
             seq_index += 1
         if batch_index == 0:
             y_batch_list = []
+            y_batch_list_paths = []
 
         if seq_index == kwargs.seq_length:
             # Everytime a full sequence is amassed, we reset the seq_ind,
             # and increment the batch_ind.
             y_batch_list.append(y_seq_list)
+            y_batch_list_paths.append(y_seq_list_paths)
+            
             seq_index = 0
             batch_index += 1
             if train and (kwargs.aug_flip==1):
                 y_batch_list.append(y_seq_list)
+                y_batch_list_paths.append(y_seq_list_paths)
                 batch_index += 1
             if train and (kwargs.aug_crop==1):
                 y_batch_list.append(y_seq_list)
+                y_batch_list_paths.append(y_seq_list_paths)
                 batch_index += 1
             if train and (kwargs.aug_light==1):
                 y_batch_list.append(y_seq_list)
+                y_batch_list_paths.append(y_seq_list_paths)
                 batch_index += 1
 
         if batch_index % kwargs.batch_size == 0 and not batch_index == 0:
@@ -86,7 +96,8 @@ def compute_steps(df, train, kwargs):
             nb_steps += 1
             batch_index = 0
             y_batches.append(y_array)
-    return nb_steps, y_batches
+            y_batches_paths.append(y_batch_list_paths)
+    return nb_steps, y_batches, y_batches_paths
 
 
 if __name__ == '__main__':
