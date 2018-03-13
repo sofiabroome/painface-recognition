@@ -413,9 +413,10 @@ class DataHandler:
         now_b = 0.4
         noise_weight = (now_b - now_a) * np.random.random() + now_a
 
-        gaussian = np.random.normal(mean, sigma, (row, col, ch)).astype(np.float32)
+        gaussian = np.random.normal(mean, sigma, (col, row, ch)).astype(np.float32)
 
         for img in images:
+            print(img.shape)
             gaussian_img = cv2.addWeighted(img, im_weight, gaussian, noise_weight, 0)
             gaussian_noise_imgs.append(gaussian_img)
     
@@ -452,11 +453,11 @@ class DataHandler:
     
         boxes = np.array([[y1, x1, y2, x2]], dtype=np.float32)
         box_ind = np.array([0], dtype=np.int32)
-        crop_size = np.array([height, width], dtype=np.int32)
+        crop_size = np.array([width, height], dtype=np.int32)
     
         X_crops = []
         tf.reset_default_graph()
-        X = tf.placeholder(tf.float32, shape=(1, width, height, 3))
+        X = tf.placeholder(tf.float32, shape=(1, height, width, 3))
         tf_img1 = tf.image.crop_and_resize(X, boxes, box_ind, crop_size)
 
         with tf.Session() as sess:
@@ -466,7 +467,7 @@ class DataHandler:
                 cropped_imgs = sess.run([tf_img1], feed_dict={X: batch_img})
                 X_crops.extend(cropped_imgs)
         X_crops = np.array(X_crops, dtype=np.float32)
-        X_crops = np.reshape(X_crops, (self.seq_length, width, height, 3))
+        X_crops = np.reshape(X_crops, (self.seq_length, height, width, 3))
         return X_crops
 
     # TODO Merge the two below functions (subject_to_df and save_OF_paths_to_df, same functionality)
