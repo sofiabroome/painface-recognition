@@ -59,8 +59,10 @@ class Evaluator:
                 y_pred = y_pred[:nb_tests]
 
         # Print labels and predictions.
-        print('y_test and y_test.shape: ', y_test, y_test.shape)
-        print('y_pred and y_pred.shape: ', y_pred, y_pred.shape)
+        print('y_test.shape: ', y_test.shape)
+        print('y_pred.shape: ', y_pred.shape)
+        # print('y_test and y_test.shape: ', y_test, y_test.shape)
+        # print('y_pred and y_pred.shape: ', y_pred, y_pred.shape)
 
         self.print_and_save_evaluations(y_test, y_pred, softmax_predictions, args)
 
