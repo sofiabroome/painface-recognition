@@ -64,8 +64,8 @@ if __name__ == '__main__':
 
         batch_size = 1
         seq_length = 1
-        width = 128
-        height = 128
+        width = 320
+        height = 180
         channels = 3
 
         # compute the gradient of the input picture wrt this loss
@@ -80,7 +80,7 @@ if __name__ == '__main__':
         else:
             iterate = K.function([input], [loss, grads])
         num_iterations = 500
-        step = 100
+        step = 1
         if input_dims == 5:
             input_data = get_noise_5d(batch_size, seq_length, width, height, channels)
         else:
@@ -93,7 +93,7 @@ if __name__ == '__main__':
         axes[0].imshow(rgb_reshaped)
         axes[0].text(5,5,'Original noise', bbox={'facecolor': 'white', 'pad': 5})
         loss_value = 0
-        for i in range(20):
+        for i in range(50):
         # while loss_value < 0.9999994:
             if '2stream' in model_name:
                loss_value, grads_value = iterate([input_data, input_data])
@@ -102,9 +102,13 @@ if __name__ == '__main__':
             print(loss_value)
             print(grads_value)
             input_data += grads_value * step
-        # import ipdb; ipdb.set_trace()
+        import ipdb; ipdb.set_trace()
         # input_data = np.reshape(input_data[1], (height, width, channels))
-        input_data = np.reshape(input_data[0][0], (height, width, channels))
+        if input_dims == 4:
+            input_data = np.reshape(input_data[0], (height, width, channels))
+        else:
+            input_data = np.reshape(input_data[0][0], (height, width, channels))
+
 
         axes[1].imshow(input_data)
         axes[1].text(5,5,'Maximized', bbox={'facecolor': 'white', 'pad': 5})
