@@ -46,9 +46,11 @@ class Evaluator:
         print('Scores: ', scores)
         print('Model metrics: ', model.metrics_names)
 
+        import ipdb; ipdb.set_trace()
+
         assert(y_test.shape == y_pred.shape)
 
-        self.look_at_classifications(args, softmax_predictions, y_paths)
+        # self.look_at_classifications(args, y_true, softmax_predictions, corresponding_y_paths)
 
         if len(y_pred.shape) > 2: # If sequential data
             y_pred = get_majority_vote_3d(y_pred)
@@ -74,7 +76,9 @@ class Evaluator:
         self.print_and_save_evaluations(y_test, y_pred, softmax_predictions, args)
 
 
-    def look_at_classifications(self, args, y_pred, softmax_predictions):
+    def look_at_classifications(self, args, y_true, y_pred, softmax_predictions):
+        # Flatten all three, ytrue/pred to (N,) and smpreds to (N,2)
+        yt = check_if_flatten_needed(y_true)
         sh = softmax_predictions.shape
         print(sh)
         total_frames = sh[0] * sh[1]
@@ -83,6 +87,9 @@ class Evaluator:
         plain_list = np.reshape(softmax_predictions, (total_frames, args.nb_labels))
         
         import ipdb; ipdb.set_trace()
+
+        
+
         
 
     def print_and_save_evaluations(self, y_test, y_pred, softmax_predictions, args):
@@ -122,6 +129,12 @@ class Evaluator:
                 print('Micro AUC: ', auc_micro, file=f)
                 f.close()
 
+
+def get_index_of_type_of_classification(y_true, y_pred, true=1, pred=1):
+    for index, value in enumerate(y_true):
+         if value == true:
+             if y_pred[index] == pred:
+                return index
 
 def _make_cr_filename(args):
     return args.model + "_" + args.image_identifier + "_LSTM_UNITS_" +\
