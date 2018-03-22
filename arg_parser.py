@@ -102,6 +102,8 @@ def read_default_args():
         else:
             if key == '--file-name' or key == '--devices':
                 parser.add_argument(key, nargs='?', default=value, type=str, help=help)
+            elif key == '--subjects-overview':
+                parser.add_argument(key, nargs='?', default=value, type=str, help=help)
             elif key == '--round-to-batch':
                 parser.add_argument(key, nargs='?', default=value, type=bool, help=help)
             else:

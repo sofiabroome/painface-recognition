@@ -555,7 +555,7 @@ class DataHandler:
                 subject_df = subject_df[:-diff]
         try:
             subject_df.loc[:, 'OF_Path'] = pd.Series(of_path_list)
-            subject_df['Train'] = -1
+            subject_df.loc['Train'] = -1
         except AssertionError:
             print('Horse df and OF_df were not the same length and could not'
                   'be concatenated. Even despite having removed the last'

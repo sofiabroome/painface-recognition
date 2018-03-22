@@ -45,7 +45,6 @@ class Evaluator:
         """
         print('Scores: ', scores)
         print('Model metrics: ', model.metrics_names)
-
         assert(y_test.shape == y_pred.shape)
 
         if len(y_pred.shape) > 2: # If sequential data
@@ -66,8 +65,10 @@ class Evaluator:
                 y_pred = y_pred[:nb_tests]
 
         # Print labels and predictions.
-        print('y_test and y_test.shape: ', y_test, y_test.shape)
-        print('y_pred and y_pred.shape: ', y_pred, y_pred.shape)
+        print('y_test.shape: ', y_test.shape)
+        print('y_pred.shape: ', y_pred.shape)
+        # print('y_test and y_test.shape: ', y_test, y_test.shape)
+        # print('y_pred and y_pred.shape: ', y_pred, y_pred.shape)
 
         self.print_and_save_evaluations(y_test, y_pred, softmax_predictions, args)
 
@@ -112,12 +113,16 @@ class Evaluator:
             f.close()
 
         if self.auc:
+            if args.nb_input_dims == 4:
+                y_test = np.array([np_utils.to_categorical(x,num_classes=args.nb_labels) for x in y_test])
+                y_test = np.reshape(y_test, (-1, args.nb_labels))
             auc_weighted = roc_auc_score(y_test, softmax_predictions, average='weighted')
             auc_macro = roc_auc_score(y_test, softmax_predictions, average='macro')
             auc_micro = roc_auc_score(y_test, softmax_predictions, average='micro')
             print('Weighted AUC: ', auc_weighted)
             print('Macro AUC: ', auc_macro)
             print('Micro AUC: ', auc_micro)
+
             with open('auc' + args.image_identifier +'.txt', 'w') as f:
                 # print('Filename:', filename, file=f) 
                 print('Weighted AUC: ', auc_weighted, file=f)

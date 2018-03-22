@@ -39,55 +39,60 @@ def df_val_split(df, val_fraction, batch_size, round_to_batch=True):
     return df_train, df_val
 
 
-def read_or_create_horse_dfs(dh):
-    # Read or create the per-horse dataframes listing all the frame paths and labels.
-    horse_dfs = []
-    for horse in range(1,7):
+def read_or_create_subject_dfs(dh, subject_ids):
+    """
+    Read or create the per-subject dataframes listing
+    all the frame paths and corresponding labels and metadata.
+    :param dh: DataHandler
+    :return: [pd.Dataframe]
+    """
+    subject_dfs = []
+    for subject_id in subject_ids:
         print(kwargs.data_path)
-        horse_csv_path = kwargs.data_path + 'horse_' + str(horse) + '.csv'
-        if os.path.isfile(horse_csv_path):
-            hdf = pd.read_csv(horse_csv_path)
+        subject_csv_path = kwargs.data_path + subject_id + '.csv'
+        if os.path.isfile(subject_csv_path):
+            sdf = pd.read_csv(subject_csv_path)
         else:
-            print('Making a DataFrame for horse id: ', horse)
-            hdf = dh.horse_to_df(horse)
-            hdf.to_csv(path_or_buf=horse_csv_path)
-        horse_dfs.append(hdf)
-    return horse_dfs
+            print('Making a DataFrame for subject id: ', subject_id)
+            sdf = dh.subject_to_df(subject_id)
+            sdf.to_csv(path_or_buf=subject_csv_path)
+        subject_dfs.append(sdf)
+    return subject_dfs
 
 
-def read_or_create_horse_rgb_and_OF_dfs(dh, horse_dfs):
-    # Read or create the per-horse optical flow files listing all the frame paths and labels.
-    horse_rgb_OF_dfs = []
-    for horse_id in range(1, 7):
+def read_or_create_subject_rgb_and_OF_dfs(dh, subject_dfs):
+    # Read or create the per-subject optical flow files listing all the frame paths and labels.
+    subject_rgb_OF_dfs = []
+    for subject_id in range(1, 7):
         print(kwargs.data_path)
-        horse_of_csv_path = dh.of_path + '/horse_' + str(horse_id) + '.csv'
-        if os.path.isfile(horse_of_csv_path):
-            hdf = pd.read_csv(horse_of_csv_path)
+        subject_of_csv_path = dh.of_path + '/subject_' + str(subject_id) + '.csv'
+        if os.path.isfile(subject_of_csv_path):
+            hdf = pd.read_csv(subject_of_csv_path)
         else:
-            print('Making a DataFrame for horse id: ', horse_id)
-            hdf = dh.save_OF_paths_to_df(horse_id, horse_dfs[horse_id-1])
-            hdf.to_csv(path_or_buf=horse_of_csv_path)
-        horse_rgb_OF_dfs.append(hdf)
-    return horse_rgb_OF_dfs
+            print('Making a DataFrame for subject id: ', subject_id)
+            hdf = dh.save_OF_paths_to_df(subject_id, subject_dfs[subject_id-1])
+            hdf.to_csv(path_or_buf=subject_of_csv_path)
+        subject_rgb_OF_dfs.append(hdf)
+    return subject_rgb_OF_dfs
 
 
-def set_train_val_test_in_df(train_horses, val_horses, test_horses, dfs):
-    for trh in train_horses:
+def set_train_val_test_in_df(train_subjects, val_subjects, test_subjects, dfs):
+    for trh in train_subjects:
         dfs[trh]['Train'] = 1
 
-    for vh in val_horses:
+    for vh in val_subjects:
         dfs[vh]['Train'] = 2
 
-    for teh in test_horses:
+    for teh in test_subjects:
         dfs[teh]['Train'] = 0
     return dfs
 
 
-def set_train_test_in_df(train_horses, test_horses, dfs):
-    for trh in train_horses:
+def set_train_test_in_df(train_subjects, test_subjects, dfs):
+    for trh in train_subjects:
         dfs[trh]['Train'] = 1
 
-    for teh in test_horses:
+    for teh in test_subjects:
         dfs[teh]['Train'] = 0
     return dfs
 
@@ -149,10 +154,10 @@ def get_data_2stream_5d_input(dh,
     Prepare the training and testing data for 5D-input
     (batches of sequences of frames).
     :param dh: DataHandler object
-    :param horse_dfs: [pd.DataFrame]
-    :param train_horses: [int]
-    :param test_horses: [int]
-    :param val_horses: [int]
+    :param subject_dfs: [pd.DataFrame]
+    :param train_subjects: [int]
+    :param test_subjects: [int]
+    :param val_subjects: [int]
     :return: (4-tuple of Generator objects)
     """
     print("2stream model of some sort.", kwargs.model)
@@ -190,36 +195,38 @@ def run():
                      kwargs.seq_length, kwargs.seq_stride,
                      kwargs.batch_size, COLOR,
                      kwargs.nb_labels, kwargs.aug_flip, kwargs.aug_crop, kwargs.aug_light)
-
+    
+    subject_ids = pd.read_csv(kwargs.subjects_overview)['Subject'].values
     ev = Evaluator(True, True, True, True, TARGET_NAMES, kwargs.batch_size)
 
-    # Read or create the per-horse dataframes listing all the frame paths and labels.
-    horse_dfs = read_or_create_horse_dfs(dh)
+    # Read or create the per-subject dataframes listing all the frame paths and labels.
+    subject_dfs = read_or_create_subject_dfs(dh, subject_ids)
 
     if '2stream' in kwargs.model or kwargs.data_type == 'of':
-        horse_dfs = read_or_create_horse_rgb_and_OF_dfs(dh=dh,
-                                                        horse_dfs=horse_dfs)
+        subject_dfs = read_or_create_subject_rgb_and_OF_dfs(dh=dh,
+                                                        subject_dfs=subject_dfs)
 
-    train_horses = ast.literal_eval(kwargs.train_subjects)
-    test_horses = ast.literal_eval(kwargs.test_subjects)
+    train_subjects = ast.literal_eval(kwargs.train_subjects)
+    test_subjects = ast.literal_eval(kwargs.test_subjects)
 
-    print('Horses to train on: ', train_horses)
-    print('Horses to test on: ', test_horses)
+
+    print('Horses to train on: ', train_subjects)
+    print('Horses to test on: ', test_subjects)
 
     # Set the train-column to 1 (train), 2 (val) or 0 (test).
     if kwargs.val_fraction == 0:
-        print("Using separate horse validation.")
-        val_horses = ast.literal_eval(kwargs.val_subjects)
-        print('Horses to validate on: ', val_horses)
-        horse_dfs = set_train_val_test_in_df(train_horses, val_horses, test_horses, horse_dfs)
+        print("Using separate subject validation.")
+        val_subjects = ast.literal_eval(kwargs.val_subjects)
+        print('Horses to validate on: ', val_subjects)
+        subject_dfs = set_train_val_test_in_df(train_subjects, val_subjects, test_subjects, subject_dfs)
 
     if kwargs.val_fraction == 1:
         print("Using validation fractinon.")
         print("Val fract: ", VAL_FRACTION)
-        horse_dfs = set_train_test_in_df(train_horses, test_horses, horse_dfs)
+        subject_dfs = set_train_test_in_df(train_subjects, test_subjects, subject_dfs)
 
-    # Put all the separate horse-dfs into one DataFrame.
-    df = pd.concat(horse_dfs)
+    # Put all the separate subject-dfs into one DataFrame.
+    df = pd.concat(subject_dfs)
 
     # Shuffle the different sequences (like 1_1a_1) so that they don't always
     # appear in the same order. Also done in training generator but we do it here so that
@@ -280,10 +287,10 @@ def run():
         if '2stream' in kwargs.model:
             print('4d input 2stream model')
             generators = get_data_2stream_4d_input(dh,
-                                                   horse_dfs,
-                                                   train_horses,
-                                                   test_horses,
-                                                   val_horses)
+                                                   subject_dfs,
+                                                   train_subjects,
+                                                   test_subjects,
+                                                   val_subjects)
 
         else:
             print('4d input model')
@@ -314,6 +321,7 @@ def run():
         # Get the ground truth for the test set
         y_test = np.array(y_batches)  # Now in format [nb_batches, batch_size, seq_length, nb_classes]
         y_test_paths = np.array(y_batches_paths)
+
         if kwargs.test_run == 1:
             nb_batches = int(y_preds.shape[0]/kwargs.batch_size)
             nb_total = nb_batches * kwargs.batch_size * kwargs.seq_length
@@ -378,8 +386,6 @@ if __name__ == '__main__':
     # model_fn = 'models/BEST_MODEL_2stream_5d_adadelta_LSTMunits_32_CONVfilters_16_add_v4_t5_4hl_128jpg2fps_seq10_bs8_MAG_adadelta_flipcropshade_run2.h5'
     # model_fn = 'models/BEST_MODEL_2stream_5d_adadelta_LSTMunits_32_CONVfilters_16_add_v4_t0_4hl_128jpg2fps_seq10_bs8_MAG_adadelta_flipcropshade_run4.h5'
     # model_fn = 'models/BEST_MODEL_2stream_5d_adadelta_LSTMunits_32_CONVfilters_16_add_v4_t5_4hl_128jpg2fps_seq10_bs8_MAG_adadelta_flipcropshade_run5.h5'
-
-    model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_32_CONVfilters_16_jpg128_2fps_val4_t1_seq10ss10_4hl_32ubs16_no_aug_run2.h5'
 
 # Parse the command line arguments
 

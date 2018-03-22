@@ -1,0 +1,3 @@
+Weighted AUC:  0.547619047619
+Macro AUC:  0.547619047619
+Micro AUC:  0.2875
