@@ -49,8 +49,6 @@ class Evaluator:
 
         assert(y_test.shape == y_pred.shape)
 
-        # self.look_at_classifications(args, softmax_predictions, y_paths)
-
         if len(y_pred.shape) > 2: # If sequential data
             y_pred, paths = get_majority_vote_3d(y_pred, y_paths)
             # softmax_predictions, _ = get_majority_vote_3d(softmax_predictions, y_paths)
