@@ -281,8 +281,6 @@ class DataHandler:
                         # If no magnitude:
                         # extra_channel = np.zeros((x.shape[0], x.shape[1], 1))
                         # x = np.concatenate((x, extra_channel), axis=2)
-                    if test:
-                        print('Frame to put in test batch: ', row['Path'])
                     y = row['Pain']
                     X_seq_list.append(x)
                     y_seq_list.append(y)
