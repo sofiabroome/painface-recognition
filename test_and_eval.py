@@ -13,6 +13,13 @@ class Evaluator:
         self.auc = auc
         self.target_names = target_names
         self.batch_size = batch_size
+        self.test_set = None
+
+    def set_test_set(self, df_test):
+        """
+        :param df_test: pd.DataFrame with all info about the test set.
+        """
+        self.test_set = df_test
 
     def test(self, model, args, test_generator, eval_generator, nb_steps, X_test=None):
         ###### If not a generator:
@@ -26,7 +33,7 @@ class Evaluator:
                                               steps=nb_steps)
         return y_pred, scores
 
-    def evaluate(self, model, y_test, y_pred, softmax_predictions, scores, args):
+    def evaluate(self, model, y_test, y_pred, softmax_predictions, scores, args, y_paths):
         """
         Compute confusion matrix and class report with F1-scores.
         :param model: Model object
@@ -41,10 +48,10 @@ class Evaluator:
         assert(y_test.shape == y_pred.shape)
 
         if len(y_pred.shape) > 2: # If sequential data
-            y_pred = get_majority_vote_3d(y_pred)
-            softmax_predictions = get_majority_vote_3d(softmax_predictions)
-            y_test = get_majority_vote_3d(y_test)
-
+            y_pred, paths = get_majority_vote_3d(y_pred, y_paths)
+            # softmax_predictions, _ = get_majority_vote_3d(softmax_predictions, y_paths)
+            y_test, _ = get_majority_vote_3d(y_test, y_paths)
+        self.look_at_classifications(y_test, y_pred, paths, softmax_predictions)
         nb_preds = len(y_pred)
         nb_tests = len(y_test)
 
@@ -65,6 +72,22 @@ class Evaluator:
 
         self.print_and_save_evaluations(y_test, y_pred, softmax_predictions, args)
 
+    def look_at_classifications(self, y_true, y_pred, paths, softmax_predictions):
+        TP_ind = get_index_of_type_of_classification(y_true, y_pred, true=1, pred=1)
+        confidence_level = softmax_predictions[TP_ind]
+        print('Sequence starting with ', paths[TP_ind], 'was a true positive with confidence ', confidence_level)
+
+        FP_ind = get_index_of_type_of_classification(y_true, y_pred, true=0, pred=1)
+        confidence_level = softmax_predictions[FP_ind]
+        print('Sequence starting with ', paths[FP_ind], 'was a false positive with confidence ', confidence_level)
+
+        TN_ind = get_index_of_type_of_classification(y_true, y_pred, true=0, pred=0)
+        confidence_level = softmax_predictions[TN_ind]
+        print('Sequence starting with ', paths[TN_ind], 'was a true negative with confidence ', confidence_level)
+
+        FN_ind = get_index_of_type_of_classification(y_true, y_pred, true=1, pred=0)
+        confidence_level = softmax_predictions[FN_ind]
+        print('Sequence starting with ', paths[FN_ind], 'was a false negative with confidence ', confidence_level)
 
     def print_and_save_evaluations(self, y_test, y_pred, softmax_predictions, args):
         """
@@ -108,6 +131,14 @@ class Evaluator:
                 f.close()
 
 
+def get_index_of_type_of_classification(y_true, y_pred, true=1, pred=1):
+    for index, value in enumerate(y_true):
+        halfway = int(len(y_true)/2)
+        if index > 300:
+            if np.argmax(value) == true:
+                if np.argmax(y_pred[index]) == pred:
+                    return index
+
 def _make_cr_filename(args):
     return args.model + "_" + args.image_identifier + "_LSTM_UNITS_" +\
                   str(args.nb_lstm_units) + "_CONV_FILTERS_" +\
@@ -134,7 +165,7 @@ def get_majority_vote_for_sequence(sequence, nb_classes):
     return np.random.choice(np.flatnonzero(votes_per_class == votes_per_class.max()))
 
 
-def get_majority_vote_3d(y_pred):
+def get_majority_vote_3d(y_pred, y_paths):
     """
     I want to take the majority vote for every sequence.
     If there's a tie the choice is randomized.
@@ -144,8 +175,10 @@ def get_majority_vote_3d(y_pred):
     nb_samples = y_pred.shape[0]
     nb_classes = y_pred.shape[2]
     majority_votes = np.zeros((nb_samples, nb_classes))
+    corresponding_paths = []
     for i in range(nb_samples):
         sample = y_pred[i]
+        corresponding_paths.append(y_paths[i])
         class_sums = []
         for c in range(nb_classes):
             # Sum of votes for one class across sequence
@@ -154,5 +187,5 @@ def get_majority_vote_3d(y_pred):
         cs = np.array(class_sums)
         max_class = np.random.choice(np.flatnonzero(cs == cs.max()))
         majority_votes[i, max_class] = 1
-    return majority_votes
+    return majority_votes, corresponding_paths
 
