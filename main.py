@@ -446,9 +446,11 @@ def run():
                               test_generator=test_generator,
                               eval_generator=eval_generator,
                               nb_steps=test_steps)
+
     if args.nb_input_dims == 5:
         # Get the ground truth for the test set
         y_test = np.array(y_batches)  # Now in format [nb_batches, batch_size, seq_length, nb_classes]
+        y_test_paths = np.array(y_batches_paths)
         if args.test_run == 1:
             nb_batches = int(y_preds.shape[0]/args.batch_size)
             nb_total = nb_batches * args.batch_size * args.seq_length
@@ -464,6 +466,8 @@ def run():
             y_test = np.reshape(y_test, (nb_batches*args.batch_size,
                                          args.seq_length,
                                          args.nb_labels))
+            y_test_paths = np.reshape(y_test_paths, (nb_batches*args.batch_size,
+                                                     args.seq_length))
 
     if args.nb_input_dims == 4:
         y_test = np.array(y_batches)
@@ -482,7 +486,7 @@ def run():
     # Evaluate the model's performance
     ev.set_test_set(df_test)
     ev.evaluate(model=model, y_test=y_test, y_pred=y_preds_argmax,
-                softmax_predictions=y_preds, scores=scores, args=args, y_paths=y_batches_paths)
+                softmax_predictions=y_preds, scores=scores, args=args, y_paths=y_test_paths)
 
 if __name__ == '__main__':
 
