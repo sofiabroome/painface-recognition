@@ -299,7 +299,7 @@ def run():
                                            df_test=df_test)
 
     train_generator, val_generator, test_generator, eval_generator = generators
-
+    # TEMP
     start = time.time()
     test_steps, y_batches, y_batches_paths = compute_steps.compute_steps(df_test, train=False, kwargs=kwargs)
     end = time.time()
@@ -369,7 +369,17 @@ if __name__ == '__main__':
     arg_parser = arg_parser.ArgParser(len(sys.argv))
     kwargs = arg_parser.parse()
 
-    model_fn = 'models/BEST_MODEL_2stream_5d_adadelta_LSTMunits_32_CONVfilters_16_add_v4_t0_4hl_128jpg2fps_seq10_bs8_MAG_adadelta_noaug_run5.h5'
+    # model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_32_CONVfilters_16_jpg128_2fps_val4_t0_seq10ss10_4hl_32ubs16_flipcropshade.h5'    
+    # model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_32_CONVfilters_16_jpg128_2fps_val4_t0_seq10ss10_4hl_32ubs16_flipcropshade_run2.h5'    
+    # model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_32_CONVfilters_16_jpg128_2fps_val4_t5_seq10ss10_4hl_32ubs16_flipcropshade_run4.h5'    
+
+    # model_fn = 'models_hg/BEST_MODEL_2stream_5d_adadelta_LSTMunits_32_CONVfilters_16_add_v4_t3_4hl_128jpg2fps_seq10_bs8_MAG_adadelta_flipcropshade.h5'
+    # model_fn = 'models/BEST_MODEL_2stream_5d_adadelta_LSTMunits_32_CONVfilters_16_add_v4_t5_4hl_128jpg2fps_seq10_bs8_MAG_adadelta_flipcropshade_run3.h5'
+    # model_fn = 'models/BEST_MODEL_2stream_5d_adadelta_LSTMunits_32_CONVfilters_16_add_v4_t5_4hl_128jpg2fps_seq10_bs8_MAG_adadelta_flipcropshade_run2.h5'
+    # model_fn = 'models/BEST_MODEL_2stream_5d_adadelta_LSTMunits_32_CONVfilters_16_add_v4_t0_4hl_128jpg2fps_seq10_bs8_MAG_adadelta_flipcropshade_run4.h5'
+    # model_fn = 'models/BEST_MODEL_2stream_5d_adadelta_LSTMunits_32_CONVfilters_16_add_v4_t5_4hl_128jpg2fps_seq10_bs8_MAG_adadelta_flipcropshade_run5.h5'
+
+    model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_32_CONVfilters_16_jpg128_2fps_val4_t1_seq10ss10_4hl_32ubs16_no_aug_run2.h5'
 
 # Parse the command line arguments
 
