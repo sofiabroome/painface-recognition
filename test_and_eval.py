@@ -46,7 +46,6 @@ class Evaluator:
         print('Scores: ', scores)
         print('Model metrics: ', model.metrics_names)
 
-
         assert(y_test.shape == y_pred.shape)
 
         if len(y_pred.shape) > 2: # If sequential data
@@ -71,7 +70,6 @@ class Evaluator:
         print('y_pred and y_pred.shape: ', y_pred, y_pred.shape)
 
         self.print_and_save_evaluations(y_test, y_pred, softmax_predictions, args)
-
 
     def look_at_classifications(self, y_true, y_pred, paths, softmax_predictions):
         TP_ind = get_index_of_type_of_classification(y_true, y_pred, true=1, pred=1)
