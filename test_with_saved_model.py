@@ -184,12 +184,14 @@ def get_data_2stream_5d_input(dh,
 
 def run():
     dh = DataHandler(kwargs.data_path, kwargs.of_path, 
+                     kwargs.data_path + 'overview.csv',
+                     ['Pain'],  # Here one can append f. ex. 'Observer'
                      (kwargs.input_width, kwargs.input_height),
                      kwargs.seq_length, kwargs.seq_stride,
                      kwargs.batch_size, COLOR,
                      kwargs.nb_labels, kwargs.aug_flip, kwargs.aug_crop, kwargs.aug_light)
 
-    ev = Evaluator(True, True, True, TARGET_NAMES, kwargs.batch_size)
+    ev = Evaluator(True, True, True, True, TARGET_NAMES, kwargs.batch_size)
 
     # Read or create the per-horse dataframes listing all the frame paths and labels.
     horse_dfs = read_or_create_horse_dfs(dh)
@@ -198,8 +200,8 @@ def run():
         horse_dfs = read_or_create_horse_rgb_and_OF_dfs(dh=dh,
                                                         horse_dfs=horse_dfs)
 
-    train_horses = ast.literal_eval(kwargs.train_horses)
-    test_horses = ast.literal_eval(kwargs.test_horses)
+    train_horses = ast.literal_eval(kwargs.train_subjects)
+    test_horses = ast.literal_eval(kwargs.test_subjects)
 
     print('Horses to train on: ', train_horses)
     print('Horses to test on: ', test_horses)
@@ -207,7 +209,7 @@ def run():
     # Set the train-column to 1 (train), 2 (val) or 0 (test).
     if kwargs.val_fraction == 0:
         print("Using separate horse validation.")
-        val_horses = ast.literal_eval(kwargs.val_horses)
+        val_horses = ast.literal_eval(kwargs.val_subjects)
         print('Horses to validate on: ', val_horses)
         horse_dfs = set_train_val_test_in_df(train_horses, val_horses, test_horses, horse_dfs)
 
@@ -299,7 +301,7 @@ def run():
     train_generator, val_generator, test_generator, eval_generator = generators
 
     start = time.time()
-    test_steps, y_batches = compute_steps.compute_steps(df_test, train=False, kwargs=kwargs)
+    test_steps, y_batches, y_batches_paths = compute_steps.compute_steps(df_test, train=False, kwargs=kwargs)
     end = time.time()
     print('Took {} s to compute testing steps'.format(end - start))
 
@@ -308,34 +310,66 @@ def run():
     # Get test predictions
     y_preds, scores = ev.test(model, kwargs, test_generator, eval_generator, test_steps)
 
-    # Get the ground truth for the test set
-    # y_test = df_test.values
-    y_test = np.array(y_batches)  # Now in format [nb_batches, batch_size, seq_length, nb_classes]
-    nb_batches = y_test.shape[0]
-    # Make 3D
-    y_test = np.reshape(y_test, (nb_batches*kwargs.batch_size, kwargs.seq_length, kwargs.nb_labels))
+    if kwargs.nb_input_dims == 5:
+        # Get the ground truth for the test set
+        y_test = np.array(y_batches)  # Now in format [nb_batches, batch_size, seq_length, nb_classes]
+        y_test_paths = np.array(y_batches_paths)
+        if kwargs.test_run == 1:
+            nb_batches = int(y_preds.shape[0]/kwargs.batch_size)
+            nb_total = nb_batches * kwargs.batch_size * kwargs.seq_length
+            y_test = y_test[:nb_total]
+            y_test = np_utils.to_categorical(y_test, num_classes=kwargs.nb_labels)
+            y_test = np.reshape(y_test, (nb_batches*kwargs.batch_size,
+                                         kwargs.seq_length,
+                                         kwargs.nb_labels))
+            # y_test = y_test[:nb_batches]
+        else:
+            nb_batches = y_test.shape[0]
+            # Make 3D
+            y_test = np.reshape(y_test, (nb_batches*kwargs.batch_size,
+                                         kwargs.seq_length,
+                                         kwargs.nb_labels))
+            y_test_paths = np.reshape(y_test_paths, (nb_batches*kwargs.batch_size,
+                                                     kwargs.seq_length))
 
-    # Put y_preds into same format as y_test, take the max probabilities.
-    y_preds = np.argmax(y_preds, axis=2)
-    y_preds = np.array([np_utils.to_categorical(x, num_classes=kwargs.nb_labels) for x in y_preds])
+    if kwargs.nb_input_dims == 4:
+        y_test = np.array(y_batches)
 
+    # Put y_preds into same format as y_test, first take the max probabilities.
+    if kwargs.nb_input_dims == 5:
+        y_preds_argmax = np.argmax(y_preds, axis=2)
+        tesst = np.array([x.shape for x in y_preds])
+        y_preds_argmax = np.array([np_utils.to_categorical(x,
+                                   num_classes=kwargs.nb_labels) for x in y_preds_argmax])
+    
+    if kwargs.nb_input_dims == 4:
+        y_preds_argmax = np.argmax(y_preds, axis=1)
+        if kwargs.test_run == 1:
+            y_test = y_test[:len(y_preds)]
     # Evaluate the model's performance
-    ev.evaluate(model, y_test, y_preds, scores, kwargs)
+    ev.set_test_set(df_test)
+    ev.evaluate(model=model, y_test=y_test, y_pred=y_preds_argmax,
+                softmax_predictions=y_preds, scores=scores, args=kwargs, y_paths=y_test_paths)
+    # # Get the ground truth for the test set
+    # # y_test = df_test.values
+    # y_test = np.array(y_batches)  # Now in format [nb_batches, batch_size, seq_length, nb_classes]
+    # nb_batches = y_test.shape[0]
+    # # Make 3D
+    # y_test = np.reshape(y_test, (nb_batches*kwargs.batch_size, kwargs.seq_length, kwargs.nb_labels))
+
+    # # Put y_preds into same format as y_test, take the max probabilities.
+    # y_preds = np.argmax(y_preds, axis=2)
+    # y_preds = np.array([np_utils.to_categorical(x, num_classes=kwargs.nb_labels) for x in y_preds])
+
+    # # Evaluate the model's performance
+    # ev.evaluate(model, y_test, y_preds, scores, kwargs)
 
 
 if __name__ == '__main__':
     arg_parser = arg_parser.ArgParser(len(sys.argv))
     kwargs = arg_parser.parse()
 
-    # model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_32_CONVfilters_16_jpg128_2fps_val4_t0_seq10ss10_4hl_32ubs16_flipcropshade.h5'    
-    # model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_32_CONVfilters_16_jpg128_2fps_val4_t0_seq10ss10_4hl_32ubs16_flipcropshade_run2.h5'    
-    # model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_32_CONVfilters_16_jpg128_2fps_val4_t5_seq10ss10_4hl_32ubs16_flipcropshade_run4.h5'    
-
-    # model_fn = 'models_hg/BEST_MODEL_2stream_5d_adadelta_LSTMunits_32_CONVfilters_16_add_v4_t3_4hl_128jpg2fps_seq10_bs8_MAG_adadelta_flipcropshade.h5'
-    # model_fn = 'models/BEST_MODEL_2stream_5d_adadelta_LSTMunits_32_CONVfilters_16_add_v4_t5_4hl_128jpg2fps_seq10_bs8_MAG_adadelta_flipcropshade_run3.h5'
-    # model_fn = 'models/BEST_MODEL_2stream_5d_adadelta_LSTMunits_32_CONVfilters_16_add_v4_t5_4hl_128jpg2fps_seq10_bs8_MAG_adadelta_flipcropshade_run2.h5'
-    # model_fn = 'models/BEST_MODEL_2stream_5d_adadelta_LSTMunits_32_CONVfilters_16_add_v4_t0_4hl_128jpg2fps_seq10_bs8_MAG_adadelta_flipcropshade_run4.h5'
-    model_fn = 'models/BEST_MODEL_2stream_5d_adadelta_LSTMunits_32_CONVfilters_16_add_v4_t5_4hl_128jpg2fps_seq10_bs8_MAG_adadelta_flipcropshade_run5.h5'
+    model_fn = 'models/BEST_MODEL_2stream_5d_adadelta_LSTMunits_32_CONVfilters_16_add_v4_t0_4hl_128jpg2fps_seq10_bs8_MAG_adadelta_noaug_run5.h5'
 
 # Parse the command line arguments
 
