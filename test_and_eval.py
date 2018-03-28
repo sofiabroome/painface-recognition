@@ -51,7 +51,7 @@ class Evaluator:
             y_pred, paths = get_majority_vote_3d(y_pred, y_paths)
             # softmax_predictions, _ = get_majority_vote_3d(softmax_predictions, y_paths)
             y_test, _ = get_majority_vote_3d(y_test, y_paths)
-        self.look_at_classifications(y_test, y_pred, paths, softmax_predictions)
+        # self.look_at_classifications(y_test, y_pred, paths, softmax_predictions)
         nb_preds = len(y_pred)
         nb_tests = len(y_test)
 
