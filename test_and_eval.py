@@ -51,7 +51,7 @@ class Evaluator:
             y_pred, paths = get_majority_vote_3d(y_pred, y_paths)
             # softmax_predictions, _ = get_majority_vote_3d(softmax_predictions, y_paths)
             y_test, _ = get_majority_vote_3d(y_test, y_paths)
-        self.look_at_classifications(y_test, y_pred, paths, softmax_predictions)
+        # self.look_at_classifications(y_test, y_pred, paths, softmax_predictions)
         nb_preds = len(y_pred)
         nb_tests = len(y_test)
 
@@ -103,19 +103,13 @@ class Evaluator:
             print(cr)
 
         if self.cm:
-            if args.nb_labels != 2 or args.nb_input_dims == 5:
-                cm = confusion_matrix(np.argmax(y_test, axis=1), np.argmax(y_pred, axis=1))
-            else:
-                cm = confusion_matrix(y_test, y_pred)
+            cm = confusion_matrix(np.argmax(y_test, axis=1), np.argmax(y_pred, axis=1))
             print(cm)
             f = open(_make_cm_filename(args), 'w')
             print(cm, end="", file=f)
             f.close()
 
         if self.auc:
-            if args.nb_input_dims == 4:
-                y_test = np.array([np_utils.to_categorical(x,num_classes=args.nb_labels) for x in y_test])
-                y_test = np.reshape(y_test, (-1, args.nb_labels))
             auc_weighted = roc_auc_score(y_test, softmax_predictions, average='weighted')
             auc_macro = roc_auc_score(y_test, softmax_predictions, average='macro')
             auc_micro = roc_auc_score(y_test, softmax_predictions, average='micro')

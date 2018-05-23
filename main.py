@@ -447,9 +447,10 @@ def run():
                               eval_generator=eval_generator,
                               nb_steps=test_steps)
 
+    y_test = np.array(y_batches)  # Now in format [nb_batches, batch_size, seq_length, nb_classes]
+
     if args.nb_input_dims == 5:
         # Get the ground truth for the test set
-        y_test = np.array(y_batches)  # Now in format [nb_batches, batch_size, seq_length, nb_classes]
         y_test_paths = np.array(y_batches_paths)
         if args.test_run == 1:
             nb_batches = int(y_preds.shape[0]/args.batch_size)
@@ -470,17 +471,20 @@ def run():
                                                      args.seq_length))
 
     if args.nb_input_dims == 4:
-        y_test = np.array(y_batches)
+        nb_batches = y_test.shape[0]
+        y_test = np.reshape(y_test, (nb_batches*args.batch_size, args.nb_labels))
+        y_test_paths = np.array(y_batches_paths)
 
     # Put y_preds into same format as y_test, first take the max probabilities.
     if args.nb_input_dims == 5:
         y_preds_argmax = np.argmax(y_preds, axis=2)
-        tesst = np.array([x.shape for x in y_preds])
         y_preds_argmax = np.array([np_utils.to_categorical(x,
                                    num_classes=args.nb_labels) for x in y_preds_argmax])
     
     if args.nb_input_dims == 4:
         y_preds_argmax = np.argmax(y_preds, axis=1)
+        y_preds_argmax = np.array([np_utils.to_categorical(x,
+                                   num_classes=args.nb_labels) for x in y_preds_argmax])
         if args.test_run == 1:
             y_test = y_test[:len(y_preds)]
     # Evaluate the model's performance
