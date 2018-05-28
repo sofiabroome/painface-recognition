@@ -60,17 +60,17 @@ def read_or_create_subject_dfs(dh, subject_ids):
     return subject_dfs
 
 
-def read_or_create_subject_rgb_and_OF_dfs(dh, subject_dfs):
+def read_or_create_subject_rgb_and_OF_dfs(dh, subject_ids, subject_dfs):
     # Read or create the per-subject optical flow files listing all the frame paths and labels.
     subject_rgb_OF_dfs = []
-    for subject_id in range(1, 7):
+    for ind, subject_id in enumerate(subject_ids):
         print(kwargs.data_path)
-        subject_of_csv_path = dh.of_path + '/subject_' + str(subject_id) + '.csv'
+        subject_of_csv_path = dh.of_path + subject_id + '.csv'
         if os.path.isfile(subject_of_csv_path):
             hdf = pd.read_csv(subject_of_csv_path)
         else:
             print('Making a DataFrame for subject id: ', subject_id)
-            hdf = dh.save_OF_paths_to_df(subject_id, subject_dfs[subject_id-1])
+            hdf = dh.save_OF_paths_to_df(subject_id, subject_dfs[ind])
             hdf.to_csv(path_or_buf=subject_of_csv_path)
         subject_rgb_OF_dfs.append(hdf)
     return subject_rgb_OF_dfs
@@ -204,7 +204,8 @@ def run():
 
     if '2stream' in kwargs.model or kwargs.data_type == 'of':
         subject_dfs = read_or_create_subject_rgb_and_OF_dfs(dh=dh,
-                                                        subject_dfs=subject_dfs)
+                                                            subject_ids=subject_ids,
+                                                            subject_dfs=subject_dfs)
 
     train_subjects = ast.literal_eval(kwargs.train_subjects)
     test_subjects = ast.literal_eval(kwargs.test_subjects)
@@ -374,21 +375,11 @@ def run():
 
 
 if __name__ == '__main__':
+    # Parse the command line arguments
     arg_parser = arg_parser.ArgParser(len(sys.argv))
     kwargs = arg_parser.parse()
 
-    # model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_32_CONVfilters_16_jpg128_2fps_val4_t0_seq10ss10_4hl_32ubs16_flipcropshade.h5'    
-    # model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_32_CONVfilters_16_jpg128_2fps_val4_t0_seq10ss10_4hl_32ubs16_flipcropshade_run2.h5'    
-    # model_fn = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_32_CONVfilters_16_jpg128_2fps_val4_t5_seq10ss10_4hl_32ubs16_flipcropshade_run4.h5'    
-
-    # model_fn = 'models_hg/BEST_MODEL_2stream_5d_adadelta_LSTMunits_32_CONVfilters_16_add_v4_t3_4hl_128jpg2fps_seq10_bs8_MAG_adadelta_flipcropshade.h5'
-    # model_fn = 'models/BEST_MODEL_2stream_5d_adadelta_LSTMunits_32_CONVfilters_16_add_v4_t5_4hl_128jpg2fps_seq10_bs8_MAG_adadelta_flipcropshade_run3.h5'
-    # model_fn = 'models/BEST_MODEL_2stream_5d_adadelta_LSTMunits_32_CONVfilters_16_add_v4_t5_4hl_128jpg2fps_seq10_bs8_MAG_adadelta_flipcropshade_run2.h5'
-    # model_fn = 'models/BEST_MODEL_2stream_5d_adadelta_LSTMunits_32_CONVfilters_16_add_v4_t0_4hl_128jpg2fps_seq10_bs8_MAG_adadelta_flipcropshade_run4.h5'
-    # model_fn = 'models/BEST_MODEL_2stream_5d_adadelta_LSTMunits_32_CONVfilters_16_add_v4_t5_4hl_128jpg2fps_seq10_bs8_MAG_adadelta_flipcropshade_run5.h5'
-
-# Parse the command line arguments
-
+    model_fn = 'models/BEST_MODEL_2stream_5d_adadelta_LSTMunits_32_CONVfilters_16_add_v4_t3_1hl_128jpg2fps_seq10_bs8_MAG_adadelta_noaug_run2.h5'
 
     # Run the whole program, from preparing the data to evaluating
     # the model's test performance
