@@ -344,6 +344,7 @@ class DataHandler:
         print(len(df))
         print('Datatype:')
         print(data_type)
+
         while True:
             if train:
                 # Shuffle blocks between epochs.
@@ -355,7 +356,7 @@ class DataHandler:
                     y_list = []
                 if data_type == 'rgb':
                     x = self.get_image(row['Path'])
-                    # x /= 255
+                    x /= 255
                 if data_type == 'of':
                     x = np.load(row['OF_Path'])
                     extra_channel = np.zeros((x.shape[0], x.shape[1], 1))
