@@ -64,6 +64,10 @@ class MyModel:
             print("Conv2d-lstm model informed")
             self.model = self.conv2d_lstm_informed()
 
+        if self.name == 'conv2d_informed':
+            print("Conv2d informed model")
+            self.model = self.conv2d_informed()
+
         if self.name == 'inception_lstm_5d_input':
             print('inception_lstm_5d_input')
             self.model = self.inception_lstm_5d_input()
@@ -437,6 +441,44 @@ class MyModel:
                             input_shape=(None, self.seq_length, None),
                             return_sequences=False,
                             implementation=2)))
+        if top_layer:
+            if self.nb_labels == 2:
+                print("2 labels, using sigmoid activation instead of softmax.")
+                model.add(Dense(self.nb_labels, activation='sigmoid'))
+            else:
+                model.add(Dense(self.nb_labels, activation='softmax'))
+        return model
+
+    def conv2d_informed(self, top_layer=True):
+        model = Sequential()
+        model.add(Convolution2D(filters=self.nb_conv_filters,
+                                kernel_size=(self.kernel_size, self.kernel_size),
+                                input_shape=(self.input_shape[0], self.input_shape[1], 3),
+                                batch_input_shape=(None, self.input_shape[0], self.input_shape[1], 3),
+                                activation='relu', kernel_initializer='he_uniform'))
+        model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size),
+                                activation='relu', kernel_initializer='he_uniform'))
+        model.add(MaxPooling2D())
+        model.add(Dropout(self.dropout_1))
+        model.add(BatchNormalization())
+        model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size),
+                                activation='relu', kernel_initializer='he_uniform'))
+        model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size),
+                                activation='relu', kernel_initializer='he_uniform'))
+        model.add(MaxPooling2D())
+        model.add(Dropout(self.dropout_1))
+        model.add(BatchNormalization())
+        model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size),
+                                activation='relu', kernel_initializer='he_uniform'))
+        model.add(MaxPooling2D())
+        model.add(Dropout(self.dropout_1))
+        model.add(BatchNormalization())
+        model.add(Convolution2D(filters=self.nb_conv_filters, kernel_size=(self.kernel_size, self.kernel_size),
+                                activation='relu', kernel_initializer='he_uniform'))
+        model.add(BatchNormalization())
+        model.add(Flatten())
+        model.add(Dense(self.nb_dense_units, activation='relu', kernel_initializer='he_uniform'))
+        model.add(Dropout(self.dropout_2))
         if top_layer:
             if self.nb_labels == 2:
                 print("2 labels, using sigmoid activation instead of softmax.")
