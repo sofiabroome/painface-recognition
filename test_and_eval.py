@@ -117,7 +117,7 @@ class Evaluator:
             print('Macro AUC: ', auc_macro)
             print('Micro AUC: ', auc_micro)
 
-            with open('auc' + args.image_identifier +'.txt', 'w') as f:
+            with open(args.model + "_" + args.image_identifier +'_auc' + '.txt', 'w') as f:
                 # print('Filename:', filename, file=f) 
                 print('Weighted AUC: ', auc_weighted, file=f)
                 print('Macro AUC: ', auc_macro, file=f)
