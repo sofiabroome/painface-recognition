@@ -1,4 +1,4 @@
-from keras.layers import Convolution2D, MaxPooling2D, MaxPooling3D, LSTM, Dense, Flatten
+from keras.layers import Convolution2D, MaxPooling2D, MaxPooling3D, GlobalAveragePooling2D, LSTM, Dense, Flatten
 from keras.layers import Dropout, BatchNormalization, concatenate, add, Input, Conv3D, multiply
 from keras.layers.convolutional_recurrent import ConvLSTM2D
 from keras.layers.wrappers import TimeDistributed
@@ -78,7 +78,12 @@ class MyModel:
 
         if self.name == 'inception_4d_input':
             print('inception_4d_input')
-            self.model = self.inception_4d_input()
+            self.model, base_model = self.inception_4d_input()
+            # first: train only the top layers (which were randomly initialized)
+            # i.e. freeze all convolutional InceptionV3 layers
+            for layer in base_model.layers:
+                layer.trainable = False
+            self.base_model = base_model
 
         if self.name == '2stream':
             print('2stream')
@@ -641,17 +646,26 @@ class MyModel:
         return model
 
     def inception_4d_input(self):
-        model = Sequential()
-        model.add(InceptionV3(include_top=False, input_shape=(self.input_shape[0],
-                                                              self.input_shape[1],
-                                                              3)))
-        model.add(Flatten())
-        if self.nb_labels == 2:
-            print("2 labels, using sigmoid activation instead of softmax.")
-            model.add(Dense(self.nb_labels, activation='sigmoid'))
-        else:
-            model.add(Dense(self.nb_labels, activation='softmax'))
-        return model
+        image_input = Input(shape=(self.input_shape[0], self.input_shape[1], 3))
+        base_model = InceptionV3(weights='imagenet', include_top=False)
+
+        x = base_model.output
+        x = GlobalAveragePooling2D()(x)
+        x = Dense(512, activation='relu')(x)
+        predictions = Dense(2, activation='sigmoid')(x)
+        model = Model(inputs=base_model.input, outputs=predictions)
+
+        # model = Sequential()
+        # model.add(InceptionV3(include_top=False, input_shape=(self.input_shape[0],
+        #                                                       self.input_shape[1],
+        #                                                       3)))
+        # model.add(Flatten())
+        # if self.nb_labels == 2:
+        #     print("2 labels, using sigmoid activation instead of softmax.")
+        #     model.add(Dense(self.nb_labels, activation='sigmoid'))
+        # else:
+        #     model.add(Dense(self.nb_labels, activation='softmax'))
+        return model, base_model
 
     def inception_lstm_5d_input(self, top_layer=True):
         model = Sequential()

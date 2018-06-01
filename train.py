@@ -33,14 +33,23 @@ def train(model_instance, args, train_steps, val_steps, val_fraction,
     best_model_path = create_best_model_path(model_instance, args)
     print('best model path:')
     print(best_model_path)
-    # Think about: choose between binary or categorical accuracy.
-    early_stopping = EarlyStopping(monitor='val_binary_accuracy',
-                                   patience=args.early_stopping)
-    checkpointer = ModelCheckpoint(filepath=best_model_path,
-                                   monitor="val_binary_accuracy",
-                                   verbose=1,
-                                   save_best_only=True,
-                                   mode='max')
+
+    if args.model == 'inception_4d_input':
+        early_stopping = EarlyStopping(monitor='val_loss',
+                                       patience=args.early_stopping)
+        checkpointer = ModelCheckpoint(filepath=best_model_path,
+                                       monitor="val_loss",
+                                       verbose=1,
+                                       save_best_only=True,
+                                       mode='min')
+    else:
+        early_stopping = EarlyStopping(monitor='val_binary_accuracy',
+                                       patience=args.early_stopping)
+        checkpointer = ModelCheckpoint(filepath=best_model_path,
+                                       monitor="val_binary_accuracy",
+                                       verbose=1,
+                                       save_best_only=True,
+                                       mode='max')
 
     catacc_test_history = CatAccTestHistory()
     catacc_train_history = CatAccTrainHistory()
@@ -63,6 +72,31 @@ def train(model_instance, args, train_steps, val_steps, val_fraction,
                                            validation_steps=val_steps,
                                            verbose=1,
                                            workers=args.nb_workers)
+        if args.model == 'inception_4d_input':
+            # let's visualize layer names and layer indices to see how many layers
+            # we should freeze:
+            for i, layer in enumerate(model_instance.base_model.layers):
+               print(i, layer.name)
+            for layer in model_instance.model.layers[:249]:
+                layer.trainable = False
+            for layer in model_instance.model.layers[249:]:
+               layer.trainable = True
+
+            from keras.optimizers import SGD
+            model_instance.model.compile(optimizer=SGD(lr=0.0001, momentum=0.9),
+                                                       loss='binary_crossentropy')
+            print('Model summary after unfreezing the layers after 249') 
+            print(model_instance.model.summary())
+            model_instance.model.fit_generator(generator=generator,
+                                               steps_per_epoch=train_steps,
+                                               epochs=args.nb_epochs,
+                                               callbacks=[early_stopping, checkpointer,
+                                                          binacc_test_history, binacc_train_history],
+                                               validation_data=val_generator,
+                                               validation_steps=val_steps,
+                                               verbose=1,
+                                               workers=args.nb_workers)
+
     else:
         if args.round_to_batch:
             X_train, y_train, X_val, y_val = val_split(X_train, y_train, val_fraction, args.batch_size)
