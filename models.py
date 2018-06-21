@@ -1,5 +1,5 @@
 from keras.layers import Convolution2D, MaxPooling2D, MaxPooling3D, GlobalAveragePooling2D, LSTM, Dense, Flatten
-from keras.layers import Dropout, BatchNormalization, concatenate, add, Input, Conv3D, multiply
+from keras.layers import Dropout, BatchNormalization, concatenate, add, Input, Conv3D, multiply, Activation
 from keras.layers.convolutional_recurrent import ConvLSTM2D
 from keras.layers.wrappers import TimeDistributed
 from keras.optimizers import Adam, Adagrad, Adadelta
@@ -708,6 +708,8 @@ class MyModel:
         return model
 
     def convolutional_LSTM(self, channels=3, top_layer=True):
+        from keras import backend as K  # Have not confirmed that this makes a difference..
+        K.set_learning_phase(0) 
         model = Sequential()
         if self.nb_lstm_layers >= 1:
             model.add(ConvLSTM2D(filters=self.nb_lstm_units,
@@ -742,7 +744,8 @@ class MyModel:
         model.add(TimeDistributed(Flatten()))
         if top_layer:
             if self.nb_labels == 2:
-                model.add((Dense(self.nb_labels, activation="sigmoid")))
+                model.add(Dense(self.nb_labels))
+                model.add(Activation('sigmoid'))
             else:
                 model.add((Dense(self.nb_labels, activation="softmax")))
         return model
