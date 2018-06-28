@@ -97,6 +97,8 @@ Logs/
 examples/
 practical_scripts/
 metadata/
+gradcam/
+tensorboard/
 
 # Mac-stuff
 .DS_Store
