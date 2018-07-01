@@ -417,7 +417,6 @@ class DataHandler:
         gaussian = np.random.normal(mean, sigma, (col, row, ch)).astype(np.float32)
 
         for img in images:
-            print(img.shape)
             gaussian_img = cv2.addWeighted(img, im_weight, gaussian, noise_weight, 0)
             gaussian_noise_imgs.append(gaussian_img)
     
