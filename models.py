@@ -109,6 +109,10 @@ class MyModel:
             print('Convolutional LSTM (not fully connected)')
             self.model = self.convolutional_LSTM(channels=3)
 
+        if self.name == 'rodriguez':
+            print('Rodriguez Deep pain model')
+            self.model = self.rodriguez()
+
         if self.optimizer == 'adam':
             optimizer = Adam(lr=self.lr)
         elif self.optimizer == 'adadelta':
@@ -183,6 +187,26 @@ class MyModel:
         two_stream_model = Model(inputs=[image_input, of_input], outputs=[output])
         return two_stream_model
 
+    def rodriguez(self):
+        from keras.applications.vgg16 import VGG16
+        image_input = Input(shape=(self.seq_length,
+                                   self.input_shape[0],
+                                   self.input_shape[1],
+                                   3))
+        base_model = TimeDistributed(VGG16(weights='imagenet',
+                                           include_top=False,  
+                                           input_shape=(self.input_shape[0],
+                                                        self.input_shape[1],
+                                                        3)))(image_input)
+        flatten = TimeDistributed(Flatten())(base_model)
+        dense = Dense(self.nb_dense_units)(flatten)
+        lstm_layer = LSTM(self.nb_lstm_units,
+                          return_sequences=True)(dense)
+        if self.nb_labels == 2:
+            output = Dense(self.nb_labels, activation='sigmoid')(lstm_layer)
+        model = Model(inputs=[image_input], outputs=[output])
+        return model
+
     def two_stream_5d(self):
         # Functional API
         # rgb_model = self.conv3d_lstm(channels=3, top_layer=False, stateful=False)
@@ -201,8 +225,8 @@ class MyModel:
         of_input = Input(shape=(None, self.input_shape[0], self.input_shape[1], 3))
         encoded_of = of_model(of_input)
         
-        # merged = add([encoded_image, encoded_of])
-        merged = multiply([encoded_image, encoded_of])
+        merged = add([encoded_image, encoded_of])
+        # merged = multiply([encoded_image, encoded_of])
         # merged = concatenate([encoded_image, encoded_of], axis=-1)
         merged = Dropout(.2)(merged)
         # dense = Dense(self.nb_dense_units, activation='relu')(merged)
