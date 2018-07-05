@@ -43,8 +43,9 @@ if __name__ == '__main__':
     path_dict = dict((fn, p) for fn, p in zip(file_names, complete_paths))
 
     # Make all the subfolders for all the separate 60 sequences, in separate horse_id folders.
-    # NOTE: The horse_id folders need to be created beforehand, in the root data folder like so: ./data/horse_id.
-    # Only need to do once. Therefore commented now... great coding practice.
+    # NOTE: The horse_id folders need to be created beforehand, in the root data folder
+    # like so: ./data/horse_id. Only need to do once. 
+
     for h in range(1, 7):
         print("NEW HORSE")
         counter = 1  # Counter of non-unique videos.

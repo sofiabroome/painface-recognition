@@ -252,7 +252,8 @@ class MyModel:
         # dense = Dense(self.nb_dense_units, activation='relu')(merged)
 
         if self.nb_labels == 2:
-            output = Dense(self.nb_labels, activation='sigmoid')(merged)
+            dense = Dense(self.nb_labels)(merged)
+            output = Activation('sigmoid')(dense)
         else:
             output = Dense(self.nb_labels, activation='softmax')(merged)
 

@@ -284,8 +284,8 @@ def run():
     train_subjects = ast.literal_eval(args.train_subjects)
     test_subjects = ast.literal_eval(args.test_subjects)
 
-    print('Horses to train on: ', train_subjects)
-    print('Horses to test on: ', test_subjects)
+    print('Subjects to train on: ', train_subjects)
+    print('Subjects to test on: ', test_subjects)
 
     model = models.MyModel(args=args)
     dh = DataHandler(path=args.data_path,
@@ -308,6 +308,7 @@ def run():
                    auc=True,
                    target_names=TARGET_NAMES,
                    batch_size=args.batch_size)
+
     # Read or create the per-subject dataframes listing all the frame paths and labels.
     subject_dfs = read_or_create_subject_dfs(dh, subject_ids)  # Returns a list of dataframes, per subject.
 
