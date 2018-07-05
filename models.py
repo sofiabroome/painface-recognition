@@ -113,6 +113,10 @@ class MyModel:
             print('Rodriguez Deep pain model')
             self.model = self.rodriguez()
 
+        if self.name == 'vgg16':
+            print('VGG-16 with FC-layers fine-tuned.')
+            self.model = self.vgg16()
+
         if self.optimizer == 'adam':
             optimizer = Adam(lr=self.lr)
         elif self.optimizer == 'adadelta':
@@ -191,8 +195,7 @@ class MyModel:
         from keras.applications.vgg16 import VGG16
         image_input = Input(shape=(self.seq_length,
                                    self.input_shape[0],
-                                   self.input_shape[1],
-                                   3))
+                                   self.input_shape[1], 3))
         base_model = TimeDistributed(VGG16(weights='imagenet',
                                            include_top=False,  
                                            input_shape=(self.input_shape[0],
@@ -204,6 +207,23 @@ class MyModel:
                           return_sequences=True)(dense)
         if self.nb_labels == 2:
             output = Dense(self.nb_labels, activation='sigmoid')(lstm_layer)
+        model = Model(inputs=[image_input], outputs=[output])
+        return model
+
+    def vgg16(self):
+        from keras.applications.vgg16 import VGG16
+        image_input = Input(shape=(self.input_shape[0],
+                                   self.input_shape[1], 3))
+        base_model = VGG16(weights='imagenet',
+                           include_top=False,  
+                           input_shape=(self.input_shape[0],
+                                        self.input_shape[1],
+                                        3))(image_input)
+        flatten = Flatten()(base_model)
+        dense_1 = Dense(4096)(flatten)                 # According to the paper, the two 
+        dense_2 = Dense(self.nb_dense_units)(dense_1)  # FC-layers should have 4096 units each.
+        if self.nb_labels == 2:
+            output = Dense(self.nb_labels, activation='sigmoid')(dense_2)
         model = Model(inputs=[image_input], outputs=[output])
         return model
 
