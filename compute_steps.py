@@ -31,6 +31,10 @@ def compute_steps(df, train, kwargs):
     y_batches = []  # List where to put all the y_arrays generated.
     y_batches_paths = []
 
+    nb_aug = kwargs.aug_flip + kwargs.aug_crop + kwargs.aug_light
+    batch_requirement = 1 + nb_aug  # Normal sequence plus augmented sequences.
+    assert (kwargs.batch_size % batch_requirement) == 0
+
     for window_index in range(nw):
         start = window_index * ss
         stop = start + ws
