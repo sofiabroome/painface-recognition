@@ -85,8 +85,8 @@ def train(model_instance, args, train_steps, val_steps, val_fraction,
             from keras.optimizers import SGD
             model_instance.model.compile(optimizer=SGD(lr=0.0001, momentum=0.9),
                                                        loss='binary_crossentropy')
-            print('Model summary after unfreezing the layers after 249') 
-            print(model_instance.model.summary())
+            # print('Model summary after unfreezing the layers after 249') 
+            # print(model_instance.model.summary())
             model_instance.model.fit_generator(generator=generator,
                                                steps_per_epoch=train_steps,
                                                epochs=args.nb_epochs,

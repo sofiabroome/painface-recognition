@@ -38,7 +38,7 @@ def visualize(image, conv_output, conv_grad, gb_viz, number):
     ax = fig.add_subplot(111)
     imgplot = plt.imshow(img)
     ax.set_title('Input Image')
-    plt.savefig('gradcam/gradcam_' + str(number) + '_input.png')
+    plt.savefig('gradcam_results/gradcam_' + str(number) + '_input.png')
    
     from PIL import Image 
     fig = plt.figure()    
@@ -48,7 +48,7 @@ def visualize(image, conv_output, conv_grad, gb_viz, number):
     blend = Image.blend(bg, overlay, 0.2)
     imgplot = plt.imshow(blend)
     ax.set_title('Input Image with GradCAM Overlay')
-    plt.savefig('gradcam/gradcam_' + str(number) + '_overlay.png')
+    plt.savefig('gradcam_results/gradcam_' + str(number) + '_overlay.png')
 
     fig = plt.figure(figsize=(20, 20))    
     ax = fig.add_subplot(131)
@@ -77,13 +77,13 @@ def visualize(image, conv_output, conv_grad, gb_viz, number):
     imgplot = plt.imshow(gd_gb)
     ax.set_title('guided Grad-CAM')
 
-    plt.savefig('gradcam/gradcam_' + str(number) + '.png')
+    plt.savefig('gradcam_results/gradcam_' + str(number) + '.png')
 
     fig = plt.figure()
     ax = fig.add_subplot(111)
     imgplot = plt.imshow(gb_viz)
     ax.set_title('guided backpropagation')
-    plt.savefig('gradcam/gradcam_' + str(number) + '_guidedbp.png')
+    plt.savefig('gradcam_results/gradcam_' + str(number) + '_guidedbp.png')
 
     
     

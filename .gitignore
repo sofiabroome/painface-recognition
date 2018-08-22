@@ -92,12 +92,12 @@ ENV/
 # Ignore data folder
 data/
 data_test/
+gradcam_results/
 models/
 Logs/
 examples/
 practical_scripts/
 metadata/
-gradcam/
 tensorboard/
 
 # Mac-stuff
