@@ -79,7 +79,6 @@ def read_or_create_subject_rgb_and_OF_dfs(dh,
     """
     subject_rgb_OF_dfs = []
     for ind, subject_id in enumerate(subject_ids):
-        print(args.data_path)
         subject_of_csv_path = dh.of_path + str(subject_id) + '.csv'
         if os.path.isfile(subject_of_csv_path):
             sdf = pd.read_csv(subject_of_csv_path)
