@@ -1,3 +1,6 @@
+import sys
+sys.path.append('../')
+
 import keras
 from keras.layers import ConvLSTM2D, TimeDistributed, MaxPooling2D, Dense, Activation, Flatten, BatchNormalization, InputLayer
 from keras.metrics import binary_accuracy as accuracy
@@ -10,9 +13,7 @@ import pandas as pd
 import numpy as np
 import tempfile
 
-from .. import image_processor
-from image_processor import process_image
-from helpers import find_between
+from helpers import process_image, find_between
 import visualize_gradcam
 
 
@@ -127,49 +128,49 @@ width = 128
 height = 128
 channels = 3
 
-image_paths = ['data/jpg_128_128_2fps/horse_2/2_4/frame_000100.jpg', 
-               'data/jpg_128_128_2fps/horse_2/2_4/frame_000101.jpg', 
-               'data/jpg_128_128_2fps/horse_2/2_4/frame_000102.jpg', 
-               'data/jpg_128_128_2fps/horse_2/2_4/frame_000103.jpg', 
-               'data/jpg_128_128_2fps/horse_2/2_4/frame_000104.jpg', 
-               'data/jpg_128_128_2fps/horse_2/2_4/frame_000105.jpg', 
-               'data/jpg_128_128_2fps/horse_2/2_4/frame_000106.jpg', 
-               'data/jpg_128_128_2fps/horse_2/2_4/frame_000107.jpg', 
-               'data/jpg_128_128_2fps/horse_2/2_4/frame_000108.jpg', 
-               'data/jpg_128_128_2fps/horse_2/2_4/frame_000109.jpg']
+image_paths = ['../data/jpg_128_128_2fps/horse_2/2_4/frame_000100.jpg', 
+               '../data/jpg_128_128_2fps/horse_2/2_4/frame_000101.jpg', 
+               '../data/jpg_128_128_2fps/horse_2/2_4/frame_000102.jpg', 
+               '../data/jpg_128_128_2fps/horse_2/2_4/frame_000103.jpg', 
+               '../data/jpg_128_128_2fps/horse_2/2_4/frame_000104.jpg', 
+               '../data/jpg_128_128_2fps/horse_2/2_4/frame_000105.jpg', 
+               '../data/jpg_128_128_2fps/horse_2/2_4/frame_000106.jpg', 
+               '../data/jpg_128_128_2fps/horse_2/2_4/frame_000107.jpg', 
+               '../data/jpg_128_128_2fps/horse_2/2_4/frame_000108.jpg', 
+               '../data/jpg_128_128_2fps/horse_2/2_4/frame_000109.jpg']
 
-of_paths = ['data/jpg_128_128_16fps_OF_magnitude_cv2/horse_2/2_4/flow_000793.jpg',
-            'data/jpg_128_128_16fps_OF_magnitude_cv2/horse_2/2_4/flow_000801.jpg',
-            'data/jpg_128_128_16fps_OF_magnitude_cv2/horse_2/2_4/flow_000809.jpg',
-            'data/jpg_128_128_16fps_OF_magnitude_cv2/horse_2/2_4/flow_000817.jpg',
-            'data/jpg_128_128_16fps_OF_magnitude_cv2/horse_2/2_4/flow_000825.jpg',
-            'data/jpg_128_128_16fps_OF_magnitude_cv2/horse_2/2_4/flow_000833.jpg',
-            'data/jpg_128_128_16fps_OF_magnitude_cv2/horse_2/2_4/flow_000841.jpg',
-            'data/jpg_128_128_16fps_OF_magnitude_cv2/horse_2/2_4/flow_000849.jpg',
-            'data/jpg_128_128_16fps_OF_magnitude_cv2/horse_2/2_4/flow_000857.jpg',
-            'data/jpg_128_128_16fps_OF_magnitude_cv2/horse_2/2_4/flow_000865.jpg']
+of_paths = ['../data/jpg_128_128_16fps_OF_magnitude_cv2/horse_2/2_4/flow_000793.jpg',
+            '../data/jpg_128_128_16fps_OF_magnitude_cv2/horse_2/2_4/flow_000801.jpg',
+            '../data/jpg_128_128_16fps_OF_magnitude_cv2/horse_2/2_4/flow_000809.jpg',
+            '../data/jpg_128_128_16fps_OF_magnitude_cv2/horse_2/2_4/flow_000817.jpg',
+            '../data/jpg_128_128_16fps_OF_magnitude_cv2/horse_2/2_4/flow_000825.jpg',
+            '../data/jpg_128_128_16fps_OF_magnitude_cv2/horse_2/2_4/flow_000833.jpg',
+            '../data/jpg_128_128_16fps_OF_magnitude_cv2/horse_2/2_4/flow_000841.jpg',
+            '../data/jpg_128_128_16fps_OF_magnitude_cv2/horse_2/2_4/flow_000849.jpg',
+            '../data/jpg_128_128_16fps_OF_magnitude_cv2/horse_2/2_4/flow_000857.jpg',
+            '../data/jpg_128_128_16fps_OF_magnitude_cv2/horse_2/2_4/flow_000865.jpg']
 
 
-# image_paths = ['data/jpg_128_128_2fps/horse_2/2_1a/frame_000500.jpg', 
-#                'data/jpg_128_128_2fps/horse_2/2_1a/frame_000501.jpg', 
-#                'data/jpg_128_128_2fps/horse_2/2_1a/frame_000502.jpg', 
-#                'data/jpg_128_128_2fps/horse_2/2_1a/frame_000503.jpg', 
-#                'data/jpg_128_128_2fps/horse_2/2_1a/frame_000504.jpg', 
-#                'data/jpg_128_128_2fps/horse_2/2_1a/frame_000505.jpg', 
-#                'data/jpg_128_128_2fps/horse_2/2_1a/frame_000506.jpg', 
-#                'data/jpg_128_128_2fps/horse_2/2_1a/frame_000507.jpg', 
-#                'data/jpg_128_128_2fps/horse_2/2_1a/frame_000508.jpg', 
-#                'data/jpg_128_128_2fps/horse_2/2_1a/frame_000509.jpg']
+# image_paths = ['../data/jpg_128_128_2fps/horse_2/2_1a/frame_000500.jpg', 
+#                '../data/jpg_128_128_2fps/horse_2/2_1a/frame_000501.jpg', 
+#                '../data/jpg_128_128_2fps/horse_2/2_1a/frame_000502.jpg', 
+#                '../data/jpg_128_128_2fps/horse_2/2_1a/frame_000503.jpg', 
+#                '../data/jpg_128_128_2fps/horse_2/2_1a/frame_000504.jpg', 
+#                '../data/jpg_128_128_2fps/horse_2/2_1a/frame_000505.jpg', 
+#                '../data/jpg_128_128_2fps/horse_2/2_1a/frame_000506.jpg', 
+#                '../data/jpg_128_128_2fps/horse_2/2_1a/frame_000507.jpg', 
+#                '../data/jpg_128_128_2fps/horse_2/2_1a/frame_000508.jpg', 
+#                '../data/jpg_128_128_2fps/horse_2/2_1a/frame_000509.jpg']
 
 nb_ims = len(image_paths)
 horse_id = find_between(image_paths[0], 'fps/', '/')
 video_id = find_between(image_paths[0], horse_id + '/', '/frame')
-metadata = pd.read_csv('videos_overview_missingremoved.csv', sep=';')
-pain = metadata[metadata['Video_id']==video_id]['Pain'].values[0]
+metadata = pd.read_csv('../metadata/videos_overview_missingremoved.csv', sep=';')
+pain = metadata[metadata['Video_ID']==video_id]['Pain'].values[0]
 
-# best_model_path = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_6_CONVfilters_5_test5d.h5'
-# best_model_path = 'models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_32_CONVfilters_None_jpg128_2fps_val4_t1_seq10ss10_4hl_32ubs16_no_aug_june24th.h5'
-best_model_path = 'models/BEST_MODEL_2stream_5d_adadelta_LSTMunits_32_CONVfilters_16_add_v4_t0_4hl_128jpg2fps_seq10_bs8_adadelta_noaug_run1_rerun_for_gradcam.h5'
+# best_model_path = '../models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_6_CONVfilters_5_test5d.h5'
+# best_model_path = '../models/BEST_MODEL_convolutional_LSTM_adadelta_LSTMunits_32_CONVfilters_None_jpg128_2fps_val4_t1_seq10ss10_4hl_32ubs16_no_aug_june24th.h5'
+best_model_path = '../models/BEST_MODEL_2stream_5d_adadelta_LSTMunits_32_CONVfilters_16_add_v4_t0_4hl_128jpg2fps_seq10_bs8_adadelta_noaug_run1_rerun_for_gradcam.h5'
 
 if pain:
     label_onehot = np.array([1 if i == 1 else 0 for i in range(2)])
