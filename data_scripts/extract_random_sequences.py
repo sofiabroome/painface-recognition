@@ -25,7 +25,7 @@ def check_if_unique_in_df(file_name, df):
     param df: pd.DataFrame
     :return: int [nb occurences of sequences from the same video clip]
     """
-    return len(df[df['Video_id'] == file_name])
+    return len(df[df['Video_ID'] == file_name])
 
 
 def format_timedelta(td):
@@ -48,8 +48,8 @@ def get_random_start(video_row, sample_length):
 
 
 if __name__ == '__main__':
-    df = pd.read_csv('videos_overview_missingremoved.csv', sep=';')
-    root_dir = 'data/Experimental_pain/'
+    df = pd.read_csv('../metadata/videos_overview_missingremoved.csv', sep=';')
+    root_dir = '../data/Experimental_pain/'
     complete_paths = []
     file_names = []
     filename = -1
@@ -65,7 +65,7 @@ if __name__ == '__main__':
     clip_info = []
     column_headers = ['Path', 'Video_ID', 'Pain', 'Start']
 
-    output_dir = 'data/random_sequences_extra_videos/'
+    output_dir = '../data/random_sequences_extra_videos/'
     lo = 1000
     hi = 1600
     random_ints = list(set([int(random.uniform(lo, hi)) for i in range(500)]))
@@ -83,7 +83,7 @@ if __name__ == '__main__':
             pain = row['Pain']
             print(video_length)
 
-            video_ID = row['Video_id']
+            video_ID = row['Video_ID']
             video_path = str(get_path(video_ID))
             print('VIDEO PATH:')
             print(video_path)
@@ -113,5 +113,5 @@ if __name__ == '__main__':
             subprocess.call(ffmpeg_command)
 
     clip_info_df = pd.DataFrame(clip_info, columns=column_headers)
-    clip_info_df.to_csv(path_or_buf='data/random_sequences_extra_videos/clip_info.csv')
+    clip_info_df.to_csv(path_or_buf='../data/random_sequences_extra_videos/clip_info.csv')
 
