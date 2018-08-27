@@ -97,7 +97,6 @@ models/
 Logs/
 examples/
 practical_scripts/
-metadata/
 tensorboard/
 
 # Mac-stuff

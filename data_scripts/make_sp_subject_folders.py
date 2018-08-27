@@ -16,8 +16,8 @@ def make_folders():
 
 
 if __name__ == '__main__':
-    dir_in_which = 'data/ShoulderPain172x129_OF_cv2/'
-    subject_ID_df = pd.read_csv('shoulder_pain_subjects.csv')
+    dir_in_which = '../data/ShoulderPain172x129_OF_cv2/'
+    subject_ID_df = pd.read_csv('../metadata/shoulder_pain_subjects.csv')
     subject_ids = subject_ID_df['Subject'].values
     
     make_folders()

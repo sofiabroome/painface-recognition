@@ -1,9 +1,11 @@
 from __future__ import absolute_import
 from __future__ import print_function
 from __future__ import division
+import sys
+sys.path.append("..") # Adds higher directory to python modules path.
+
 from extract_frames_into_folders import check_if_unique_in_df
-from image_processor import process_image
-from helpers import find_between
+from helpers import process_image, find_between
 from scipy.misc import imsave
 
 import pandas as pd
@@ -11,7 +13,6 @@ import numpy as np
 import subprocess
 import time
 import argparse
-import pyflow
 import cv2
 import os
 
@@ -194,19 +195,19 @@ def iterate_over_frames(frequency):
 if __name__ == '__main__':
     # CSV with info about all the video sequences.
     # df = pd.read_csv('videos_overview_missingremoved.csv', sep=';')
-    df = pd.read_csv('shoulder_pain_overview.csv')
+    df = pd.read_csv('../metadata/shoulder_pain_overview.csv')
 
     # CSV with unique subject overview.
     # subject_IDs = pd.read_csv('horse_subjects.csv')
-    subject_ID_df = pd.read_csv('shoulder_pain_subjects.csv')
+    subject_ID_df = pd.read_csv('../metadata/shoulder_pain_subjects.csv')
     
     # Directory with the frames from which to extract the OF.
     # root_dir = 'data/jpg_128_128_16fps/'
-    root_dir = 'data/ShoulderPain_172x129/Images/'
+    root_dir = '../data/ShoulderPain_172x129/Images/'
     # Output root directory (will contain subfolders for every sequence).
     # Need to make this folder before running, and the horse_x folders in it.
     # output_root_dir = 'data/jpg_128_128_16fps_OF_magnitude_cv2/'
-    output_root_dir = 'data/ShoulderPain172x129_OF_cv2/'
+    output_root_dir = '../data/ShoulderPain172x129_OF_cv2/'
 
     width = 172
     height = 129

@@ -1,5 +1,8 @@
-from image_processor import process_image
+import sys
+sys.path.append('../')
+
 from matplotlib import pyplot as plt
+from helpers import process_image
 import matplotlib.image as mpimg
 import tensorflow as tf
 import numpy as np
@@ -247,8 +250,8 @@ if __name__ == '__main__':
     height = 128
     crop_width = 99
     crop_height = 99
-    path_root = 'data/jpg_128_128_2fps/horse_3/3_1c/frame_0000'
-    path = 'data/jpg_128_128_2fps/horse_3/3_1c/frame_000020.jpg'
+    path_root = '../data/jpg_128_128_2fps/horse_3/3_1c/frame_0000'
+    path = '../data/jpg_128_128_2fps/horse_3/3_1c/frame_000020.jpg'
 
     path_list = []
 
@@ -290,48 +293,6 @@ if __name__ == '__main__':
     rows = 5
     cols = 5
     f, axarr = plt.subplots(rows, cols, figsize=(20,10))
-    # for i in range(0, rows):
-    #     for j in range(0, cols):
-    #         if j == 0:
-    #             im = mpimg.imread(path_list[i])
-    #             axarr[i, j].imshow(im)
-    #         elif j == 1:
-    #             im = cropped_ims[i]
-    #             im /= 255
-    #             axarr[i, j].imshow(im)
-    #         elif j == 2:
-    #             im = flipped_ims[i]
-    #             im /= 255
-    #             axarr[i, j].imshow(im)
-    #         elif j == 3:
-    #             im = adjusted_contrast_ims[i]
-    #             im /= 255
-    #             axarr[i, j].imshow(im)
-    #         else:
-    #             im = gn_adjusted_light_ims[i]
-    #             im /= 255
-    #             axarr[i, j].imshow(im)
-    # for i in range(0, rows):
-    #     for j in range(0, cols):
-    #         if j == 0:
-    #             im = mpimg.imread(path_list[i])
-    #             axarr[i, j].imshow(im)
-    #         elif j == 1:
-    #             im = gn_adjusted_light_ims[i]
-    #             im /= 255
-    #             axarr[i, j].imshow(im)
-    #         elif j == 2:
-    #             im = gn_adjusted_light_ims2[i]
-    #             im /= 255
-    #             axarr[i, j].imshow(im)
-    #         elif j == 3:
-    #             im = gn_adjusted_light_ims3[i]
-    #             im /= 255
-    #             axarr[i, j].imshow(im)
-    #         else:
-    #             im = gn_adjusted_light_ims4[i]
-    #             im /= 255
-    #             axarr[i, j].imshow(im)
     for i in range(0, rows):
         for j in range(0, cols):
             if j == 0:
