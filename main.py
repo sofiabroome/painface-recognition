@@ -408,27 +408,28 @@ def run():
                                            df_val=df_val)
 
     train_generator, val_generator, test_generator, eval_generator = generators
+    
+    start = time.time()
+    train_steps, _, _ = compute_steps.compute_steps(df_train, train=True, kwargs=args)
+    end = time.time()
+    print('Took {} s to compute training steps'.format(end - start))
+
+    start = time.time()
+    val_steps, _, _ = compute_steps.compute_steps(df_val, train=False, kwargs=args)
+    end = time.time()
+    print('Took {} s to compute validation steps'.format(end - start))
+
+    start = time.time()
+    test_steps, y_batches, y_batches_paths = compute_steps.compute_steps(df_test, train=False, kwargs=args)
+    end = time.time()
+    print('Took {} s to compute testing steps'.format(end - start))
 
     if args.test_run == 1:
         train_steps = 2
         val_steps = 2
         test_steps = 2
-        y_batches = df_test['Pain'].values
-    else:
-        start = time.time()
-        train_steps, _, _ = compute_steps.compute_steps(df_train, train=True, kwargs=args)
-        end = time.time()
-        print('Took {} s to compute training steps'.format(end - start))
-
-        start = time.time()
-        val_steps, _, _ = compute_steps.compute_steps(df_val, train=False, kwargs=args)
-        end = time.time()
-        print('Took {} s to compute validation steps'.format(end - start))
-
-        start = time.time()
-        test_steps, y_batches, y_batches_paths = compute_steps.compute_steps(df_test, train=False, kwargs=args)
-        end = time.time()
-        print('Took {} s to compute testing steps'.format(end - start))
+        y_batches = y_batches[:test_steps]
+        y_batches_paths = y_batches_paths[:test_steps]
 
     # Train the model
     best_model_path = train(model_instance=model,
@@ -453,14 +454,13 @@ def run():
         # Get the ground truth for the test set
         y_test_paths = np.array(y_batches_paths)
         if args.test_run == 1:
+            y_test_paths = y_batches_paths[:2]
             nb_batches = int(y_preds.shape[0]/args.batch_size)
             nb_total = nb_batches * args.batch_size * args.seq_length
             y_test = y_test[:nb_total]
-            y_test = np_utils.to_categorical(y_test, num_classes=args.nb_labels)
             y_test = np.reshape(y_test, (nb_batches*args.batch_size,
                                          args.seq_length,
                                          args.nb_labels))
-            # y_test = y_test[:nb_batches]
         else:
             nb_batches = y_test.shape[0]
             # Make 3D
@@ -487,6 +487,7 @@ def run():
                                    num_classes=args.nb_labels) for x in y_preds_argmax])
         if args.test_run == 1:
             y_test = y_test[:len(y_preds)]
+
     # Evaluate the model's performance
     ev.set_test_set(df_test)
     ev.evaluate(model=model, y_test=y_test, y_pred=y_preds_argmax,

@@ -105,8 +105,11 @@ class Evaluator:
         if self.cm:
             cm = confusion_matrix(np.argmax(y_test, axis=1), np.argmax(y_pred, axis=1))
             print(cm)
+            correct = np.sum([ar[i] for i, ar in enumerate(cm)])
+            total_samples = np.sum(cm)
+            acc = correct/total_samples
             f = open(_make_cm_filename(args), 'w')
-            print(cm, end="", file=f)
+            print(cm,' ', acc, ' acc.', end="", file=f)
             f.close()
 
         if self.auc:
