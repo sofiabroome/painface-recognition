@@ -63,15 +63,6 @@ def train(model_instance, args, train_steps, val_steps, val_fraction,
         print("VAL STEPS:")
         print(val_steps)
 
-        model_instance.model.fit_generator(generator=generator,
-                                           steps_per_epoch=train_steps,
-                                           epochs=args.nb_epochs,
-                                           callbacks=[early_stopping, checkpointer,
-                                                      binacc_test_history, binacc_train_history],
-                                           validation_data=val_generator,
-                                           validation_steps=val_steps,
-                                           verbose=1,
-                                           workers=args.nb_workers)
         if args.model == 'inception_4d_input':
             # let's visualize layer names and layer indices to see how many layers
             # we should freeze:
@@ -87,6 +78,17 @@ def train(model_instance, args, train_steps, val_steps, val_fraction,
                                                        loss='binary_crossentropy')
             # print('Model summary after unfreezing the layers after 249') 
             # print(model_instance.model.summary())
+            model_instance.model.fit_generator(generator=generator,
+                                               steps_per_epoch=train_steps,
+                                               epochs=args.nb_epochs,
+                                               callbacks=[early_stopping, checkpointer,
+                                                          binacc_test_history, binacc_train_history],
+                                               validation_data=val_generator,
+                                               validation_steps=val_steps,
+                                               verbose=1,
+                                               workers=args.nb_workers)
+        else:
+
             model_instance.model.fit_generator(generator=generator,
                                                steps_per_epoch=train_steps,
                                                epochs=args.nb_epochs,
