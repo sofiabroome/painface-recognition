@@ -114,8 +114,8 @@ class MyModel:
             self.model = self.rodriguez()
 
         if self.name == 'vgg16':
-            print('VGG-16 with FC-layers fine-tuned.')
-            self.model = self.vgg16()
+            print('VGG-16 trained from scratch.')
+            self.model = self.vgg16(w=None)
 
         if self.optimizer == 'adam':
             optimizer = Adam(lr=self.lr)
@@ -210,11 +210,11 @@ class MyModel:
         model = Model(inputs=[image_input], outputs=[output])
         return model
 
-    def vgg16(self):
+    def vgg16(self, w):
         from keras.applications.vgg16 import VGG16
         image_input = Input(shape=(self.input_shape[0],
                                    self.input_shape[1], 3))
-        base_model = VGG16(weights='imagenet',
+        base_model = VGG16(weights=w,
                            include_top=False,  
                            input_shape=(self.input_shape[0],
                                         self.input_shape[1],
