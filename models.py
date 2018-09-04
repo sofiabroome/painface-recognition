@@ -72,12 +72,8 @@ class MyModel:
             print('inception_lstm_5d_input')
             self.model = self.inception_lstm_5d_input()
 
-        if self.name == 'inception_lstm_4d_input':
-            print('inception_lstm_4d_input')
-            self.model = self.inception_lstm_4d_input()
-
         if self.name == 'inception_4d_input':
-            print('inception_4d_input')
+            print('inception_4d_input with imagenet weights')
             self.model, base_model = self.inception_4d_input(w='imagenet')
             # first: train only the top layers (which were randomly initialized)
             # i.e. freeze all convolutional InceptionV3 layers
@@ -86,16 +82,20 @@ class MyModel:
             self.base_model = base_model
 
         if self.name == 'inception_4d_input_from_scratch':
-            print('inception_4d_input')
+            print('inception_4d_input trained from scratch with random init')
             self.model, base_model = self.inception_4d_input(w=None)
 
         if self.name == '2stream':
             print('2stream')
             self.model = self.two_stream()
 
-        if self.name == '2stream_5d':
+        if self.name == '2stream_5d_add':
             print('2stream 5D')
-            self.model = self.two_stream_5d()
+            self.model = self.two_stream_5d(fusion='add')
+
+        if self.name == '2stream_5d_mult':
+            print('2stream 5D')
+            self.model = self.two_stream_5d(fusion='mult')
 
         if self.name == '2stream_stateful':
             print('2stream stateful')
@@ -104,10 +104,6 @@ class MyModel:
         if self.name == '2stream_pretrained':
             print('2stream_pretrained')
             self.model = self.two_stream_pretrained()
-
-        if self.name == 'simonyan':
-            print('Simonyan')
-            self.model = self.simonyan(channels=3)
 
         if self.name == 'convolutional_LSTM':
             print('Convolutional LSTM (not fully connected)')
@@ -231,11 +227,10 @@ class MyModel:
         model = Model(inputs=[image_input], outputs=[output])
         return model
 
-    def two_stream_5d(self):
+    def two_stream_5d(self, fusion):
         # Functional API
         # rgb_model = self.conv3d_lstm(channels=3, top_layer=False, stateful=False)
         # rgb_model = TimeDistributed(self.conv2d_lstm(channels=3, top_layer=False, stateful=False))
-        # rgb_model = TimeDistributed(self.simonyan_4d(channels=3, top_layer=False, stateful=False))
 
         rgb_model = self.convolutional_LSTM(channels=3, top_layer=False)
         image_input = Input(shape=(None, self.input_shape[0], self.input_shape[1], 3))
@@ -243,17 +238,19 @@ class MyModel:
 
         # of_model = self.conv3d_lstm(channels=3, top_layer=False, stateful=False)
         # of_model = TimeDistributed(self.conv2d_lstm(channels=3, top_layer=False, stateful=False))
-        # of_model = TimeDistributed(self.simonyan_4d(channels=3, top_layer=False, stateful=False))
 
         of_model = self.convolutional_LSTM(channels=3, top_layer=False)
         of_input = Input(shape=(None, self.input_shape[0], self.input_shape[1], 3))
         encoded_of = of_model(of_input)
-        
-        merged = add([encoded_image, encoded_of])
-        # merged = multiply([encoded_image, encoded_of])
-        # merged = concatenate([encoded_image, encoded_of], axis=-1)
+
+        if fusion == 'add':
+            merged = add([encoded_image, encoded_of])
+        if fusion == 'mult':
+            merged = multiply([encoded_image, encoded_of])
+        if fusion == 'concat':
+            merged = concatenate([encoded_image, encoded_of], axis=-1)
+
         merged = Dropout(.2)(merged)
-        # dense = Dense(self.nb_dense_units, activation='relu')(merged)
 
         if self.nb_labels == 2:
             dense = Dense(self.nb_labels)(merged)
