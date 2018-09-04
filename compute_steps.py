@@ -1,4 +1,3 @@
-from main import df_val_split
 from keras.utils import np_utils
 import pandas as pd
 import numpy as np
@@ -95,20 +94,4 @@ def compute_steps(df, train, kwargs):
             y_batches.append(y_array)
             y_batches_paths.append(y_batch_list_paths)
     return nb_steps, y_batches, y_batches_paths
-
-
-if __name__ == '__main__':
-    arg_parser = arg_parser.ArgParser(len(sys.argv))
-    args = arg_parser.parse()
-    VAL_FRACTION = 0.3
-
-    df_train = pd.read_csv('data/train_frames.csv')
-    df_test = pd.read_csv('data/test_frames.csv')
-    df_train, df_val = df_val_split(df_train,
-                                    val_fraction=VAL_FRACTION,
-                                    batch_size=args.batch_size,
-                                    round_to_batch=args.round_to_batch)
-
-    train_steps = compute_steps(df_train, args)
-    test_steps = compute_steps(df_test, args)
 

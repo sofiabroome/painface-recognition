@@ -12,8 +12,7 @@ from keras.preprocessing.image import ImageDataGenerator
 from keras.utils import np_utils
 from os.path import join
 
-from helpers import split_string_at_last_occurence_of_certain_char
-from image_processor import process_image
+from helpers import process_image, split_string_at_last_occurence_of_certain_char
 
 
 class DataHandler:

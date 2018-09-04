@@ -90,7 +90,7 @@ def parse_arguments():
 
 def read_default_args():
     parser = argparse.ArgumentParser()
-    config_file = open("default_args.txt","r")
+    config_file = open("metadata/default_args.txt","r")
     for line in config_file.readlines():
         key_value_help = line.split(",")
         try:
