@@ -66,8 +66,8 @@ def train(model_instance, args, train_steps, val_steps, val_fraction,
         if args.model == 'inception_4d_input':
             # let's visualize layer names and layer indices to see how many layers
             # we should freeze:
-            for i, layer in enumerate(model_instance.base_model.layers):
-               print(i, layer.name)
+            # for i, layer in enumerate(model_instance.base_model.layers):
+            #    print(i, layer.name)
             for layer in model_instance.model.layers[:249]:
                 layer.trainable = False
             for layer in model_instance.model.layers[249:]:
