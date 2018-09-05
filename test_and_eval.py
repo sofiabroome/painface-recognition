@@ -108,6 +108,7 @@ class Evaluator:
             correct = np.sum([ar[i] for i, ar in enumerate(cm)])
             total_samples = np.sum(cm)
             acc = correct/total_samples
+            print(acc, ' acc.')
             f = open(_make_cm_filename(args), 'w')
             print(cm,' ', acc, ' acc.', end="", file=f)
             f.close()
