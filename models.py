@@ -114,8 +114,12 @@ class MyModel:
             self.model = self.rodriguez()
 
         if self.name == 'vgg16':
-            print('VGG-16 trained from scratch.')
+            print('VGG-16 trained from scratch, with 2 FC layers on top.')
             self.model = self.vgg16(w=None)
+
+        if self.name == 'vgg16_GAP_dense':
+            print('VGG-16 trained from scratch, then global avg pooling, then one FC layer.')
+            self.model = self.vgg16_GAP_dense(w=None)
 
         if self.optimizer == 'adam':
             optimizer = Adam(lr=self.lr)
@@ -224,6 +228,23 @@ class MyModel:
         dense_2 = Dense(self.nb_dense_units)(dense_1)  # FC-layers should have 4096 units each.
         if self.nb_labels == 2:
             output = Dense(self.nb_labels, activation='sigmoid')(dense_2)
+        model = Model(inputs=[image_input], outputs=[output])
+        return model
+
+    def vgg16_GAP_dense(self, w):
+        from keras.applications.vgg16 import VGG16
+        image_input = Input(shape=(self.input_shape[0],
+                                   self.input_shape[1], 3))
+        base_model = VGG16(weights=w,
+                           include_top=False,  
+                           input_shape=(self.input_shape[0],
+                                        self.input_shape[1],
+                                        3))(image_input)
+        x = base_model.output
+        x = GlobalAveragePooling2D()(x)
+        dense = Dense(self.nb_dense_units, activation='relu')(x)
+        if self.nb_labels == 2:
+            output = Dense(self.nb_labels, activation='sigmoid')(dense)
         model = Model(inputs=[image_input], outputs=[output])
         return model
 
