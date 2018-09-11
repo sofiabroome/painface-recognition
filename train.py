@@ -124,8 +124,9 @@ def train(model_instance, args, train_steps, val_steps, val_fraction,
                                      validation_split=val_fraction,
                                      callbacks=[early_stopping, checkpointer,
                                                 catacc_test_history, catacc_train_history])
-    plot_training(binacc_test_history, binacc_train_history,
-                  args.image_identifier, args.model)
+
+    plot_training(binacc_test_history, binacc_train_history, args)
+
     return best_model_path
 
 
@@ -214,11 +215,13 @@ class PrintBatch(Callback):
 
 def plot_training(test_history,
                   train_history,
-                  image_identifier,
-                  model_name):
+                  args):
     plt.plot(test_history.binaccs, label='Validation set, categorical accuracy')
     plt.plot(train_history.binaccs, label='Training set, categorical accuracy')
     plt.xlabel('Epochs')
     plt.legend()
-    plt.savefig(model_name + '_' + image_identifier + '.png')
+    plt.savefig(args.model + "_" + args.image_identifier + "_LSTM_UNITS_" +\
+                str(args.nb_lstm_units) + "_CONV_FILTERS_" +\
+                str(args.nb_conv_filters) + ".png")
     plt.close()
+
