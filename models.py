@@ -240,8 +240,7 @@ class MyModel:
                            input_shape=(self.input_shape[0],
                                         self.input_shape[1],
                                         3))(image_input)
-        x = base_model.output
-        x = GlobalAveragePooling2D()(x)
+        x = GlobalAveragePooling2D()(base_model)
         dense = Dense(self.nb_dense_units, activation='relu')(x)
         if self.nb_labels == 2:
             output = Dense(self.nb_labels, activation='sigmoid')(dense)
