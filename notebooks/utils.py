@@ -125,7 +125,7 @@ def make_video_from_frames(frames, path):
     video.release()
 
 
-def data_for_one_random_sequence(args, subject_dfs, subject=None):
+def data_for_one_random_sequence_two_stream(args, subject_dfs, subject=None):
     sequence_df = get_sequence(args, subject_dfs, subject=subject)
 
     image_paths = sequence_df['Path'].values
@@ -138,6 +138,19 @@ def data_for_one_random_sequence(args, subject_dfs, subject=None):
     batch_img = np.concatenate(read_images_and_return_list(args, image_paths), axis=1)
     batch_flow = np.concatenate(read_images_and_return_list(args, of_paths), axis=1)
     return batch_img, batch_flow, batch_label
+
+
+def data_for_one_random_sequence(args, subject_dfs, subject=None):
+    sequence_df = get_sequence(args, subject_dfs, subject=subject)
+
+    image_paths = sequence_df['Path'].values
+    y = sequence_df['Pain'].values
+    
+    label_onehot = np_utils.to_categorical(y, num_classes=args.nb_labels)
+    batch_label = label_onehot.reshape(args.batch_size, args.seq_length, -1)
+
+    batch_img = np.concatenate(read_images_and_return_list(args, image_paths), axis=1)
+    return batch_img, batch_label
 
 
 def read_images_and_return_list(args, paths, computer='hg'):
