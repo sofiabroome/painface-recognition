@@ -140,10 +140,13 @@ def data_for_one_random_sequence(args, subject_dfs, subject=None):
     return batch_img, batch_flow, batch_label
 
 
-def read_images_and_return_list(args, paths):
+def read_images_and_return_list(args, paths, computer='hg'):
     list_to_return = []
     for p in paths:
-        p = '/home/sbroome/dev/painface-recognition/' + p
+        if computer == 'hg':
+            p = '/home/sofia/Documents/painface-recognition/' + p
+        else:
+            p = '/home/sbroome/dev/painface-recognition/' + p
         img = process_image(p, (args.input_width, args.input_height, 3))
         img = img.reshape((1,1,args.input_width, args.input_height, 3))
         list_to_return.append(img)
