@@ -94,7 +94,7 @@ class Evaluator:
         :params y_pred, y_test: 2D-arrays [nsamples, nclasses]
         """
         if self.cr:
-            cr = classification_report(y_test, y_pred,
+            cr = classification_report(np.argmax(y_test, axis=1), np.argmax(y_pred, axis=1),
                                        target_names=self.target_names,
                                        digits=NB_DECIMALS)
             f = open(_make_cr_filename(args), 'w')

@@ -97,7 +97,7 @@ class MyModel:
             print('2stream 5D')
             self.model = self.two_stream_5d(fusion='mult')
 
-        if self.name == 'simonyan_two_stream':
+        if self.name == 'simonyan_2stream':
             print('Simonyan 2-stream with average fusion')
             self.model = self.simonyan_two_stream('average')
 
@@ -278,6 +278,7 @@ class MyModel:
         model.add(Conv2D(filters=512, kernel_size=(3,3), strides=(1,1), activation='relu',
                   input_shape=(self.input_shape[0], self.input_shape[1], 3)))
         model.add(MaxPooling2D(pool_size=(3,3), strides=(2,2)))
+        model.add(Flatten())
         model.add(Dense(4096))
         model.add(Dense(2048))
         if self.nb_labels == 2:
@@ -290,22 +291,23 @@ class MyModel:
 
     def simonyan_temporal_stream(self):
         model = Sequential()
-        model.add(Conv2D(filters=96, kernel_size=(7,7), strides=(2,2), activation='relu',
-                  input_shape=(self.input_shape[0], self.input_shape[1], 2*self.seq_length),
-                  batch_input_shape=(self.batch_size,
-                                     self.input_shape[0], self.input_shape[1], 2*self.seq_length)))
+        model.add(Conv2D(filters=96, kernel_size=(7,7), strides=(2,2), data_format='channels_first', activation='relu',
+                  input_shape=(2*self.seq_length, self.input_shape[0], self.input_shape[1]),
+                  batch_input_shape=(self.batch_size, 2*self.seq_length,
+                                     self.input_shape[0], self.input_shape[1])))
         model.add(BatchNormalization())
         model.add(MaxPooling2D(pool_size=(3,3), strides=(2,2)))
         model.add(Conv2D(filters=256, kernel_size=(5,5), strides=(2,2), activation='relu',
-                  input_shape=(self.input_shape[0], self.input_shape[1], 3)))
+                  input_shape=(self.input_shape[0], self.input_shape[1], 3), data_format='channels_first'))
         # model.add(MaxPooling2D(pool_size=(3,3), strides=(2,2)))
         model.add(Conv2D(filters=512, kernel_size=(3,3), strides=(1,1), activation='relu',
-                  input_shape=(self.input_shape[0], self.input_shape[1], 3)))
+                  input_shape=(self.input_shape[0], self.input_shape[1], 3), data_format='channels_first'))
         model.add(Conv2D(filters=512, kernel_size=(3,3), strides=(1,1), activation='relu',
-                  input_shape=(self.input_shape[0], self.input_shape[1], 3)))
+                  input_shape=(self.input_shape[0], self.input_shape[1], 3), data_format='channels_first'))
         model.add(Conv2D(filters=512, kernel_size=(3,3), strides=(1,1), activation='relu',
-                  input_shape=(self.input_shape[0], self.input_shape[1], 3)))
+                  input_shape=(self.input_shape[0], self.input_shape[1], 3), data_format='channels_first'))
         model.add(MaxPooling2D(pool_size=(3,3), strides=(2,2)))
+        model.add(Flatten())
         model.add(Dense(4096))
         model.add(Dense(2048))
         if self.nb_labels == 2:
@@ -323,7 +325,7 @@ class MyModel:
         rgb_class_scores = rgb_model(image_input)
 
         of_model = self.simonyan_temporal_stream()
-        of_input = Input(shape=(self.input_shape[0], self.input_shape[1], 2*self.seq_length))
+        of_input = Input(shape=(2*self.seq_length, self.input_shape[0], self.input_shape[1]))
         flow_class_scores = of_model(of_input)
 
         if fusion == 'average':

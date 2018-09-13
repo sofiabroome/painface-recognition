@@ -230,7 +230,9 @@ def get_data_2stream_4d_input(dh,
 def get_data_2stream_5d_input(dh,
                               df_train_rgbof,
                               df_val_rgbof,
-                              df_test_rgbof):
+                              df_test_rgbof,
+                              rgb_period,
+                              flow_period):
     """
     Prepare the training and testing data for 5D-input
     (batches of sequences of frames).
@@ -248,22 +250,30 @@ def get_data_2stream_5d_input(dh,
                                                             train=True,
                                                             val=False,
                                                             test=False,
-                                                            evaluate=False)
+                                                            evaluate=False,
+                                                            rgb_period=rgb_period,
+                                                            flow_period=flow_period)
     val_generator = dh.prepare_2stream_image_generator_5D(df_val_rgbof,
                                                           train=False,
                                                           val=True,
                                                           test=False,
-                                                          evaluate=False)
+                                                          evaluate=False,
+                                                          rgb_period=rgb_period,
+                                                          flow_period=flow_period)
     test_generator = dh.prepare_2stream_image_generator_5D(df_test_rgbof,
                                                            train=False,
                                                            val=False,
                                                            test=True,
-                                                           evaluate=False)
+                                                           evaluate=False,
+                                                           rgb_period=rgb_period,
+                                                           flow_period=flow_period)
     eval_generator = dh.prepare_2stream_image_generator_5D(df_test_rgbof,
                                                            train=False,
                                                            val=False,
                                                            test=False,
-                                                           evaluate=True)
+                                                           evaluate=True,
+                                                           rgb_period=rgb_period,
+                                                           flow_period=flow_period)
     generators = (train_generator, val_generator, test_generator, eval_generator)
     return generators
 
@@ -368,14 +378,25 @@ def run():
     # Prepare the training and testing data, format depends on model.
     # (5D/4D -- 2stream/1stream)
 
+    if 'simonyan' in args.model:
+        print('Simonyan 2-stream model with 1 RGB frame and 10 flow frames.')
+        rgb_period = 10
+        flow_period = 1
+    else:
+        rgb_period = 1
+        flow_period = 1
+
     if args.nb_input_dims == 5:
 
         if '2stream' in args.model:
             print('5d input 2stream model')
+                
             generators = get_data_2stream_5d_input(dh=dh,
                                                    df_train_rgbof=df_train,
                                                    df_val_rgbof=df_val,
-                                                   df_test_rgbof=df_test)
+                                                   df_test_rgbof=df_test,
+                                                   rgb_period=rgb_period,
+                                                   flow_period=flow_period)
         else:
             print('5d input model')
             if args.data_type == 'rgb':
@@ -477,9 +498,13 @@ def run():
 
     # Put y_preds into same format as y_test, first take the max probabilities.
     if args.nb_input_dims == 5:
-        y_preds_argmax = np.argmax(y_preds, axis=2)
-        y_preds_argmax = np.array([np_utils.to_categorical(x,
-                                   num_classes=args.nb_labels) for x in y_preds_argmax])
+        if rgb_period > 1:
+            y_preds_argmax = y_preds  # We only have one label per sample, Simonyan case.
+            y_test = np.argmax(y_test, axis=1)
+        else:
+            y_preds_argmax = np.argmax(y_preds, axis=2)
+            y_preds_argmax = np.array([np_utils.to_categorical(x,
+                                       num_classes=args.nb_labels) for x in y_preds_argmax])
     
     if args.nb_input_dims == 4:
         y_preds_argmax = np.argmax(y_preds, axis=1)
