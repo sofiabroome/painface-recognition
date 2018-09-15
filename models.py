@@ -101,6 +101,10 @@ class MyModel:
             print('Simonyan 2-stream with average fusion')
             self.model = self.simonyan_two_stream('average')
 
+        if self.name == 'rodriguez_2stream':
+            print('Rodriguez 2-stream with average fusion')
+            self.model = self.two_stream_rodriguez('add')
+
         if self.name == '2stream_pretrained':
             print('2stream_pretrained')
             self.model = self.two_stream_pretrained()
@@ -171,7 +175,7 @@ class MyModel:
         two_stream_model = Model(inputs=[image_input, of_input], outputs=[output])
         return two_stream_model
 
-    def rodriguez(self):
+    def rodriguez(self, top_layer=True):
         from keras.applications.vgg16 import VGG16
         image_input = Input(shape=(self.seq_length,
                                    self.input_shape[0],
@@ -185,8 +189,13 @@ class MyModel:
         dense = Dense(self.nb_dense_units)(flatten)
         lstm_layer = LSTM(self.nb_lstm_units,
                           return_sequences=True)(dense)
-        if self.nb_labels == 2:
-            output = Dense(self.nb_labels, activation='sigmoid')(lstm_layer)
+        if top_layer:
+            if self.nb_labels == 2:
+                output = Dense(self.nb_labels, activation='sigmoid')(lstm_layer)
+            else:
+                output = Dense(self.nb_labels, activation='softmax')(merged)
+        else:
+            output = lstm_layer
         model = Model(inputs=[image_input], outputs=[output])
         return model
 
@@ -236,6 +245,34 @@ class MyModel:
         # of_model = TimeDistributed(self.conv2d_lstm(channels=3, top_layer=False, stateful=False))
 
         of_model = self.convolutional_LSTM(channels=3, top_layer=False)
+        of_input = Input(shape=(None, self.input_shape[0], self.input_shape[1], 3))
+        encoded_of = of_model(of_input)
+
+        if fusion == 'add':
+            merged = add([encoded_image, encoded_of])
+        if fusion == 'mult':
+            merged = multiply([encoded_image, encoded_of])
+        if fusion == 'concat':
+            merged = concatenate([encoded_image, encoded_of], axis=-1)
+
+        merged = Dropout(.2)(merged)
+
+        if self.nb_labels == 2:
+            dense = Dense(self.nb_labels)(merged)
+            output = Activation('sigmoid')(dense)
+        else:
+            output = Dense(self.nb_labels, activation='softmax')(merged)
+
+        two_stream_model = Model(inputs=[image_input, of_input], outputs=[output])
+
+        return two_stream_model
+
+    def two_stream_rodriguez(self, fusion):
+        rgb_model = self.rodriguez(top_layer=False)
+        image_input = Input(shape=(None, self.input_shape[0], self.input_shape[1], 3))
+        encoded_image = rgb_model(image_input)
+
+        of_model = self.rodriguez(top_layer=False)
         of_input = Input(shape=(None, self.input_shape[0], self.input_shape[1], 3))
         encoded_of = of_model(of_input)
 
