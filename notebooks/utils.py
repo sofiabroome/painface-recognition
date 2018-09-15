@@ -12,6 +12,7 @@ import visualization.gradcam as gradcam
 from helpers import process_image
 from keras.utils import np_utils
 from keras.layers import Activation
+import skvideo.io
 import pandas as pd
 import data_handler
 import numpy as np
@@ -115,14 +116,24 @@ def make_video_from_frames(frames, path):
     :param frames: [np.array]
     :param path: str, f ex 'output.avi'
     """
-    height, width, channels = frames[0].shape
-    video = cv2.VideoWriter(path, -1, 1, (width, height))
-    
-    for i in range(len(frames)):
-        video.write(frames[i])
-    
-    cv2.destroyAllWindows()
-    video.release()
+    height, width, channels = frames[0,0].shape
+    seq_length = frames.shape[1]
+
+    # video = cv2.VideoWriter(path, -1, 1, (width, height))
+    # for i in range(seq_length):
+    #     video.write(frames[0][i])
+    # 
+    # cv2.destroyAllWindows()
+    # video.release()
+
+    frames = frames.astype(np.uint8)
+    inputdict = {'-r': '2'}
+    outputdict = {'-r': '2'}
+    writer = skvideo.io.FFmpegWriter(path, inputdict=inputdict, outputdict=outputdict)
+    print(frames.shape)
+    for i in range(seq_length):
+            writer.writeFrame(frames[0][i])
+    writer.close()
 
 
 def data_for_one_random_sequence_two_stream(args, subject_dfs, subject=None):
@@ -140,7 +151,20 @@ def data_for_one_random_sequence_two_stream(args, subject_dfs, subject=None):
     return batch_img, batch_flow, batch_label
 
 
-def data_for_one_random_sequence(args, subject_dfs, subject=None):
+def data_for_one_random_sequence_4D(args, subject_dfs, subject=None):
+    sequence_df = get_sequence(args, subject_dfs, subject=subject)
+
+    image_paths = sequence_df['Path'].values
+    y = sequence_df['Pain'].values
+    
+    label_onehot = np_utils.to_categorical(y, num_classes=args.nb_labels)
+    batch_label = label_onehot.reshape(args.batch_size, -1)
+
+    batch_img = np.concatenate(read_images_and_return_list(args, image_paths), axis=1)
+    batch_img = np.reshape(batch_img, (args.batch_size, args.input_width, args.input_height, 3))
+    return batch_img, batch_label
+
+def data_for_one_random_sequence_5D(args, subject_dfs, subject=None):
     sequence_df = get_sequence(args, subject_dfs, subject=subject)
 
     image_paths = sequence_df['Path'].values
@@ -150,8 +174,8 @@ def data_for_one_random_sequence(args, subject_dfs, subject=None):
     batch_label = label_onehot.reshape(args.batch_size, args.seq_length, -1)
 
     batch_img = np.concatenate(read_images_and_return_list(args, image_paths), axis=1)
+    batch_img = np.reshape(batch_img, (args.batch_size, args.seq_length, args.input_width, args.input_height, 3))
     return batch_img, batch_label
-
 
 def read_images_and_return_list(args, paths, computer='hg'):
     list_to_return = []
@@ -164,6 +188,24 @@ def read_images_and_return_list(args, paths, computer='hg'):
         img = img.reshape((1,1,args.input_width, args.input_height, 3))
         list_to_return.append(img)
     return list_to_return
+
+
+class RodriguezNetwork:
+    def __init__(self, rgb, path=None):
+        self.rgb = rgb
+        self.path = path
+        self.m = self.build_from_saved_weights()
+
+    def build_from_saved_weights(self):
+        m = keras.models.load_model(self.path)
+        self.timedist_vgg = m.layers[0](self.rgb)
+        x = m.layers[1](self.timedist_vgg)
+        x = m.layers[2](x)
+        self.dense_1 = m.layers[3](x)
+        self.lstm = m.layers[4](self.dense_1)
+        self.preds = m.layers[5](self.lstm)
+        return m
+
 
 class InceptionNetwork:
     def __init__(self, rgb, from_scratch, path=None):
@@ -312,13 +354,14 @@ def create_graph_for_clstm(batch_size, args, channels, best_model_path, two_stre
 def visualize_overlays(images, conv_outputs, conv_grads):
 
     from skimage.transform import resize
+    from matplotlib import pyplot as plt
 
     for im in range(images.shape[1]):
         # print(im)
         image = images[0,im,:,:]
         output = conv_outputs[0,im,:,:]           # [7,7,512]
         grads_val = conv_grads[0,im,:,:]          # [7,7,512]
-        print("grads_val shape:", grads_val.shape)
+        # print("grads_val shape:", grads_val.shape)
         weights = np.mean(grads_val, axis = (0, 1)) # alpha_k, [512]
         cam = np.zeros(output.shape[0 : 2], dtype = np.float32) # [7,7]
 
