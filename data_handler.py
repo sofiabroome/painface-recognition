@@ -86,7 +86,8 @@ class DataHandler:
                     batch_index = 0
                     yield [X_array, flow_array], [y_array]
 
-    def prepare_2stream_image_generator_5D(self, df, train, val, test, evaluate):
+    def prepare_2stream_image_generator_5D(self, df, train, val, test, evaluate,
+                                           rgb_period, flow_period):
         """
         Prepare the frames into labeled train and test sets, with help from the
         DataFrame with .jpg-paths and labels for train and pain.
@@ -95,6 +96,8 @@ class DataHandler:
         :param val: Boolean
         :param test: Boolean
         :param evaluate: Boolean
+        :param rgb_period: int, if 10, take every 10th frame.
+        :param flow_period: int, if 1, take every frame.
         :return: np.ndarray, np.ndarray, np.ndarray, np.ndarray
         """
 
@@ -144,13 +147,19 @@ class DataHandler:
                         old_vid_seq_name = vid_seq_name
                         break  # Skip this one and jump to next window
 
-                    x = self.get_image(row['Path'])
-                    y = row['Pain']
-                    flow = self.get_image(row['OF_Path'])
+                    if (seq_index % rgb_period) == 0:
+                        x = self.get_image(row['Path'])
+                        X_seq_list.append(x)
+                        y = row['Pain']
+                        y_seq_list.append(y)
 
-                    X_seq_list.append(x)
-                    y_seq_list.append(y)
-                    flow_seq_list.append(flow)
+                    if (seq_index % flow_period) == 0:
+                        flow = self.get_image(row['OF_Path'])
+                        if rgb_period > 1:
+                            # We only want the first two channels of the flow.
+                            flow = np.take(flow, [0,1], axis=2)
+                        flow_seq_list.append(flow)
+
                     seq_index += 1
 
                 if batch_index == 0:
@@ -159,6 +168,13 @@ class DataHandler:
                     flow_batch_list = []
 
                 if seq_index == self.seq_length:
+                    if rgb_period > 1:
+                        flow_seq_list = np.array(flow_seq_list)
+                        flow_seq_list = np.reshape(np.array(flow_seq_list),
+                                                  (-1, self.image_size[0], self.image_size[1]))
+                        X_seq_list = np.reshape(np.array(X_seq_list),
+                                               (self.image_size[0], self.image_size[1], -1))
+                        
                     X_batch_list.append(X_seq_list)
                     y_batch_list.append(y_seq_list)
                     flow_batch_list.append(flow_seq_list)
@@ -213,7 +229,10 @@ class DataHandler:
                         y_array = np.reshape(y_array, (self.batch_size, -1, self.nb_labels))
                     else:
                         y_array = np.reshape(y_array, (self.batch_size, -1, self.nb_labels))
+                    if rgb_period > 1:
+                        y_array = np.reshape(y_array, (self.batch_size, self.nb_labels))
                     batch_index = 0
+                    # print(X_array.shape, flow_array.shape, y_array.shape)
                     yield [X_array, flow_array], [y_array]
 
     def prepare_image_generator_5D(self, df, data_type, train, val, test, evaluate):
