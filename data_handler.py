@@ -53,38 +53,118 @@ class DataHandler:
         :return: np.ndarray, np.ndarray, np.ndarray, np.ndarray
         """
 
-        print("LEN DF:")
-        print(len(df))
+        nb_frames = len(df)
+        print("LEN DF (nb. of frames): ", nb_frames)
+
+        this_index = 0
+
+        # Make sure that no augmented batches are thrown away,
+        # because we really want to augment the dataset.
+
+        nb_aug = self.aug_flip + self.aug_crop + self.aug_light
+        batch_requirement = 1 + nb_aug  # Normal sequence plus augmented sequences.
+        assert (self.batch_size % batch_requirement) == 0
+
         while True:
+            # Shuffle blocks between epochs.
             if train:
-                # Shuffle blocks between epochs.
                 df = shuffle_blocks(df, 'Video_ID')
             batch_index = 0
+
+            X_batch_list = []
+            y_batch_list = []
+            flow_batch_list = []
+
             for index, row in df.iterrows():
-                if batch_index == 0:
-                    X_batch_list = []
-                    y_batch_list = []
-                    flow_batch_list = []
                 x = self.get_image(row['Path'])
-                x /= 255
-                y = row['Pain']
-                flow = np.load(row['OF_Path'])
-                extra_channel = np.zeros((flow.shape[0], flow.shape[1], 1))
-                flow = np.concatenate((flow, extra_channel), axis=2)
                 X_batch_list.append(x)
+                y = row['Pain']
                 y_batch_list.append(y)
+
+                flow = self.get_image(row['OF_Path'])
                 flow_batch_list.append(flow)
+
                 batch_index += 1
 
-                if batch_index % self.batch_size == 0:
-                    X_array = np.array(X_batch_list, dtype=np.float32)
-                    y_array = np.array(y_batch_list, dtype=np.uint8)
-                    flow_array = np.array(flow_batch_list, dtype=np.float32)
-                    # if self.nb_labels != 2:
+                if train and (self.aug_flip == 1):
+                    # Flip both RGB and flow arrays
+                    X_flipped = self.flip_images(x)
+                    flow_flipped = self.flip_images(flow)
+                    # Append to the respective batch lists
+                    X_batch_list.append(X_flipped)
+                    y_batch_list.append(y)
+                    flow_batch_list.append(flow_flipped)
+                    batch_index += 1
+
+                if train and (self.aug_crop == 1):
+                    crop_size = 99
+                    # Flip both RGB and flow arrays
+                    X_cropped = self.random_crop_resize(x,
+                                                                 crop_size, crop_size)
+                    flow_cropped = self.random_crop_resize(flow,
+                                                                    crop_size, crop_size)
+                    # Append to the respective batch lists
+                    X_batch_list.append(X_cropped)
+                    y_batch_list.append(y)
+                    flow_batch_list.append(flow_cropped)
+                    batch_index += 1
+
+                if train and (self.aug_light == 1):
+                    # Flip both RGB and flow arrays
+                    X_shaded = self.add_gaussian_noise(x)
+                    flow_shaded = self.add_gaussian_noise(flow)
+                    # Append to the respective batch lists
+                    X_batch_list.append(X_shaded)
+                    y_batch_list.append(y)
+                    flow_batch_list.append(flow_shaded)
+                    batch_index += 1
+
+            if batch_index % self.batch_size == 0 and not batch_index == 0:
+                X_array = np.array(X_batch_list, dtype=np.float32)
+                y_array = np.array(y_batch_list, dtype=np.uint8)
+                flow_array = np.array(flow_batch_list, dtype=np.float32)
+                if self.nb_labels == 2:
                     y_array = np_utils.to_categorical(y_array, num_classes=self.nb_labels)
+                    y_array = np.reshape(y_array, (self.batch_size, -1, self.nb_labels))
+                else:
+                    y_array = np.reshape(y_array, (self.batch_size, -1, self.nb_labels))
+                if rgb_period > 1:
                     y_array = np.reshape(y_array, (self.batch_size, self.nb_labels))
-                    batch_index = 0
-                    yield [X_array, flow_array], [y_array]
+                batch_index = 0
+                # print(X_array.shape, flow_array.shape, y_array.shape)
+                yield [X_array, flow_array], [y_array]
+        # print("LEN DF:")
+        # print(len(df))
+        # while True:
+        #     if train:
+        #         # Shuffle blocks between epochs.
+        #         df = shuffle_blocks(df, 'Video_ID')
+        #     batch_index = 0
+        #     for index, row in df.iterrows():
+        #         if batch_index == 0:
+        #             X_batch_list = []
+        #             y_batch_list = []
+        #             flow_batch_list = []
+        #         x = self.get_image(row['Path'])
+        #         x /= 255
+        #         y = row['Pain']
+        #         flow = np.load(row['OF_Path'])
+        #         extra_channel = np.zeros((flow.shape[0], flow.shape[1], 1))
+        #         flow = np.concatenate((flow, extra_channel), axis=2)
+        #         X_batch_list.append(x)
+        #         y_batch_list.append(y)
+        #         flow_batch_list.append(flow)
+        #         batch_index += 1
+
+        #         if batch_index % self.batch_size == 0:
+        #             X_array = np.array(X_batch_list, dtype=np.float32)
+        #             y_array = np.array(y_batch_list, dtype=np.uint8)
+        #             flow_array = np.array(flow_batch_list, dtype=np.float32)
+        #             # if self.nb_labels != 2:
+        #             y_array = np_utils.to_categorical(y_array, num_classes=self.nb_labels)
+        #             y_array = np.reshape(y_array, (self.batch_size, self.nb_labels))
+        #             batch_index = 0
+        #             yield [X_array, flow_array], [y_array]
 
     def prepare_2stream_image_generator_5D(self, df, train, val, test, evaluate,
                                            rgb_period, flow_period):
