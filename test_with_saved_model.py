@@ -378,8 +378,9 @@ if __name__ == '__main__':
     # Parse the command line arguments
     arg_parser = arg_parser.ArgParser(len(sys.argv))
     kwargs = arg_parser.parse()
-    model_fn = 'models/BEST_MODEL_2stream_5d_adadelta_LSTMunits_32_CONVfilters_16_add_v4_t5_5hl_128jpg2fps_seq10_bs8_MAG_adadelta_noaug_run2.h5'
-
+    # model_fn = 'models/BEST_MODEL_2stream_5d_adadelta_LSTMunits_32_CONVfilters_16_add_v4_t5_5hl_128jpg2fps_seq10_bs8_MAG_adadelta_noaug_run2.h5'
+    # model_fn = 'models/BEST_MODEL_rodriguez_adadelta_LSTMunits_1024_CONVfilters_None_jpg128_2fps_val4_t0_seq10ss10_4hl_1024ubs16_no_aug_run1.h5'
+    model_fn = 'models/BEST_MODEL_rodriguez_adadelta_LSTMunits_1024_CONVfilters_None_jpg128_2fps_val4_t1_seq10ss10_4hl_1024ubs16_no_aug_run1.h5'
     # Run the whole program, from preparing the data to evaluating
     # the model's test performance
     run()
