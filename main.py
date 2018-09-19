@@ -411,11 +411,10 @@ def run():
     if args.nb_input_dims == 4:
         if '2stream' in args.model:
             print('4d input 2stream model. Needs (quick) fix')
-            #  generators = get_data_2stream_4d_input(dh=dh,
-            #                                         subject_dfs,
-            #                                         train_subjects,
-            #                                         test_subjects,
-            #                                         val_subjects)
+            generators = get_data_2stream_4d_input(dh=dh,
+                                                   df_train_rgbof=df_train,
+                                                   df_val_rgbof=df_val,
+                                                   df_test_rgbof=df_test)
         else:
             print('4d input model')
             if args.data_type == 'rgb':
