@@ -68,27 +68,18 @@ class DataHandler:
         while True:
             # Shuffle blocks between epochs.
             if train:
-                print('Shuffling.')
                 df = shuffle_blocks(df, 'Video_ID')
             batch_index = 0
-            # x = np.empty((self.image_size)), dtype=np.uint8)
-            # flow = np.empty((self.image_size)), dtype=np.uint8)
             for index, row in df.iterrows():
                 if batch_index == 0:
-                    # X_array = np.empty((self.batch_size, self.image_size[1], self.image_size[0], 3))
-                    # flow_array = np.empty((self.batch_size, self.image_size[1], self.image_size[0], 3))
-                    # y_array = np.empty((self.batch_size, self.nb_labels))
                     X_batch_list = []
                     y_batch_list = []
                     flow_batch_list = []
-                # X_array[batch_index] = self.get_image(row['Path'])
+
                 x = self.get_image(row['Path'])
                 X_batch_list.append(x)
-                # y_array[batch_index] = row['Pain']
                 y = row['Pain']
                 y_batch_list.append(y)
-
-                # flow_array[batch_index] = np.load(row['OF_Path'])
                 flow = self.get_image(row['OF_Path'])
                 flow_batch_list.append(flow)
 
@@ -137,39 +128,6 @@ class DataHandler:
                     batch_index = 0
                     # print(X_array.shape, flow_array.shape, y_array.shape)
                     yield [X_array, flow_array], [y_array]
-
-        # print("LEN DF:")
-        # print(len(df))
-        # while True:
-        #     if train:
-        #         # Shuffle blocks between epochs.
-        #         df = shuffle_blocks(df, 'Video_ID')
-        #     batch_index = 0
-        #     for index, row in df.iterrows():
-        #         if batch_index == 0:
-        #             X_batch_list = []
-        #             y_batch_list = []
-        #             flow_batch_list = []
-        #         x = self.get_image(row['Path'])
-        #         x /= 255
-        #         y = row['Pain']
-        #         flow = np.load(row['OF_Path'])
-        #         extra_channel = np.zeros((flow.shape[0], flow.shape[1], 1))
-        #         flow = np.concatenate((flow, extra_channel), axis=2)
-        #         X_batch_list.append(x)
-        #         y_batch_list.append(y)
-        #         flow_batch_list.append(flow)
-        #         batch_index += 1
-
-        #         if batch_index % self.batch_size == 0:
-        #             X_array = np.array(X_batch_list, dtype=np.float32)
-        #             y_array = np.array(y_batch_list, dtype=np.uint8)
-        #             flow_array = np.array(flow_batch_list, dtype=np.float32)
-        #             # if self.nb_labels != 2:
-        #             y_array = np_utils.to_categorical(y_array, num_classes=self.nb_labels)
-        #             y_array = np.reshape(y_array, (self.batch_size, self.nb_labels))
-        #             batch_index = 0
-        #             yield [X_array, flow_array], [y_array]
 
     def prepare_2stream_image_generator_5D(self, df, train, val, test, evaluate,
                                            rgb_period, flow_period):
