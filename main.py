@@ -309,7 +309,8 @@ def run():
                      nb_labels=args.nb_labels,
                      aug_flip=args.aug_flip,
                      aug_crop=args.aug_crop,
-                     aug_light=args.aug_light)
+                     aug_light=args.aug_light,
+                     nb_input_dims=args.nb_input_dims)
 
     ev = Evaluator(acc=True,
                    cm=True,
