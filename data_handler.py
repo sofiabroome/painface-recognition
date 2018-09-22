@@ -417,22 +417,18 @@ class DataHandler:
                     x = self.get_image(row['Path'])
                     x /= 255
                 if data_type == 'of':
-                    x = np.load(row['OF_Path'])
-                    extra_channel = np.zeros((x.shape[0], x.shape[1], 1))
-                    x = np.concatenate((x, extra_channel), axis=2)
+                    x = self.get_image(row['OF_Path'])
                 y = row['Pain']
                 X_list.append(x)
                 y_list.append(y)
                 batch_index += 1
 
                 if batch_index % self.batch_size == 0:
-                    # TODO Test normalization here (divide X-array by 255).
                     X_array = np.array(X_list, dtype=np.float32)
                     y_array = np.array(y_list, dtype=np.uint8)
                     y_array = np_utils.to_categorical(y_array,
                                                       num_classes=self.nb_labels)
                     batch_index = 0
-                    print(X_array.shape, y_array.shape)
                     yield (X_array, y_array)
 
     def get_image(self, path):
