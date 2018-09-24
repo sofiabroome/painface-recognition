@@ -83,25 +83,28 @@ def read_or_create_subject_rgb_and_OF_dfs(dh,
     return subject_rgb_OF_dfs
 
 
-def get_sequence(args, subject_dfs, subject=None, video=None):
+def get_sequence(args, subject_dfs, subject=-1, video=None, start_index=None):
     """
     :param subject: int [0,5]
     "param video: str '5_5b'"
     """
-    if not subject and video:
+    if subject==-1 and video:
         print('Need to provide both subject and video ID to get sequence function.')
-    if subject:
-        df = subject_dfs[subject]
-    else:
+    if subject == -1:
         random_subject = np.random.randint(0,6)
         df = subject_dfs[random_subject]
+    else:
+        print('Chose subject ', subject)
+        df = subject_dfs[subject]
     if video:
         df = df[df['Video_ID'] == video]
-        
-    random_start_index = np.random.randint(0, len(df))
-    end_index = random_start_index + args.seq_length
+    if start_index is None:
+        random_start_index = np.random.randint(0, len(df))
+        start_index = random_start_index
+    print('Start index in subject dataframe: ', start_index)
+    end_index = start_index + args.seq_length
     
-    sequence_df = df.iloc[random_start_index:end_index]
+    sequence_df = df.iloc[start_index:end_index]
     sequence_df.reset_index(drop=True, inplace=True)
     
     vid_id_first = get_video_id_from_frame_path(sequence_df.loc[0]['Path'])
@@ -136,8 +139,9 @@ def make_video_from_frames(frames, path):
     writer.close()
 
 
-def data_for_one_random_sequence_two_stream(args, subject_dfs, subject=None):
-    sequence_df = get_sequence(args, subject_dfs, subject=subject)
+def data_for_one_random_sequence_two_stream(args, subject_dfs, computer, subject=None, start_index=None):
+    sequence_df = get_sequence(args, subject_dfs, subject=subject, start_index=start_index)
+    print(sequence_df[['Path', 'Pain']])
 
     image_paths = sequence_df['Path'].values
     of_paths = sequence_df['OF_Path'].values
@@ -146,13 +150,14 @@ def data_for_one_random_sequence_two_stream(args, subject_dfs, subject=None):
     label_onehot = np_utils.to_categorical(y, num_classes=args.nb_labels)
     batch_label = label_onehot.reshape(args.batch_size, args.seq_length, -1)
 
-    batch_img = np.concatenate(read_images_and_return_list(args, image_paths), axis=1)
-    batch_flow = np.concatenate(read_images_and_return_list(args, of_paths), axis=1)
+    batch_img = np.concatenate(read_images_and_return_list(args, image_paths, computer), axis=1)
+    batch_flow = np.concatenate(read_images_and_return_list(args, of_paths, computer), axis=1)
     return batch_img, batch_flow, batch_label
 
 
-def data_for_one_random_sequence_4D(args, subject_dfs, subject=None):
-    sequence_df = get_sequence(args, subject_dfs, subject=subject)
+def data_for_one_random_sequence_4D(args, subject_dfs, computer, subject=None, start_index=None):
+    sequence_df = get_sequence(args, subject_dfs, subject=subject, start_index=start_index)
+    print(sequence_df[['Path', 'Pain']])
 
     image_paths = sequence_df['Path'].values
     y = sequence_df['Pain'].values
@@ -160,20 +165,20 @@ def data_for_one_random_sequence_4D(args, subject_dfs, subject=None):
     label_onehot = np_utils.to_categorical(y, num_classes=args.nb_labels)
     batch_label = label_onehot.reshape(args.batch_size, -1)
 
-    batch_img = np.concatenate(read_images_and_return_list(args, image_paths), axis=1)
+    batch_img = np.concatenate(read_images_and_return_list(args, image_paths, computer), axis=1)
     batch_img = np.reshape(batch_img, (args.batch_size, args.input_width, args.input_height, 3))
     return batch_img, batch_label
 
-def data_for_one_random_sequence_5D(args, subject_dfs, subject=None):
-    sequence_df = get_sequence(args, subject_dfs, subject=subject)
-
+def data_for_one_random_sequence_5D(args, subject_dfs, computer, subject=None, start_index=None):
+    sequence_df = get_sequence(args, subject_dfs, subject=subject, start_index=start_index)
+    print(sequence_df[['Path', 'Pain']])
     image_paths = sequence_df['Path'].values
     y = sequence_df['Pain'].values
     
     label_onehot = np_utils.to_categorical(y, num_classes=args.nb_labels)
     batch_label = label_onehot.reshape(args.batch_size, args.seq_length, -1)
 
-    batch_img = np.concatenate(read_images_and_return_list(args, image_paths), axis=1)
+    batch_img = np.concatenate(read_images_and_return_list(args, image_paths, computer), axis=1)
     batch_img = np.reshape(batch_img, (args.batch_size, args.seq_length, args.input_width, args.input_height, 3))
     return batch_img, batch_label
 
@@ -182,6 +187,8 @@ def read_images_and_return_list(args, paths, computer='hg'):
     for p in paths:
         if computer == 'hg':
             p = '/home/sofia/Documents/painface-recognition/' + p
+        elif computer == 'local':
+            p = '/Users/sbroome/Documents/EquineML/painface-recognition/' + p
         else:
             p = '/home/sbroome/dev/painface-recognition/' + p
         img = process_image(p, (args.input_width, args.input_height, 3))
@@ -198,9 +205,9 @@ class RodriguezNetwork:
 
     def build_from_saved_weights(self):
         m = keras.models.load_model(self.path)
-        self.timedist_vgg = m.layers[0](self.rgb)
-        x = m.layers[1](self.timedist_vgg)
-        x = m.layers[2](x)
+        x = m.layers[0](self.rgb)
+        self.timedist_vgg = m.layers[1](self.rgb)
+        x = m.layers[2](self.timedist_vgg)
         self.dense_1 = m.layers[3](x)
         self.lstm = m.layers[4](self.dense_1)
         self.preds = m.layers[5](self.lstm)
@@ -228,17 +235,18 @@ class InceptionNetwork:
 
         c = m.layers[18](mp)
         bn = m.layers[19](c)
-        a = m.layers[20](bn)
+        a = m.layers[20](bn)  # output 64
 
+        import pdb; pdb.set_trace()
         print(m.layers[21])
-        b55 = m.layers[21](mp)
+        b55 = m.layers[21](mp)  # output 48
         print(m.layers[22])
-        b55_bn = m.layers[22](b55)
-        b55_a = m.layers[23](b55_bn)
+        o96 = m.layers[22](a) # output 96
+        o48 = m.layers[23](b55)  # output 48
 
-        b55 = m.layers[24](b55_a)
-        b55 = m.layers[25](b55)
-        b55 = m.layers[26](b55)
+        o96 = m.layers[24](o96)
+        b55 = m.layers[25](o48)
+        b55 = m.layers[26](o96)
 
         b33dbl = m.layers[27](mp)
         b33dbl = m.layers[28](b33dbl)
@@ -351,20 +359,151 @@ def create_graph_for_clstm(batch_size, args, channels, best_model_path, two_stre
     return sess, clstm_model
 
 
-def visualize_overlays(images, conv_outputs, conv_grads):
+def plot_sequences(rgb, X_seq_list, flipped, cropped, shaded,
+                      seq_index, batch_index, window_index):
+    rows = 4
+    cols = 10
+    f, axarr = plt.subplots(rows, cols, figsize=(20,10))
+    for i in range(0, rows):
+        for j in range(0, cols):
+            axarr[i, j].set_xticks([])
+            axarr[i, j].set_yticks([])
+            # axarr[i, j].set_aspect('equal')
+            if i == 0:
+                im = X_seq_list[j]
+                im /= 255
+                axarr[i, j].imshow(im)
+            elif i == 1:
+                im = flipped[j]
+                im /= 255
+                axarr[i, j].imshow(im)
+            elif i == 2:
+                im = cropped[j]
+                im /= 255
+                axarr[i, j].imshow(im)
+            else:
+                im = shaded[j]
+                im /= 255
+                axarr[i, j].imshow(im)
+    plt.tick_params(axis='both', which='both', bottom='off', left='off')
+    f.subplots_adjust(wspace=0, hspace=0)
+    plt.subplots_adjust(wspace=0, hspace=0)
+    # plt.axis('off')
+    # plt.tight_layout()
+    plt.savefig('seq_{}_batch_{}_wi_{}_part_{}_rgb_{}.png'.format(seq_index,
+                                                           batch_index,
+                                                           window_index,
+                                                           partition,
+                                                           rgb))
+    plt.close()
+
+def visualize_overlays_4D(images, conv_outputs, conv_grads, flows=None):
 
     from skimage.transform import resize
     from matplotlib import pyplot as plt
 
+    if flows is not None:
+        nb_rows = 3
+        fig_width = 23
+        fig_height = 7
+    else:
+        nb_rows = 2
+        fig_width = 22
+        fig_height = 4.5
+
+    image = images[0,:,:,:]
+    if flows is not None:
+        flow = flows[0,:,:,:]
+        flow = flow.astype(float)
+        flow -= np.min(flow)
+        flow /= flow.max()
+
+    output = conv_outputs[0,:,:,:]           # [7,7,512]
+    grads_val = conv_grads[0,:,:,:]          # [7,7,512]
+    import pdb; pdb.set_trace()
+    # print("grads_val shape:", grads_val.shape)
+    weights = np.mean(grads_val, axis = (0,1)) # alpha_k, [512]
+    cam = np.zeros(output.shape[0 : 2], dtype = np.float32) # [7,7]
+
+    # Taking a weighted average
+    for i, w in enumerate(weights):
+        cam += w * output[:, :, i]
+
+    # Passing through ReLU
+    cam = np.maximum(cam, 0)
+    cam = cam / np.max(cam) # scale 0 to 1.0
+    cam = resize(cam, (320,180), preserve_range=True)
+
+    img = image.astype(float)
+    img -= np.min(img)
+    img /= img.max()
+
+    cam_heatmap = cv2.applyColorMap(np.uint8(255*cam), cv2.COLORMAP_JET)
+    cam_heatmap = cv2.cvtColor(cam_heatmap, cv2.COLOR_BGR2RGB)
+    # if im == 0:
+    #     fig = plt.figure(figsize=(fig_width, fig_height))    
+    # ax = fig.add_subplot(nb_rows,10,im+1)
+    # ax.set_xticks([])
+    # ax.set_yticks([])
+    imgplot = plt.imshow(img)
+    
+    # if flows.any():
+    if flows is not None:
+        ax = fig.add_subplot(nb_rows,10,im+11)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        imgplot = plt.imshow(flow)
+    #ax.set_title('Input Image')
+    #plt.show()
+    
+
+    from PIL import Image
+    # if flows is not None:
+    # # if flows.any():
+    #     ax = fig.add_subplot(nb_rows,10,im+21)
+    # else:
+    #     ax = fig.add_subplot(nb_rows,10,im+11)
+        
+    # ax.set_xticks([])
+    # ax.set_yticks([])
+    bg = Image.fromarray((255*img).astype('uint8'))
+    overlay = Image.fromarray(cam_heatmap.astype('uint8'))
+    blend = Image.blend(bg, overlay, 0.2)
+    imgplot = plt.imshow(blend)
+    #ax.set_title('Input Image with GradCAM Overlay')
+    plt.tick_params(axis='both', which='both', bottom='off', left='off')
+    # fig.subplots_adjust(wspace=0, hspace=0)
+    # plt.subplots_adjust(wspace=0, hspace=0)
+    plt.show()
+
+def visualize_overlays(images, conv_outputs, conv_grads, flows=None):
+
+    from skimage.transform import resize
+    from matplotlib import pyplot as plt
+
+    if flows is not None:
+        nb_rows = 3
+        fig_width = 23
+        fig_height = 7
+    else:
+        nb_rows = 2
+        fig_width = 22
+        fig_height = 4.5
+
     for im in range(images.shape[1]):
         # print(im)
         image = images[0,im,:,:]
+        if flows is not None:
+            flow = flows[0,im,:,:]
+            flow = flow.astype(float)
+            flow -= np.min(flow)
+            flow /= flow.max()
+
         output = conv_outputs[0,im,:,:]           # [7,7,512]
         grads_val = conv_grads[0,im,:,:]          # [7,7,512]
         # print("grads_val shape:", grads_val.shape)
         weights = np.mean(grads_val, axis = (0, 1)) # alpha_k, [512]
         cam = np.zeros(output.shape[0 : 2], dtype = np.float32) # [7,7]
-
 
         # Taking a weighted average
         for i, w in enumerate(weights):
@@ -382,21 +521,39 @@ def visualize_overlays(images, conv_outputs, conv_grads):
         cam_heatmap = cv2.applyColorMap(np.uint8(255*cam), cv2.COLORMAP_JET)
         cam_heatmap = cv2.cvtColor(cam_heatmap, cv2.COLOR_BGR2RGB)
         if im == 0:
-            fig = plt.figure(figsize=(20, 20))    
-        ax = fig.add_subplot(4,5,im+1)
+            fig = plt.figure(figsize=(fig_width, fig_height))    
+        ax = fig.add_subplot(nb_rows,10,im+1)
+        ax.set_xticks([])
+        ax.set_yticks([])
         imgplot = plt.imshow(img)
+        
+        # if flows.any():
+        if flows is not None:
+            ax = fig.add_subplot(nb_rows,10,im+11)
+            ax.set_xticks([])
+            ax.set_yticks([])
+            imgplot = plt.imshow(flow)
         #ax.set_title('Input Image')
         #plt.show()
         
 
         from PIL import Image
-
-        ax = fig.add_subplot(4,5,im+11)
+        if flows is not None:
+        # if flows.any():
+            ax = fig.add_subplot(nb_rows,10,im+21)
+        else:
+            ax = fig.add_subplot(nb_rows,10,im+11)
+            
+        ax.set_xticks([])
+        ax.set_yticks([])
         bg = Image.fromarray((255*img).astype('uint8'))
         overlay = Image.fromarray(cam_heatmap.astype('uint8'))
         blend = Image.blend(bg, overlay, 0.2)
         imgplot = plt.imshow(blend)
         #ax.set_title('Input Image with GradCAM Overlay')
+    plt.tick_params(axis='both', which='both', bottom='off', left='off')
+    fig.subplots_adjust(wspace=0, hspace=0)
+    plt.subplots_adjust(wspace=0, hspace=0)
     plt.show()
 
 
