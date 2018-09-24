@@ -1,8 +1,5 @@
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import division
 import sys
-sys.path.append("..") # Adds higher directory to python modules path.
+sys.path.append('../') # Adds higher directory to python modules path.
 
 from extract_frames_into_folders import check_if_unique_in_df
 from helpers import process_image, find_between
@@ -94,11 +91,11 @@ def get_flow_magnitude(flow):
     return magnitude
 
 
-def compute_optical_flow(ims, output_path_stem):
+def compute_optical_flow(ims, output_path_stem, magnitude=True):
     im1, im2 = ims[0], ims[1]
     # im1 = im1.astype(float) / 255.
     # im2 = im2.astype(float) / 255.
-    s = time.time()
+    # s = time.time()
     # Compute the flow via Pyflow/Coarse2FineFlowWrapper.
     # https://github.com/pathak22/pyflow/blob/master/pyflow.pyx
     # u and are [h,w,2]-arrays (elements are float64 on [0,1])
@@ -121,13 +118,18 @@ def compute_optical_flow(ims, output_path_stem):
     flow = cv2.calcOpticalFlowFarneback(im1, im2, flow=None, pyr_scale=0.5, levels=3,
                                         winsize=15, iterations=3, poly_n=5,
                                         poly_sigma=1.2, flags=0)
-    e = time.time()
+    # e = time.time()
     # print('Time Taken: %.2f seconds for image of size (%d, %d, %d)' % (
     #     e - s, width, height, channels))
     # flow = np.concatenate((u[..., None], v[..., None]), axis=2)
 
     # ADD MAGNITUDE AS THIRD CHANNEL (optional)
-    extra_channel = get_flow_magnitude(flow)
+    if magnitude:
+        extra_channel = get_flow_magnitude(flow)
+    else:
+        rows = flow.shape[0]
+        cols = flow.shape[1]
+        extra_channel = np.zeros((rows, cols, 1))
     flow = np.concatenate((flow, extra_channel), axis=2)
     flow = cv2.normalize(flow, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
     imsave(output_path_stem + '.jpg', flow)
@@ -168,23 +170,23 @@ def iterate_over_frames(frequency):
                     per_video_counter = 0
                     old_vid_seq_name = vid_seq_name
                 counter_format = ("%06d" % (per_video_counter-1))  # -1 if I want to start at 1, otherwise 2.
-                # if (per_video_counter % frequency) == 2:
-                #     flow_output_path_stem = output_root_dir + subject_id +  '/'\
-                #                             + vid_seq_name + '/flow_' + counter_format
-                #     # print(flow_output_path_stem)
-                #     compute_optical_flow(ims, flow_output_path_stem)
-                flow_output_path_stem = output_root_dir + subject_id +  '/'\
-                                        + vid_seq_name + '/flow_' + counter_format
+                if (per_video_counter % frequency) == 2:
+                    flow_output_path_stem = output_root_dir + subject_id +  '/'\
+                                            + vid_seq_name + '/flow_' + counter_format
+                    # print(flow_output_path_stem)
+                    compute_optical_flow(ims, flow_output_path_stem, magnitude=True)
+                # flow_output_path_stem = output_root_dir + subject_id +  '/'\
+                #                         + vid_seq_name + '/flow_' + counter_format
                 # print(flow_output_path_stem)
-                compute_optical_flow(ims, flow_output_path_stem)
+                # compute_optical_flow(ims, flow_output_path_stem, magnitude=False)
                 ims[0] = ims[1]
                 ims.pop()
             frame_path = row[1]['Path']
             # Shoulder pain
-            vid_seq_name = find_between(frame_path, subject_id + '/', '/')
+            # vid_seq_name = find_between(frame_path, subject_id + '/', '/')
             # Equine data
-            # vid_seq_name = find_between(frame_path, subject_id + '/', '/frame')
-            im = process_image(frame_path, (width, height, channels))
+            vid_seq_name = find_between(frame_path, subject_id + '/', '/frame')
+            im = process_image('../' + frame_path, (width, height, channels))
             ims.append(im)
             counter += 1
             per_video_counter += 1
@@ -194,23 +196,33 @@ def iterate_over_frames(frequency):
 
 if __name__ == '__main__':
     # CSV with info about all the video sequences.
-    # df = pd.read_csv('videos_overview_missingremoved.csv', sep=';')
-    df = pd.read_csv('../metadata/shoulder_pain_overview.csv')
+    df = pd.read_csv('../metadata/videos_overview_missingremoved.csv', sep=';')
+    # df = pd.read_csv('../metadata/shoulder_pain_overview.csv')
 
     # CSV with unique subject overview.
-    # subject_IDs = pd.read_csv('horse_subjects.csv')
-    subject_ID_df = pd.read_csv('../metadata/shoulder_pain_subjects.csv')
+    subject_ID_df = pd.read_csv('../metadata/horse_subjects.csv')
+
+    # subject_ID_df = pd.read_csv('../metadata/shoulder_pain_subjects.csv')
     
     # Directory with the frames from which to extract the OF.
-    # root_dir = 'data/jpg_128_128_16fps/'
-    root_dir = '../data/ShoulderPain_172x129/Images/'
+    root_dir = '../data/jpg_320_180_15fps/'
+    # root_dir = '../data/ShoulderPain_172x129/Images/'
     # Output root directory (will contain subfolders for every sequence).
     # Need to make this folder before running, and the horse_x folders in it.
-    # output_root_dir = 'data/jpg_128_128_16fps_OF_magnitude_cv2/'
-    output_root_dir = '../data/ShoulderPain172x129_OF_cv2/'
+    # output_root_dir = '../data/jpg_128_128_16fps_OF_1_flow_per_frame_cv2/'
+    output_root_dir = '../data/jpg_320_180_15fps_OF_magnitude_cv2/'
+    # output_root_dir = '../data/ShoulderPain172x129_OF_cv2/'
 
-    width = 172
-    height = 129
+    # width = 172
+    # height = 129
+    # channels = 3
+
+    # width = 128
+    # height = 128
+    # channels = 3
+
+    width = 320
+    height = 180
     channels = 3
 
     # Only need to make the subfolders of output_root_dir once.
@@ -218,4 +230,4 @@ if __name__ == '__main__':
 
     # Iterate over the frames in root_dir and compute the flows.
     # Right now this is done for every 15th frame.
-    iterate_over_frames(frequency=1)
+    iterate_over_frames(frequency=15)
