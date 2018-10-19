@@ -156,19 +156,21 @@ class MyModel:
 
     def two_stream(self):
         # Functional API
-        rgb_model = self.conv2d_lstm(channels=3, top_layer=False)
+        rgb_model, _ = self.inception_4d_input(w=None, top_layer=False)
         image_input = Input(shape=(self.input_shape[0], self.input_shape[1], 3))
         encoded_image = rgb_model(image_input)
 
-        of_model = self.conv2d_lstm(channels=3, top_layer=False)
+        of_model, _ = self.inception_4d_input(w=None, top_layer=False)
         of_input = Input(shape=(self.input_shape[0], self.input_shape[1], 3))
         encoded_of = of_model(of_input)
+        
+        merged = add([encoded_image, encoded_of])
 
-        merged = concatenate([encoded_image, encoded_of], axis=-1)
-        # dense = Dense(self.nb_dense_units, activation='relu')(merged)
+        merged = Dropout(.2)(merged)
 
         if self.nb_labels == 2:
-            output = Dense(self.nb_labels, activation='sigmoid')(merged)
+            dense = Dense(self.nb_labels)(merged)
+            output = Activation('sigmoid')(dense)
         else:
             output = Dense(self.nb_labels, activation='softmax')(merged)
 
@@ -691,19 +693,21 @@ class MyModel:
                 model.add(Dense(self.nb_labels, activation='softmax'))
         return model
 
-    def inception_4d_input(self, w):
+    def inception_4d_input(self, w, top_layer=True):
         image_input = Input(shape=(self.input_shape[0], self.input_shape[1], 3))
         base_model = InceptionV3(weights=w, include_top=False)
 
         x = base_model.output
         x = GlobalAveragePooling2D()(x)
         x = Dense(512, activation='relu')(x)
-        if self.nb_labels == 2:
-            predictions = Dense(self.nb_labels, activation='sigmoid')(x)
+        if top_layer:
+            if self.nb_labels == 2:
+                predictions = Dense(self.nb_labels, activation='sigmoid')(x)
+            else:
+                predictions = Dense(self.nb_labels, activation='softmax')(x)
         else:
-            predictions = Dense(self.nb_labels, activation='softmax')(x)
+            predictions = x
         model = Model(inputs=base_model.input, outputs=predictions)
-
         return model, base_model
 
     def inception_lstm_5d_input(self, top_layer=True):
@@ -789,63 +793,4 @@ class MyModel:
                 model.add((Dense(self.nb_labels, activation="softmax")))
         return model
 
-    def conv2d_timedist_lstm_stateful(self, top_layer=True):
-        model = Sequential()
-        model.add(TimeDistributed(Convolution2D(filters=self.nb_conv_filters,
-                                                kernel_size=(self.kernel_size,
-                                                             self.kernel_size),
-                                                activation='relu'),
-                                  input_shape=(self.seq_length,self.input_shape[0],self.input_shape[1], 3),
-                                  batch_input_shape=(self.batch_size, self.seq_length,
-                                                     self.input_shape[0], self.input_shape[1], 3)))
-        model.add(TimeDistributed(MaxPooling2D()))
-        model.add(Dropout(self.dropout_1))
-        model.add(BatchNormalization())
-        model.add(TimeDistributed(Convolution2D(filters=self.nb_conv_filters,
-                                                kernel_size=(self.kernel_size, self.kernel_size),
-                                                activation='relu',
-                                                kernel_initializer='he_uniform')))
-        model.add(TimeDistributed(MaxPooling2D()))
-        model.add(Dropout(self.dropout_1))
-        model.add(BatchNormalization())
-        model.add(TimeDistributed(Convolution2D(filters=self.nb_conv_filters,
-                                                kernel_size=(self.kernel_size, self.kernel_size),
-                                                activation='relu',
-                                                kernel_initializer='he_uniform')))
-        model.add(TimeDistributed(MaxPooling2D()))
-        model.add(Dropout(self.dropout_1))
-        model.add(BatchNormalization())
-        model.add(TimeDistributed(Flatten()))
-        if self.nb_lstm_layers == 4:
-            model.add((LSTM(self.nb_lstm_units,
-                            stateful=True,
-                            dropout=self.dropout_2,
-                            input_shape=(None, None, None),
-                            return_sequences=True,
-                            implementation=2)))
-            model.add((LSTM(self.nb_lstm_units,
-                            stateful=True,
-                            dropout=self.dropout_2,
-                            input_shape=(None, None, None),
-                            return_sequences=True,
-                            implementation=2)))
-            model.add((LSTM(self.nb_lstm_units,
-                            stateful=True,
-                            dropout=self.dropout_2,
-                            input_shape=(None, None, None),
-                            return_sequences=True,
-                            implementation=2)))
-            model.add((LSTM(self.nb_lstm_units,
-                            stateful=True,
-                            dropout=self.dropout_2,
-                            input_shape=(None, None, None),
-                            return_sequences=True,
-                            implementation=2)))
-            if top_layer:
-                if self.nb_labels == 2:
-                    print("2 labels, using sigmoid activation instead of softmax.")
-                    model.add(TimeDistributed(Dense(self.nb_labels, activation='sigmoid')))
-                else:
-                    model.add(TimeDistributed(Dense(self.nb_labels, activation='softmax')))
-            return model
 
