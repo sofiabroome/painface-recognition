@@ -24,7 +24,7 @@ import os
 class ArgsProxy:
     def __init__(self, data_path, of_path, input_height, input_width,
                  seq_length, seq_stride, batch_size, nb_labels,
-                 aug_flip, aug_crop, aug_light):
+                 aug_flip, aug_crop, aug_light, nb_input_dims):
         self.data_path = data_path
         self.of_path = of_path
         self.input_height = input_height
@@ -36,6 +36,7 @@ class ArgsProxy:
         self.aug_flip = aug_flip
         self.aug_crop = aug_crop
         self.aug_light = aug_light
+        self.nb_input_dims = nb_input_dims
 
 
 def read_or_create_subject_dfs(dh, args, subject_ids):
@@ -231,44 +232,125 @@ class InceptionNetwork:
             print(i)
             print(m.layers[i])
             x = m.layers[i](x)
-        mp = m.layers[17](x)
+        mp_2 = m.layers[17](x)
 
-        c = m.layers[18](mp)
-        bn = m.layers[19](c)
-        a = m.layers[20](bn)  # output 64
+        c_9 = m.layers[18](mp_2)
+        bn_9 = m.layers[19](c_9)
+        a_9 = m.layers[20](bn_9)  # output 64
 
         import pdb; pdb.set_trace()
         print(m.layers[21])
-        b55 = m.layers[21](mp)  # output 48
+        c_7 = m.layers[21](mp_2)  # output 48
         print(m.layers[22])
-        o96 = m.layers[22](a) # output 96
-        o48 = m.layers[23](b55)  # output 48
+        c_10 = m.layers[22](a_9) # output 96
+        bn_7 = m.layers[23](c_7)  # output 48
 
-        o96 = m.layers[24](o96)
-        b55 = m.layers[25](o48)
-        b55 = m.layers[26](o96)
+        bn_10 = m.layers[24](c_10)
+        a_7 = m.layers[25](bn_7)
+        a_10 = m.layers[26](bn_10)
 
-        b33dbl = m.layers[27](mp)
-        b33dbl = m.layers[28](b33dbl)
-        b33dbl = m.layers[29](b33dbl)
+        ap_1 = m.layers[27](mp_2)
+        c_6 = m.layers[28](mp_2)
+        c_8 = m.layers[29](a_7)
 
-        b33dbl = m.layers[30](b33dbl)
-        b33dbl = m.layers[31](b33dbl)
-        b33dbl = m.layers[32](b33dbl)
+        c_11 = m.layers[30](a_10)
+        c_12 = m.layers[31](ap_1)
+        bn_6 = m.layers[32](c_6)
+        bn_8 = m.layers[33](c_8)
+        bn_11 = m.layers[34](c_11)
 
-        b33dbl = m.layers[33](b33dbl)
-        b33dbl = m.layers[34](b33dbl)
-        b33dbl = m.layers[35](b33dbl)
+        bn_12 = m.layers[35](c_12)
+        a_6 = m.layers[36](bn_6)
+        a_8 = m.layers[37](bn_8)
+        a_11 = m.layers[38](bn_11)
+        a_12 = m.layers[39](bn_12)
 
-        branch_pool = m.layers[36](mp)
-        bp = m.layers[37](branch_pool)
-        bp = m.layers[38](bp)
-        bp = m.layers[39](bp)
+        # mixed0
+        mixed0 = m.layers[40]([a_6, a_8, a_11, a_12])
 
-        for i in range(20,299):
-            print(i)
-            print(m.layers[i])
+        c_16 = m.layers[41](mixed0)
+        bn_16 = m.layers[42](c_16)
+        a_16 = m.layers[43](bn_16)
+
+        c_14 = m.layers[44](mixed0)
+        c_17 = m.layers[45](a_16)
+        bn_14 = m.layers[46](c_14)
+        bn_17 = m.layers[47](c_17)
+        a_14 = m.layers[48](bn_14)
+        a_17 = m.layers[49](bn_17)
+        ap_2 = m.layers[50](mixed0)
+        c_13 = m.layers[51](mixed0)
+        c_15 = m.layers[52](a_14)
+        c_18 = m.layers[53](a_17)
+        c_19 = m.layers[54](ap_2)
+        bn_13 = m.layers[55](c_13)
+        bn_15 = m.layers[56](c_15)
+        bn_18 = m.layers[57](c_18)
+        bn_19 = m.layers[58](c_19)
+        a_13 = m.layers[59](bn_13)
+        a_15 = m.layers[60](bn_15)
+        a_18 = m.layers[61](bn_18)
+        a_19 = m.layers[62](bn_19)
+        mixed1 = m.layers[63]([a_13, a_15, a_18, a_19])
+
+        c_23 = m.layers[64](mixed1)
+        bn_23 = m.layers[65](c_23)
+        a_23 = m.layers[66](bn_23)
+
+        c_21 = m.layers[67](mixed1)
+        c_24 = m.layers[68](a_23)
+        bn_21 = m.layers[69](c_21)
+        bn_24 = m.layers[70](c_24)
+        a_21 = m.layers[71](bn_21)
+        a_24 = m.layers[72](bn_24)
+        ap_3 = m.layers[73](mixed1)
+        c_20 = m.layers[74](mixed1)
+        c_22 = m.layers[75](a_21)
+        c_25 = m.layers[76](a_24)
+        c_26 = m.layers[77](ap_3)
+        bn_20 = m.layers[78](c_20)
+        bn_22 = m.layers[79](c_22)
+        bn_25 = m.layers[80](c_25)
+        bn_26 = m.layers[81](c_26)
+        a_20 = m.layers[82](bn_20)
+        a_22 = m.layers[83](bn_22)
+        a_25 = m.layers[84](bn_25)
+        a_26 = m.layers[85](bn_26)
+        mixed2 = m.layers[86]([a_20, a_22, a_25, a_26])
+        c_28 = m.layers[87](mixed2)
+        bn_28 = m.layers[88](c_28)
+        a_28 = m.layers[89](bn_28)
+
+        c_29 = m.layers[90](a_28)
+        bn_29 = m.layers[91](c_29)
+        a_29 = m.layers[92](bn_29)
+
+        c_27 = m.layers[93](mixed2)
+        c_30 = m.layers[94](a_29)
+        bn_27 = m.layers[95](c_27)
+        bn_30 = m.layers[96](c_30)
+        a_27 = m.layers[97](bn_27)
+        a_30 = m.layers[98](bn_30)
+        mp_3 = m.layers[99](mixed2)
+
+        mixed3 = m.layers[100]([a_27, a_30, mp_3])
+        x = m.layers[101](mixed3)
+        for i in range(102,107):
             x = m.layers[i](x)
+
+        c_32 = m.layers[107](mixed3)
+        c_37 = m.layers[108](x) # a_36
+        bn_32 = m.layers[109](c_32) # a_36
+        bn_37 = m.layers[110](c_37)
+        a_32 = m.layers[111](bn_32)
+        a_37 = m.layers[112](bn_37)
+        c_33 = m.layers[113](a_32)
+        c_38 = m.layers[114](a_37)
+        bn_33 = m.layers[115](c_33)
+        bn_38 = m.layers[116](c_38)
+        a_33 = m.layers[117](bn_33)
+        a_38 = m.layers[118](bn_38)
+
         import pdb; pdb.set_trace()
         self.lastconv = m.layers[299](x)
         x = m.layers[300](self.lastconv)
@@ -407,7 +489,7 @@ def visualize_overlays_4D(images, conv_outputs, conv_grads, flows=None):
         fig_width = 23
         fig_height = 7
     else:
-        nb_rows = 2
+        nb_rows = 1
         fig_width = 22
         fig_height = 4.5
 
@@ -420,7 +502,6 @@ def visualize_overlays_4D(images, conv_outputs, conv_grads, flows=None):
 
     output = conv_outputs[0,:,:,:]           # [7,7,512]
     grads_val = conv_grads[0,:,:,:]          # [7,7,512]
-    import pdb; pdb.set_trace()
     # print("grads_val shape:", grads_val.shape)
     weights = np.mean(grads_val, axis = (0,1)) # alpha_k, [512]
     cam = np.zeros(output.shape[0 : 2], dtype = np.float32) # [7,7]
@@ -438,43 +519,34 @@ def visualize_overlays_4D(images, conv_outputs, conv_grads, flows=None):
     img -= np.min(img)
     img /= img.max()
 
+    fig = plt.figure(figsize=(fig_width, fig_height))    
     cam_heatmap = cv2.applyColorMap(np.uint8(255*cam), cv2.COLORMAP_JET)
     cam_heatmap = cv2.cvtColor(cam_heatmap, cv2.COLOR_BGR2RGB)
-    # if im == 0:
-    #     fig = plt.figure(figsize=(fig_width, fig_height))    
-    # ax = fig.add_subplot(nb_rows,10,im+1)
-    # ax.set_xticks([])
-    # ax.set_yticks([])
+    ax = fig.add_subplot(nb_rows,2,1)
+    ax.set_xticks([])
+    ax.set_yticks([])
     imgplot = plt.imshow(img)
     
-    # if flows.any():
-    if flows is not None:
-        ax = fig.add_subplot(nb_rows,10,im+11)
-        ax.set_xticks([])
-        ax.set_yticks([])
-        imgplot = plt.imshow(flow)
-    #ax.set_title('Input Image')
+    ax.set_title('Input Image')
     #plt.show()
-    
 
     from PIL import Image
-    # if flows is not None:
-    # # if flows.any():
-    #     ax = fig.add_subplot(nb_rows,10,im+21)
-    # else:
-    #     ax = fig.add_subplot(nb_rows,10,im+11)
-        
     # ax.set_xticks([])
     # ax.set_yticks([])
     bg = Image.fromarray((255*img).astype('uint8'))
     overlay = Image.fromarray(cam_heatmap.astype('uint8'))
     blend = Image.blend(bg, overlay, 0.2)
+    ax = fig.add_subplot(nb_rows,2,2)
+    ax.set_xticks([])
+    ax.set_yticks([])
     imgplot = plt.imshow(blend)
-    #ax.set_title('Input Image with GradCAM Overlay')
+
+    ax.set_title('Input Image with GradCAM Overlay')
     plt.tick_params(axis='both', which='both', bottom='off', left='off')
     # fig.subplots_adjust(wspace=0, hspace=0)
     # plt.subplots_adjust(wspace=0, hspace=0)
     plt.show()
+
 
 def visualize_overlays(images, conv_outputs, conv_grads, flows=None):
 
