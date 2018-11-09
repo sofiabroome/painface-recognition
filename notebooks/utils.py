@@ -533,11 +533,10 @@ class InceptionNetwork:
         concat2 = m.layers[308]([a_92, a_93])
         a_94 = m.layers[309](bn_94)
         self.mixed10 = m.layers[310]([a_86, mixed9_1, concat2, a_94])
-
         gap_1 = m.layers[311](self.mixed10)
         self.dense_1 = m.layers[312](gap_1)
-        self.prel_preds =Activation('sigmoid')(self.dense_1)
-        self.preds = m.layers[313](self.dense_1)
+        self.dense_2 = m.layers[313](self.dense_1)
+        self.preds = m.layers[314](self.dense_2)
         return m
 
 class TwoStreamCLSTMNetwork:
@@ -658,6 +657,7 @@ def plot_sequences(rgb, X_seq_list, flipped, cropped, shaded,
                                                            rgb))
     plt.close()
 
+
 def visualize_overlays_4D(images, conv_outputs, conv_grads, flows=None):
 
     from skimage.transform import resize
@@ -681,8 +681,6 @@ def visualize_overlays_4D(images, conv_outputs, conv_grads, flows=None):
 
     output = conv_outputs[0,:,:,:]           # [7,7,512]
     grads_val = conv_grads[0,:,:,:]          # [7,7,512]
-    print("conv output shape:", output.shape)
-    print("grads_val shape:", grads_val.shape)
     weights = np.mean(grads_val, axis = (0,1)) # alpha_k, [512]
     cam = np.zeros(output.shape[0 : 2], dtype = np.float32) # [7,7]
 
@@ -691,10 +689,10 @@ def visualize_overlays_4D(images, conv_outputs, conv_grads, flows=None):
         cam += w * output[:, :, i]
 
     # Passing through ReLU
-    import ipdb; ipdb.set_trace()
+    image = np.reshape(image, (180,320,3))
     cam = np.maximum(cam, 0)
     cam = cam / np.max(cam) # scale 0 to 1.0
-    cam = resize(cam, (320,180), preserve_range=True)
+    cam = resize(cam, (180,320), preserve_range=True)
 
     img = image.astype(float)
     img -= np.min(img)
@@ -709,11 +707,8 @@ def visualize_overlays_4D(images, conv_outputs, conv_grads, flows=None):
     imgplot = plt.imshow(img)
     
     ax.set_title('Input Image')
-    #plt.show()
 
     from PIL import Image
-    # ax.set_xticks([])
-    # ax.set_yticks([])
     bg = Image.fromarray((255*img).astype('uint8'))
     overlay = Image.fromarray(cam_heatmap.astype('uint8'))
     blend = Image.blend(bg, overlay, 0.2)
@@ -724,15 +719,16 @@ def visualize_overlays_4D(images, conv_outputs, conv_grads, flows=None):
 
     ax.set_title('Input Image with GradCAM Overlay')
     plt.tick_params(axis='both', which='both', bottom='off', left='off')
-    # fig.subplots_adjust(wspace=0, hspace=0)
-    # plt.subplots_adjust(wspace=0, hspace=0)
     plt.show()
 
 
-def visualize_overlays(images, conv_outputs, conv_grads, flows=None):
+def visualize_overlays(images, conv_outputs, conv_grads, args, flows=None):
 
     from skimage.transform import resize
     from matplotlib import pyplot as plt
+
+    if args.nb_input_dims == 5:
+        images = images[0]
 
     if flows is not None:
         nb_rows = 3
@@ -743,18 +739,17 @@ def visualize_overlays(images, conv_outputs, conv_grads, flows=None):
         fig_width = 22
         fig_height = 4.5
 
-    for im in range(images.shape[1]):
+    for im in range(images.shape[0]):
         # print(im)
-        image = images[0,im,:,:]
+        image = images[im,:,:,:]
         if flows is not None:
             flow = flows[0,im,:,:]
             flow = flow.astype(float)
             flow -= np.min(flow)
             flow /= flow.max()
 
-        output = conv_outputs[0,im,:,:]           # [7,7,512]
-        grads_val = conv_grads[0,im,:,:]          # [7,7,512]
-        # print("grads_val shape:", grads_val.shape)
+        output = conv_outputs[im,:,:,:]           # [7,7,512]
+        grads_val = conv_grads[im,:,:,:]          # [7,7,512]
         weights = np.mean(grads_val, axis = (0, 1)) # alpha_k, [512]
         cam = np.zeros(output.shape[0 : 2], dtype = np.float32) # [7,7]
 
@@ -763,9 +758,11 @@ def visualize_overlays(images, conv_outputs, conv_grads, flows=None):
             cam += w * output[:, :, i]
 
         # Passing through ReLU
+        if args.nb_input_dims == 4:
+            image = np.reshape(image, (args.input_height, args.input_width, 3))
         cam = np.maximum(cam, 0)
         cam = cam / np.max(cam) # scale 0 to 1.0
-        cam = resize(cam, (128,128), preserve_range=True)
+        cam = resize(cam, (args.input_height, args.input_width), preserve_range=True)
 
         img = image.astype(float)
         img -= np.min(img)
