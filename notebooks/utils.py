@@ -777,7 +777,6 @@ def visualize_overlays(images, conv_outputs, conv_grads, args, flows=None):
         ax.set_yticks([])
         imgplot = plt.imshow(img)
         
-        # if flows.any():
         if flows is not None:
             ax = fig.add_subplot(nb_rows,10,im+11)
             ax.set_xticks([])
@@ -789,7 +788,6 @@ def visualize_overlays(images, conv_outputs, conv_grads, args, flows=None):
 
         from PIL import Image
         if flows is not None:
-        # if flows.any():
             ax = fig.add_subplot(nb_rows,10,im+21)
         else:
             ax = fig.add_subplot(nb_rows,10,im+11)
@@ -801,6 +799,109 @@ def visualize_overlays(images, conv_outputs, conv_grads, args, flows=None):
         blend = Image.blend(bg, overlay, 0.2)
         imgplot = plt.imshow(blend)
         #ax.set_title('Input Image with GradCAM Overlay')
+    plt.tick_params(axis='both', which='both', bottom='off', left='off')
+    fig.subplots_adjust(wspace=0, hspace=0)
+    plt.subplots_adjust(wspace=0, hspace=0)
+    plt.show()
+
+def process_frames():
+    return frames
+
+def compute_manual_gradcam(images, conv_outputs, conv_grads, args):
+    from skimage.transform import resize
+
+    if args.nb_input_dims == 5:
+        images = images[0]
+
+    for im in range(images.shape[0]):
+        image = images[im,:,:,:]
+
+        output = conv_outputs[im,:,:,:]           # [7,7,512]
+        grads_val = conv_grads[im,:,:,:]          # [7,7,512]
+        weights = np.mean(grads_val, axis = (0, 1)) # alpha_k, [512]
+        cam = np.zeros(output.shape[0 : 2], dtype = np.float32) # [7,7]
+
+        # Taking a weighted average
+        for i, w in enumerate(weights):
+            cam += w * output[:, :, i]
+
+        # Passing through ReLU
+        if args.nb_input_dims == 4:
+            image = np.reshape(image, (args.input_height, args.input_width, 3))
+        cam = np.maximum(cam, 0)
+        cam = cam / np.max(cam) # scale 0 to 1.0
+        cam = resize(cam, (args.input_height, args.input_width), preserve_range=True)
+
+        img = image.astype(float)
+        img -= np.min(img)
+        img /= img.max()
+
+        cam_heatmap = cv2.applyColorMap(np.uint8(255*cam), cv2.COLORMAP_JET)
+        cam_heatmap = cv2.cvtColor(cam_heatmap, cv2.COLOR_BGR2RGB)
+        if im == 0:
+            fig = plt.figure(figsize=(fig_width, fig_height))    
+        
+        from PIL import Image
+        bg = Image.fromarray((255*img).astype('uint8'))
+        overlay = Image.fromarray(cam_heatmap.astype('uint8'))
+        blend = Image.blend(bg, overlay, 0.2)
+        imgplot = plt.imshow(blend)
+    return heatmaps
+
+
+def visualize_sequence_and_gradcam(frames, heatmaps, flows=None):
+    from matplotlib import pyplot as plt
+    from PIL import Image
+
+    fig = plt.figure(figsize=(fig_width, fig_height))    
+
+    if args.nb_input_dims == 5:
+        images = images[0]
+
+    if flows is not None:
+        nb_rows = 3
+        fig_width = 23
+        fig_height = 7
+    else:
+        nb_rows = 2
+        fig_width = 22
+        fig_height = 4.5
+
+    for im in range(frames.shape[0]):
+        image = frames[im,:,:,:]
+        if flows is not None:
+            flow = flows[0,im,:,:]
+            flow = flow.astype(float)
+            flow -= np.min(flow)
+            flow /= flow.max()
+
+        img = image.astype(float)
+        img -= np.min(img)
+        img /= img.max()
+
+        ax = fig.add_subplot(nb_rows,10,im+1)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        imgplot = plt.imshow(img)
+        
+        if flows is not None:
+            ax = fig.add_subplot(nb_rows,10,im+11)
+            ax.set_xticks([])
+            ax.set_yticks([])
+            imgplot = plt.imshow(flow)
+
+        if flows is not None:
+            ax = fig.add_subplot(nb_rows,10,im+21)
+        else:
+            ax = fig.add_subplot(nb_rows,10,im+11)
+            
+        ax.set_xticks([])
+        ax.set_yticks([])
+        bg = Image.fromarray((255*img).astype('uint8'))
+        overlay = Image.fromarray(cam_heatmap.astype('uint8'))
+        blend = Image.blend(bg, overlay, 0.2)
+        imgplot = plt.imshow(blend)
+
     plt.tick_params(axis='both', which='both', bottom='off', left='off')
     fig.subplots_adjust(wspace=0, hspace=0)
     plt.subplots_adjust(wspace=0, hspace=0)
