@@ -194,7 +194,9 @@ def run():
                      (kwargs.input_width, kwargs.input_height),
                      kwargs.seq_length, kwargs.seq_stride,
                      kwargs.batch_size, COLOR,
-                     kwargs.nb_labels, kwargs.aug_flip, kwargs.aug_crop, kwargs.aug_light)
+                     kwargs.nb_labels,
+                     kwargs.aug_flip, kwargs.aug_crop, kwargs.aug_light,
+                     kwargs.nb_input_dims)
     
     subject_ids = pd.read_csv(kwargs.subjects_overview)['Subject'].values
     ev = Evaluator(True, True, True, True, TARGET_NAMES, kwargs.batch_size)
@@ -287,11 +289,10 @@ def run():
     if kwargs.nb_input_dims == 4:
         if '2stream' in kwargs.model:
             print('4d input 2stream model')
-            generators = get_data_2stream_4d_input(dh,
-                                                   subject_dfs,
-                                                   train_subjects,
-                                                   test_subjects,
-                                                   val_subjects)
+            generators = get_data_2stream_4d_input(dh=dh,
+                                                   df_train_rgbof=train_subjects,
+                                                   df_val_rgbof=test_subjects,
+                                                   df_test_rgbof=val_subjects)
 
         else:
             print('4d input model')
