@@ -628,7 +628,7 @@ class DataHandler:
         :param subject_id: int
         :return: pd.DataFrame
         """
-        df_csv = pd.read_csv(self.clip_list_file, sep=',')
+        df_csv = pd.read_csv(self.clip_list_file, sep=';')
         column_headers = ['Video_ID', 'Path', 'Train']
         for dc in self.data_columns:
             column_headers.append(dc)
