@@ -1,0 +1,54 @@
+You are using pip version 18.0, however version 18.1 is available.
+You should consider upgrading via the 'pip install --upgrade pip' command.
+You are using pip version 18.0, however version 18.1 is available.
+You should consider upgrading via the 'pip install --upgrade pip' command.
+You are using pip version 18.0, however version 18.1 is available.
+You should consider upgrading via the 'pip install --upgrade pip' command.
+2018-11-20 14:47:37.959450: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1392] Found device 0 with properties: 
+name: TITAN Xp major: 6 minor: 1 memoryClockRate(GHz): 1.582
+pciBusID: 0000:02:00.0
+totalMemory: 11.90GiB freeMemory: 11.74GiB
+2018-11-20 14:47:37.959509: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1471] Adding visible gpu devices: 0
+2018-11-20 14:47:39.108591: I tensorflow/core/common_runtime/gpu/gpu_device.cc:952] Device interconnect StreamExecutor with strength 1 edge matrix:
+2018-11-20 14:47:39.108677: I tensorflow/core/common_runtime/gpu/gpu_device.cc:958]      0 
+2018-11-20 14:47:39.108693: I tensorflow/core/common_runtime/gpu/gpu_device.cc:971] 0:   N 
+2018-11-20 14:47:39.109245: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1084] Created TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:0 with 11360 MB memory) -> physical GPU (device: 0, name: TITAN Xp, pci bus id: 0000:02:00.0, compute capability: 6.1)
+2018-11-20 14:47:39.116185: I tensorflow/core/common_runtime/direct_session.cc:288] Device mapping:
+/job:localhost/replica:0/task:0/device:XLA_CPU:0 -> device: XLA_CPU device
+/job:localhost/replica:0/task:0/device:XLA_GPU:0 -> device: XLA_GPU device
+/job:localhost/replica:0/task:0/device:GPU:0 -> device: 0, name: TITAN Xp, pci bus id: 0000:02:00.0, compute capability: 6.1
+
+2018-11-20 14:47:42.173776: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1471] Adding visible gpu devices: 0
+2018-11-20 14:47:42.173869: I tensorflow/core/common_runtime/gpu/gpu_device.cc:952] Device interconnect StreamExecutor with strength 1 edge matrix:
+2018-11-20 14:47:42.173880: I tensorflow/core/common_runtime/gpu/gpu_device.cc:958]      0 
+2018-11-20 14:47:42.173887: I tensorflow/core/common_runtime/gpu/gpu_device.cc:971] 0:   N 
+2018-11-20 14:47:42.174215: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1084] Created TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:0 with 11360 MB memory) -> physical GPU (device: 0, name: TITAN Xp, pci bus id: 0000:02:00.0, compute capability: 6.1)
+Using TensorFlow backend.
+Traceback (most recent call last):
+  File "test_with_saved_model.py", line 388, in <module>
+    run()
+  File "test_with_saved_model.py", line 320, in run
+    y_preds, scores = ev.test(model, kwargs, test_generator, eval_generator, test_steps)
+  File "/workspace/test_and_eval.py", line 30, in test
+    verbose=1)
+  File "/root/.local/lib/python3.5/site-packages/keras/legacy/interfaces.py", line 91, in wrapper
+    return func(*args, **kwargs)
+  File "/root/.local/lib/python3.5/site-packages/keras/engine/training.py", line 1522, in predict_generator
+    verbose=verbose)
+  File "/root/.local/lib/python3.5/site-packages/keras/engine/training_generator.py", line 435, in predict_generator
+    generator_output = next(output_generator)
+  File "/root/.local/lib/python3.5/site-packages/keras/utils/data_utils.py", line 709, in get
+    six.reraise(*sys.exc_info())
+  File "/usr/local/lib/python3.5/dist-packages/six.py", line 693, in reraise
+    raise value
+  File "/root/.local/lib/python3.5/site-packages/keras/utils/data_utils.py", line 685, in get
+    inputs = self.queue.get(block=True).get()
+  File "/usr/lib/python3.5/multiprocessing/pool.py", line 608, in get
+    raise self._value
+  File "/usr/lib/python3.5/multiprocessing/pool.py", line 119, in worker
+    result = (True, func(*args, **kwds))
+  File "/root/.local/lib/python3.5/site-packages/keras/utils/data_utils.py", line 626, in next_sample
+    return six.next(_SHARED_SEQUENCES[uid])
+  File "/workspace/data_handler.py", line 74, in prepare_generator_2stream
+    for index, row in df.iterrows():
+AttributeError: 'list' object has no attribute 'iterrows'

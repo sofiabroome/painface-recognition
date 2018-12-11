@@ -1,0 +1,74 @@
+                                                                                                                                                
+================
+== TensorFlow ==
+================
+
+NVIDIA Release 18.08 (build 604096)
+
+Container image Copyright (c) 2018, NVIDIA CORPORATION.  All rights reserved.
+Copyright 2017 The TensorFlow Authors.  All rights reserved.
+
+Various files include modifications (c) NVIDIA CORPORATION.  All rights reserved.
+NVIDIA modifications are covered by the license terms that apply to the underlying project or file.
+
+NOTE: The SHMEM allocation limit is set to the default of 64MB.  This may be
+   insufficient for TensorFlow.  NVIDIA recommends the use of the following flags:
+   nvidia-docker run --shm-size=1g --ulimit memlock=-1 --ulimit stack=67108864 ...
+
+Collecting keras
+  Downloading https://files.pythonhosted.org/packages/5e/10/aa32dad071ce52b5502266b5c659451cfd6ffcbf14e6c8c4f16c0ff5aaab/Keras-2.2.4-py2.py3-none-any.whl (312kB)
+Requirement already satisfied: scipy>=0.14 in /usr/local/lib/python3.5/dist-packages (from keras) (1.1.0)
+Collecting h5py (from keras)
+  Downloading https://files.pythonhosted.org/packages/d9/0a/f0dd6d533d6b5bd4c1ca186af2792186885a90b84df41f3e6867466761fc/h5py-2.8.0-cp35-cp35m-manylinux1_x86_64.whl (2.8MB)
+Collecting pyyaml (from keras)
+  Downloading https://files.pythonhosted.org/packages/9e/a3/1d13970c3f36777c583f136c136f804d70f500168edc1edea6daa7200769/PyYAML-3.13.tar.gz (270kB)
+Requirement already satisfied: six>=1.9.0 in /usr/local/lib/python3.5/dist-packages (from keras) (1.11.0)
+Collecting keras-applications>=1.0.6 (from keras)
+  Downloading https://files.pythonhosted.org/packages/3f/c4/2ff40221029f7098d58f8d7fb99b97e8100f3293f9856f0fb5834bef100b/Keras_Applications-1.0.6-py2.py3-none-any.whl (44kB)
+Requirement already satisfied: numpy>=1.9.1 in /usr/local/lib/python3.5/dist-packages (from keras) (1.11.0)
+Collecting keras-preprocessing>=1.0.5 (from keras)
+  Downloading https://files.pythonhosted.org/packages/fc/94/74e0fa783d3fc07e41715973435dd051ca89c550881b3454233c39c73e69/Keras_Preprocessing-1.0.5-py2.py3-none-any.whl
+Building wheels for collected packages: pyyaml
+  Running setup.py bdist_wheel for pyyaml: started
+  Running setup.py bdist_wheel for pyyaml: finished with status 'done'
+  Stored in directory: /root/.cache/pip/wheels/ad/da/0c/74eb680767247273e2cf2723482cb9c924fe70af57c334513f
+Successfully built pyyaml
+Installing collected packages: h5py, pyyaml, keras-applications, keras-preprocessing, keras
+Successfully installed h5py-2.8.0 keras-2.2.4 keras-applications-1.0.6 keras-preprocessing-1.0.5 pyyaml-3.13
+Collecting opencv-python-headless
+  Downloading https://files.pythonhosted.org/packages/6f/68/0c3c0a3b74466300f7611dc260c71fa804d068b688e8fe377e1f2372fff4/opencv_python_headless-3.4.3.18-cp35-cp35m-manylinux1_x86_64.whl (18.4MB)
+Collecting numpy>=1.11.1 (from opencv-python-headless)
+  Downloading https://files.pythonhosted.org/packages/86/04/bd774106ae0ae1ada68c67efe89f1a16b2aa373cc2db15d974002a9f136d/numpy-1.15.4-cp35-cp35m-manylinux1_x86_64.whl (13.8MB)
+Installing collected packages: numpy, opencv-python-headless
+Successfully installed numpy-1.15.4 opencv-python-headless-3.4.3.18
+Collecting pillow
+  Downloading https://files.pythonhosted.org/packages/bc/cc/b6e47b0075ca4267855d77850af7ea4194d2fc591664f1d70e5151b50637/Pillow-5.3.0-cp35-cp35m-manylinux1_x86_64.whl (2.0MB)
+Installing collected packages: pillow
+Successfully installed pillow-5.3.0
+data/jpg_320_180_1fps/
+data/jpg_320_180_1fps/
+data/jpg_320_180_1fps/
+data/jpg_320_180_1fps/
+data/jpg_320_180_1fps/
+data/jpg_320_180_1fps/
+data/jpg_320_180_1fps/
+data/jpg_320_180_1fps/
+data/jpg_320_180_1fps/
+data/jpg_320_180_1fps/
+data/jpg_320_180_1fps/
+data/jpg_320_180_1fps/
+Horses to train on:  [0, 2, 3, 5]
+Horses to test on:  [1]
+Using separate subject validation.
+Horses to validate on:  [4]
+Total length of dataframe: 35109
+Lengths dftr, dfval, dftest:  22783 6267 6059
+4d input 2stream model
+LEN DF, in compute_steps():  6059
+First frame. Set oldname=vidname.
+Took 2.3293540477752686 s to compute testing steps
+LEN DF (nb. of frames):  1
+Device mapping:
+/job:localhost/replica:0/task:0/device:XLA_CPU:0 -> device: XLA_CPU device
+/job:localhost/replica:0/task:0/device:XLA_GPU:0 -> device: XLA_GPU device
+/job:localhost/replica:0/task:0/device:GPU:0 -> device: 0, name: TITAN Xp, pci bus id: 0000:02:00.0, compute capability: 6.1
