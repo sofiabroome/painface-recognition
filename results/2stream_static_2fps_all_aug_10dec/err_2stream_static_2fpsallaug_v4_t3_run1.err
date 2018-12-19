@@ -1,0 +1,13 @@
+You are using pip version 18.0, however version 18.1 is available.
+You should consider upgrading via the 'pip install --upgrade pip' command.
+You are using pip version 18.0, however version 18.1 is available.
+You should consider upgrading via the 'pip install --upgrade pip' command.
+You are using pip version 18.0, however version 18.1 is available.
+You should consider upgrading via the 'pip install --upgrade pip' command.
+Using TensorFlow backend.
+/usr/local/lib/python3.5/dist-packages/sklearn/metrics/classification.py:1135: UndefinedMetricWarning: Precision and F-score are ill-defined and being set to 0.0 in labels with no predicted samples.
+  'precision', 'predicted', average, warn_for)
+Exception ignored in: <bound method BaseSession.__del__ of <tensorflow.python.client.session.Session object at 0x7fc1f49f13c8>>
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/client/session.py", line 707, in __del__
+TypeError: 'NoneType' object is not callable
