@@ -28,7 +28,7 @@ def check_if_unique_in_df(file_name, df):
 
 
 if __name__ == '__main__':
-    df = pd.read_csv('videos_overview_missingremoved.csv', sep=';')
+    df = pd.read_csv('metadata/videos_overview_missingremoved.csv', sep=';')
     root_dir = 'data/Experimental_pain/'
     complete_paths = []
     file_names = []
@@ -50,7 +50,7 @@ if __name__ == '__main__':
         print("NEW HORSE")
         counter = 1  # Counter of non-unique videos.
         output_dir = 'horse_' + str(h)
-        horse_df = df.loc[df['Subject'] == h]
+        horse_df = df.loc[df['Subject'] == output_dir]
         for vid in horse_df['Video_ID']:
             path = get_path(vid)
             occurences = check_if_unique_in_df(vid, df)
@@ -71,7 +71,8 @@ if __name__ == '__main__':
         print("NEW HORSE")
         counter = 1  # Counter of non-unique videos.
         output_dir = 'horse_' + str(h)
-        horse_df = df.loc[df['Subject'] == h]
+        # import pdb; pdb.set_trace()
+        horse_df = df.loc[df['Subject'] == output_dir]
         for vid in horse_df.iterrows():
             # vid is a tuple, vid[0] is just the index,
             # vid[1] is the actual row.
@@ -136,13 +137,18 @@ if __name__ == '__main__':
             # # JPG HALFASS QUALITY, MAYBE LOSSY, 2 FPS
             #
             #
-            ffmpeg_command = ['ffmpeg', '-ss', start, '-i', video_path, '-t', length, '-vf',
-                              'scale=320:240', '-r', str(2), '-an', complete_output_path]
+            # ffmpeg_command = ['ffmpeg', '-ss', start, '-i', video_path, '-t', length, '-vf',
+            #                   'scale=320:240', '-r', str(2), '-an', complete_output_path]
 
             # JPG HALFASS QUALITY, MAYBE LOSSY, 15 FPS
             # NOTE:  Need to add qscale:v arg for higher frame rates, otherwise pixelated.
             # ffmpeg_command = ['ffmpeg', '-ss', start, '-i', video_path, '-qscale:v', str(4), '-t', length, '-vf',
             #                   'scale=320:240', '-r', str(15), '-an', complete_output_path]
+
+            # JPG HALFASS QUALITY, MAYBE LOSSY, 16 FPS
+            # NOTE:  Need to add qscale:v arg for higher frame rates, otherwise pixelated.
+            ffmpeg_command = ['ffmpeg', '-ss', start, '-i', video_path, '-qscale:v', str(4), '-t', length, '-vf',
+                              'scale=320:240', '-r', str(16), '-an', complete_output_path]
 
             #JPG 2FPS 128x128
             #

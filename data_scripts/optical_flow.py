@@ -205,12 +205,12 @@ if __name__ == '__main__':
     # subject_ID_df = pd.read_csv('../metadata/shoulder_pain_subjects.csv')
     
     # Directory with the frames from which to extract the OF.
-    root_dir = '../data/jpg_320_180_15fps/'
+    root_dir = '../data/jpg_320_240_16fps/'
     # root_dir = '../data/ShoulderPain_172x129/Images/'
     # Output root directory (will contain subfolders for every sequence).
     # Need to make this folder before running, and the horse_x folders in it.
     # output_root_dir = '../data/jpg_128_128_16fps_OF_1_flow_per_frame_cv2/'
-    output_root_dir = '../data/jpg_320_180_15fps_OF_magnitude_cv2/'
+    output_root_dir = '../data/jpg_320_240_16fps_OF_magnitude_cv2_2fpsrate/'
     # output_root_dir = '../data/ShoulderPain172x129_OF_cv2/'
 
     # width = 172
@@ -222,7 +222,7 @@ if __name__ == '__main__':
     # channels = 3
 
     width = 320
-    height = 180
+    height = 240
     channels = 3
 
     # Only need to make the subfolders of output_root_dir once.
@@ -230,4 +230,4 @@ if __name__ == '__main__':
 
     # Iterate over the frames in root_dir and compute the flows.
     # Right now this is done for every 15th frame.
-    iterate_over_frames(frequency=15)
+    iterate_over_frames(frequency=8)
