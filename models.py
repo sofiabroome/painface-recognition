@@ -162,6 +162,29 @@ class MyModel:
         two_stream_model = Model(inputs=[image_input, of_input], outputs=[output])
         return two_stream_model
 
+    def two_stream_pretrained(self):
+        # Functional API
+        rgb_model, _ = self.inception_4d_input(w='imagenet', top_layer=False)
+        image_input = Input(shape=(self.input_shape[0], self.input_shape[1], 3))
+        encoded_image = rgb_model(image_input)
+
+        of_model, _ = self.inception_4d_input(w='imagenet', top_layer=False)
+        of_input = Input(shape=(self.input_shape[0], self.input_shape[1], 3))
+        encoded_of = of_model(of_input)
+        
+        merged = add([encoded_image, encoded_of])
+
+        merged = Dropout(.2)(merged)
+        dense = Dense(self.nb_labels)(merged)
+
+        if self.nb_labels == 2:
+            output = Activation('sigmoid')(dense)
+        else:
+            output = Activation('softmax')(dense)
+
+        two_stream_model = Model(inputs=[image_input, of_input], outputs=[output])
+        return two_stream_model
+
     def rodriguez(self, top_layer=True):
         from keras.applications.vgg16 import VGG16
         image_input = Input(shape=(self.seq_length,
