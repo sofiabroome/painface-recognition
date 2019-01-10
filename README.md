@@ -2,7 +2,7 @@
 
 Pain recognition in videos of horses.
 
-This repository contains the code for our paper:
+This repository contains the code for our [paper](https://arxiv.org/abs/1901.02106):
 
 `Sofia Broomé, Karina Bech Gleerup, Pia Haubro Andersen and Hedvig Kjellström
 "Dynamics are Important for the Recognition of Equine Pain in Video"
