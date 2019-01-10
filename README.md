@@ -4,7 +4,7 @@ Pain recognition in videos of horses.
 
 This repository contains the code for our paper:
 
-`Sofia Broom\'e, Karina Bech Gleerup, Pia Haubro Andersen and Hedvig Kjellstr\"om
+`Sofia Broomé, Karina Bech Gleerup, Pia Haubro Andersen and Hedvig Kjellström
 "Dynamics are Important for the Recognition of Equine Pain in Video"
 arXiv 1901.02106`
 
@@ -42,7 +42,7 @@ after adding the model path to the main function of `test_with_saved_model.py`.
 
 The equine dataset has unfortunately as of yet not been possible to make public, but is further described in the article
 
-`Karina Bech Gleerup, Bj\"orn Forkman, Casper Lindegaard and Pia Haubro Andersen
+`Karina Bech Gleerup, Björn Forkman, Casper Lindegaard and Pia Haubro Andersen
 "An Equine Pain Face"
 Veterinary Anaesthesia and Analgesia, 2015, 42, 103–114`.
 
