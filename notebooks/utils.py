@@ -729,6 +729,8 @@ def visualize_overlays(images, conv_outputs, conv_grads, args, flows=None):
 
     if args.nb_input_dims == 5:
         images = images[0]
+        conv_outputs = conv_outputs[0]
+        conv_grads = conv_grads[0]
 
     if flows is not None:
         nb_rows = 3
@@ -740,7 +742,6 @@ def visualize_overlays(images, conv_outputs, conv_grads, args, flows=None):
         fig_height = 4.5
 
     for im in range(images.shape[0]):
-        # print(im)
         image = images[im,:,:,:]
         if flows is not None:
             flow = flows[0,im,:,:]
@@ -782,9 +783,6 @@ def visualize_overlays(images, conv_outputs, conv_grads, args, flows=None):
             ax.set_xticks([])
             ax.set_yticks([])
             imgplot = plt.imshow(flow)
-        #ax.set_title('Input Image')
-        #plt.show()
-        
 
         from PIL import Image
         if flows is not None:
@@ -798,7 +796,7 @@ def visualize_overlays(images, conv_outputs, conv_grads, args, flows=None):
         overlay = Image.fromarray(cam_heatmap.astype('uint8'))
         blend = Image.blend(bg, overlay, 0.2)
         imgplot = plt.imshow(blend)
-        #ax.set_title('Input Image with GradCAM Overlay')
+
     plt.tick_params(axis='both', which='both', bottom='off', left='off')
     fig.subplots_adjust(wspace=0, hspace=0)
     plt.subplots_adjust(wspace=0, hspace=0)
