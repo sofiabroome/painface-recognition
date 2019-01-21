@@ -12,7 +12,7 @@ If you find the code useful for your research, please cite it.
 
 The best performing model for the task was the two-stream convolutional LSTM, which is a fully recurrent deep network maintaining the spatial structure of the frames throughout the recurrences.
 
-<img src="https://raw.githubusercontent.com/sofiabroome/painface-recognition/images/CLSTM2.png" width="700">
+<img src="images/CLSTM2.png" width="700">
 
 
 ## Training
