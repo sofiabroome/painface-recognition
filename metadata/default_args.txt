@@ -25,7 +25,6 @@
 --test-run,0,Whether a test run or not
 --seq-length,10,Length of sequence for LSTM and for 5D input stuff
 --seq-stride,10,Stride for (sliding window) sequence extraction
---nb-workers,1,Number of workers
 --nb-input-dims,5,Number of input dimensions
 --val-fraction,0,Whether to use val fraction instead of separate subjects (0 false 1 true)
 --data-type,'rgb',The type of input data
