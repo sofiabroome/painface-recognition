@@ -10,7 +10,7 @@ arXiv 1901.02106`
 
 If you find the code useful for your research, please cite it.
 
-The best performing model for the task was the two-stream convolutional LSTM, which is a fully recurrent deep network maintaining the spatial structure of the frames throughout the recurrences.
+The best performing model for the task was the two-stream convolutional LSTM shown below, which is a fully recurrent deep network maintaining the spatial structure of the frames throughout the recurrences.
 
 <img src="images/CLSTM2.png" width="850">
 
