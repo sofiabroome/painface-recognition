@@ -292,7 +292,7 @@ class DataHandler:
         print("LEN DF, in prep_5d(): ", nb_frames)
 
         ws = self.seq_length  # "Window size" in a sliding window.
-        ss = self.seq_stride  # Provide argument for slinding w. stride.
+        ss = self.seq_stride  # Stride for the extracted windows
         valid = nb_frames - (ws - 1)
         nw = valid//ss  # Number of windows
         print('Number of windows', nw)
