@@ -71,18 +71,15 @@ if __name__ == '__main__':
         print("NEW HORSE")
         counter = 1  # Counter of non-unique videos.
         output_dir = 'horse_' + str(h)
-        # import pdb; pdb.set_trace()
         horse_df = df.loc[df['Subject'] == output_dir]
-        for vid in horse_df.iterrows():
-            # vid is a tuple, vid[0] is just the index,
-            # vid[1] is the actual row.
-            print(vid[1]['Length'])
-            occurences = check_if_unique_in_df(vid[1]['Video_ID'], df)
+        for ind, vid in horse_df.iterrows():
+            print(vid['Length'])
+            occurences = check_if_unique_in_df(vid['Video_ID'], df)
             print(occurences)
             if occurences == 1:
-                seq_dir_path = 'data/' + output_dir + '/' + vid[1]['Video_ID']
+                seq_dir_path = 'data/' + output_dir + '/' + vid['Video_ID']
             elif occurences > 1:
-                seq_dir_path = 'data/' + output_dir + '/' + vid[1]['Video_ID'] + '_' + str(counter)
+                seq_dir_path = 'data/' + output_dir + '/' + vid['Video_ID'] + '_' + str(counter)
                 if counter == occurences:
                     counter = 1
                 else:
@@ -91,19 +88,12 @@ if __name__ == '__main__':
                 print("WARNING, No occurences")
 
             # Start and lengths as hh:mm:ss-strings
-            start = str(vid[1]['Start'])
-            length = str(vid[1]['Length'])
+            start = str(vid['Start'])
+            length = str(vid['Length'])
             print(start)
 
-            # REAL
-            # complete_output_path = '~/Documents/EquineML/painface-recognition/' + seq_dir_path + '/frame_%06d.jpg'
-
-            # TEST
-            # complete_output_path = 'data_test/frame_%06d.png'
-            # video_path = '~/Documents/EquineML/painface-recognition/' + str(get_path(vid[1]['Video_ID']))
-
             complete_output_path = seq_dir_path + '/frame_%06d.jpg'
-            video_path = str(get_path(vid[1]['Video_ID']))
+            video_path = str(get_path(vid['Video_ID']))
 
             print('COMPLETE OUTPUT PATH:')
             print(complete_output_path)
