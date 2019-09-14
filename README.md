@@ -2,11 +2,15 @@
 
 Pain recognition in videos of horses.
 
-This repository contains the code for our [paper](https://arxiv.org/abs/1901.02106):
+This repository contains the code for our [paper](http://openaccess.thecvf.com/content_CVPR_2019/html/Broome_Dynamics_Are_Important_for_the_Recognition_of_Equine_Pain_in_CVPR_2019_paper.html):
 
-`Sofia Broomé, Karina Bech Gleerup, Pia Haubro Andersen and Hedvig Kjellström
-"Dynamics are Important for the Recognition of Equine Pain in Video"
-arXiv 1901.02106`
+`@InProceedings{Broome_2019_CVPR,
+author = {Broome, Sofia and Gleerup, Karina Bech and Andersen, Pia Haubro and Kjellstrom, Hedvig},
+title = {Dynamics Are Important for the Recognition of Equine Pain in Video},
+booktitle = {The IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
+month = {June},
+year = {2019}
+}`
 
 If you find the code useful for your research, please cite it.
 
