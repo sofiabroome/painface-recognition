@@ -1,14 +1,6 @@
 import pandas as pd
 import subprocess
-import datetime
 import os
-
-
-def make_delta(entry):
-    h, m, s = entry.split(':')
-    return datetime.timedelta(hours=int(h),
-                              minutes=int(m),
-                              seconds=int(s))
 
 
 def get_path(file_name):
@@ -140,7 +132,7 @@ if __name__ == '__main__':
             ffmpeg_command = ['ffmpeg', '-ss', start, '-i', video_path, '-qscale:v', str(4), '-t', length, '-vf',
                               'scale=320:240', '-r', str(16), '-an', complete_output_path]
 
-            #JPG 2FPS 128x128
+            # JPG 2FPS 128x128
             #
             # ffmpeg_command = ['ffmpeg', '-ss', start, '-i', video_path, '-qscale:v', str(4), '-t', length, '-vf',
             #                   'scale=128:128', '-r', str(2), '-an', complete_output_path]
@@ -150,7 +142,7 @@ if __name__ == '__main__':
             # ffmpeg_command = ['ffmpeg', '-ss', start, '-i', video_path, '-qscale:v', str(4), '-t', length, '-vf',
             #                   'scale=128:128', '-r', str(15), '-an', complete_output_path]
 
-            #JPG 16FPS 128x128
+            # JPG 16FPS 128x128
             
             # ffmpeg_command = ['ffmpeg', '-ss', start, '-i', video_path, '-qscale:v', str(4), '-t', length, '-vf',
             #                   'scale=128:128', '-r', str(16), '-an', complete_output_path]
@@ -159,7 +151,6 @@ if __name__ == '__main__':
 
             # ffmpeg_command = ['ffmpeg', '-ss', start, '-i', video_path, '-qscale:v', str(4), '-t', length, '-vf',
             #                   'scale=128:128', '-r', str(1), '-an', complete_output_path]
-
 
             # TEST SETTINGS, JUST 3 FRAMES PER VIDEO:
             # ffmpeg_command = ['ffmpeg', '-ss', start, '-i', video_path, '-vcodec', 'png', '-t', '00:00:03', '-vf',

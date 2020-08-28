@@ -10,7 +10,6 @@ import os
 
 from keras.preprocessing.image import ImageDataGenerator
 from keras.utils import np_utils
-from os.path import join
 
 from helpers import process_image, split_string_at_last_occurence_of_certain_char
 
@@ -638,7 +637,7 @@ class DataHandler:
         for path, dirs, files in sorted(os.walk(subject_path)):
             print(path)
             for filename in sorted(files):
-                total_path = join(path, filename)
+                total_path = os.path.join(path, filename)
                 print(total_path)
                 vid_id = get_video_id_stem_from_path(path)
                 csv_row = df_csv.loc[df_csv['Video_ID'] == vid_id]
@@ -682,7 +681,7 @@ class DataHandler:
                     subject_df.reset_index(drop=True, inplace=True)  # And adjust the index
             old_path = path
             for filename in sorted(files):
-                total_path = join(path, filename)
+                total_path = os.path.join(path, filename)
                 if '.npy' in filename or '.jpg' in filename:        # (If it's an optical flow-array.)
                     if per_clip_frame_counter > nb_frames_in_clip:  # This can probably be removed but will
                         break                                       # leave it here for now.
