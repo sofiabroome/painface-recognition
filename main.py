@@ -12,6 +12,7 @@ from keras.utils import np_utils
 from train import train
 import compute_steps
 import arg_parser
+import helpers
 import models
 
 TARGET_NAMES = ['NO_PAIN', 'PAIN']
@@ -528,6 +529,13 @@ if __name__ == '__main__':
         round_to_batch = True
     else:
         round_to_batch = False
+
+    config_dict_module = helpers.load_module(args.config_file)
+    config_dict = config_dict_module.config_dict
+    config_dict['job_identifier'] = args.job_identifier
+    config_dict['data_dir_path'] = args.dataset_path
+    config_dict['dataset_folder_train'] = args.dataset_path
+    config_dict['dataset_folder_test'] = args.dataset_path
 
     # Run the whole program, from preparing the data to evaluating
     # the model's test performance

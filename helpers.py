@@ -1,5 +1,6 @@
 from keras.preprocessing.image import load_img, img_to_array
 import numpy as np
+import importlib
 
 
 def process_image(image_path, target_shape):
@@ -15,6 +16,17 @@ def process_image(image_path, target_shape):
     img = load_img(image_path, target_size=target_shape)
 
     return img_to_array(img).astype(np.float32)
+
+
+def load_module(module_path_and_name):
+    # if contained in module it would be a oneliner:
+    # config_dict_module = importlib.import_module(dict_module_name)
+    module_child_name = module_path_and_name.split('/')[-1].replace('.py', '')
+    spec = importlib.util.spec_from_file_location(module_child_name, module_path_and_name)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
 
 def get_last_characters_from_string(string, nb_chars):
     return string[-nb_chars:]
