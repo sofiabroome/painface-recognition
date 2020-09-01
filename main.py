@@ -93,9 +93,9 @@ def read_or_create_subject_rgb_and_OF_dfs(dh,
 
 
 def set_train_val_test_in_df(train_subjects,
-                             val_subjects,
                              test_subjects,
-                             dfs):
+                             dfs,
+                             val_subjects=None):
     """
     Mark in input dataframe which subjects to use for train, val or test.
     Used when args.val_fraction == 0.
@@ -110,25 +110,6 @@ def set_train_val_test_in_df(train_subjects,
 
     for vh in val_subjects:
         dfs[vh]['Train'] = 2
-
-    for teh in test_subjects:
-        dfs[teh]['Train'] = 0
-    return dfs
-
-
-def set_train_test_in_df(train_subjects,
-                         test_subjects,
-                         dfs):
-    """
-    Mark in input dataframe which subjects to use for train or test.
-    Used when args.val_fraction == 1.
-    :param train_subjects: [int]
-    :param test_subjects: [int]
-    :param dfs: [pd.DataFrame]
-    :return: [pd.DataFrame]
-    """
-    for trh in train_subjects:
-        dfs[trh]['Train'] = 1
 
     for teh in test_subjects:
         dfs[teh]['Train'] = 0
@@ -340,9 +321,9 @@ def run():
     if args.val_fraction == 1:
         print("Using validation fraction.")
         print("Val fract: ", VAL_FRACTION)
-        subject_dfs = set_train_test_in_df(train_subjects=train_subjects,
-                                           test_subjects=test_subjects,
-                                           dfs=subject_dfs)
+        subject_dfs = set_train_val_test_in_df(train_subjects=train_subjects,
+                                               test_subjects=test_subjects,
+                                               dfs=subject_dfs)
 
     # Put all the separate subject-dfs into one DataFrame.
     df = pd.concat(subject_dfs)
