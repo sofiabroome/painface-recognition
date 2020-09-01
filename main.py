@@ -116,148 +116,27 @@ def set_train_val_test_in_df(train_subjects,
     return dfs
 
 
-def get_data_4d_input(dh,
-                      data_type,
-                      df_train,
-                      df_test,
-                      df_val=None):
+def get_data_generators(prepare_generator_func,
+                        df_train,
+                        df_test,
+                        df_val=None):
     """
     Prepare the training and testing data for 4D-input (batches of frames)
-    :param dh: DataHandler object
-    :param data_type: str ['rgb' || 'of']
+    :param prepare_generator_func: function to call to get generator
     :param df_train: pd.DataFrame
     :param df_test: pd.DataFrame
     :param df_val: pd.DataFrame
     :return: (4-tuple of Generator objects)
     """
-    train_generator = dh.prepare_image_generator(df_train, data_type,
-                                                 train=True, val=False,
-                                                 test=False, evaluate=False)
-    val_generator = dh.prepare_image_generator(df_val, data_type,
-                                               train=False, val=True,
-                                               test=False, evaluate=False)
-    test_generator = dh.prepare_image_generator(df_test, data_type,
-                                                train=False, val=False,
-                                                test=True, evaluate=False)
-    eval_generator = dh.prepare_image_generator(df_test, data_type,
-                                                train=False, val=False,
-                                                test=False,  evaluate=True)
-    generators = (train_generator, val_generator, test_generator, eval_generator)
-    return generators
-
-
-def get_data_5d_input(dh,
-                      data_type,
-                      df_train,
-                      df_val,
-                      df_test):
-    """
-    Prepare the training and testing data for 5D-input
-    (batches of sequences of frames).
-    :param dh: DataHandler object
-    :param data_type: str ['rgb' || 'of']
-    :param df_train: pd.DataFrame
-    :param df_val: pd.DataFrame
-    :param df_test: pd.DataFrame
-    :return: (4-tuple of Generator objects)
-    """
-    train_generator = dh.prepare_image_generator_5D(df_train,
-                                                    data_type=data_type,
-                                                    train=True, val=False,
-                                                    test=False, evaluate=False)
-    val_generator = dh.prepare_image_generator_5D(df_val,
-                                                  data_type=data_type,
-                                                  train=False, val=True,
-                                                  test=False, evaluate=False)
-    test_generator = dh.prepare_image_generator_5D(df_test,
-                                                   data_type=data_type,
-                                                   train=False, val=False,
-                                                   test=True, evaluate=False)
-    eval_generator = dh.prepare_image_generator_5D(df_test,
-                                                   data_type=data_type,
-                                                   train=False, val=False,
-                                                   test=False, evaluate=True)
-    generators = (train_generator, val_generator, test_generator, eval_generator)
-    return generators
-
-
-def get_data_2stream_4d_input(dh,
-                              df_train_rgbof,
-                              df_val_rgbof,
-                              df_test_rgbof):
-    """
-    Prepare data generators for the 2stream model with 4D input.
-    :param dh: DataHandler object
-    :param df_train_rgbof: pd.DataFrame
-    :param df_val_rgbof: pd.DataFrame
-    :param df_test_rgbof: pd.DataFrame
-    :return: (4-tuple of Generator objects)
-    """
-    train_generator = dh.prepare_generator_2stream(df_train_rgbof,
-                                                   train=True, val=False,
-                                                   test=False, evaluate=False)
-    val_generator = dh.prepare_generator_2stream(df_val_rgbof,
-                                                 train=False, val=True,
-                                                 test=False, evaluate=False)
-    test_generator = dh.prepare_generator_2stream(df_test_rgbof,
-                                                  train=False, val=False,
-                                                  test=True, evaluate=False)
-    eval_generator = dh.prepare_generator_2stream(df_test_rgbof,
-                                                  train=False, val=False,
-                                                  test=False, evaluate=True)
-    generators = (train_generator, val_generator, test_generator, eval_generator)
-    return generators
-
-
-def get_data_2stream_5d_input(dh,
-                              df_train_rgbof,
-                              df_val_rgbof,
-                              df_test_rgbof,
-                              rgb_period,
-                              flow_period):
-    """
-    Prepare the training and testing data for 5D-input
-    (batches of sequences of frames).
-    :param dh: DataHandler object
-    :param subject_dfs: [pd.DataFrame]
-    :param train_subjects: [int]
-    :param test_subjects: [int]
-    :param val_subjects: [int]
-    :return: (4-tuple of Generator objects)
-    """
-    print("2stream model of some sort.", args.model)
-
-    print("Using the 5D generator for 2stream")
-    train_generator = dh.prepare_2stream_image_generator_5D(df_train_rgbof,
-                                                            train=True,
-                                                            val=False,
-                                                            test=False,
-                                                            evaluate=False,
-                                                            rgb_period=rgb_period,
-                                                            flow_period=flow_period)
-    val_generator = dh.prepare_2stream_image_generator_5D(df_val_rgbof,
-                                                          train=False,
-                                                          val=True,
-                                                          test=False,
-                                                          evaluate=False,
-                                                          rgb_period=rgb_period,
-                                                          flow_period=flow_period)
-    test_generator = dh.prepare_2stream_image_generator_5D(df_test_rgbof,
-                                                           train=False,
-                                                           val=False,
-                                                           test=True,
-                                                           evaluate=False,
-                                                           rgb_period=rgb_period,
-                                                           flow_period=flow_period)
-    eval_generator = dh.prepare_2stream_image_generator_5D(df_test_rgbof,
-                                                           train=False,
-                                                           val=False,
-                                                           test=False,
-                                                           evaluate=True,
-                                                           rgb_period=rgb_period,
-                                                           flow_period=flow_period)
-    generators = (train_generator, val_generator, test_generator, eval_generator)
-    return generators
+    train_generator = prepare_generator_func(df_train,
+                                             train=True, config_dict=config_dict)
+    val_generator = prepare_generator_func(df_val,
+                                           train=False, config_dict=config_dict)
+    test_generator = prepare_generator_func(df_test,
+                                            train=False, config_dict=config_dict)
+    eval_generator = prepare_generator_func(df_test,
+                                            train=False, config_dict=config_dict)
+    return train_generator, val_generator, test_generator, eval_generator
 
 
 def run():
@@ -361,54 +240,46 @@ def run():
     # Prepare the training and testing data, format depends on model.
     # (5D/4D -- 2stream/1stream)
 
-    if 'simonyan' in args.model:
-        print('Simonyan 2-stream model with 1 RGB frame and 10 flow frames.')
-        rgb_period = 10
-        flow_period = 1
-    else:
-        rgb_period = 1
-        flow_period = 1
-
     if args.nb_input_dims == 5:
 
         if '2stream' in args.model:
             print('5d input 2stream model')
                 
-            generators = get_data_2stream_5d_input(dh=dh,
-                                                   df_train_rgbof=df_train,
-                                                   df_val_rgbof=df_val,
-                                                   df_test_rgbof=df_test,
-                                                   rgb_period=rgb_period,
-                                                   flow_period=flow_period)
+            generators = get_data_generators(
+                prepare_generator_func=dh.prepare_2stream_image_generator_5D(),
+                df_train_rgbof=df_train,
+                df_val_rgbof=df_val,
+                df_test_rgbof=df_test)
         else:
             print('5d input model')
-            if args.data_type == 'rgb':
+            if config_dict['data_type'] == 'rgb':
                 print('Only RGB data')
-            if args.data_type == 'of':
+            if config_dict['data_type'] == 'of':
                 print('Only optical flow data')
-            generators = get_data_5d_input(dh=dh,
-                                           data_type=args.data_type,
-                                           df_train=df_train,
-                                           df_val=df_val,
-                                           df_test=df_test)
+            generators = get_data_generators(
+                prepare_generator_func=dh.prepare_image_generator_5D(),
+                df_train=df_train,
+                df_val=df_val,
+                df_test=df_test)
     if args.nb_input_dims == 4:
         if '2stream' in args.model:
             print('4d input 2stream model. Needs (quick) fix')
-            generators = get_data_2stream_4d_input(dh=dh,
-                                                   df_train_rgbof=df_train,
-                                                   df_val_rgbof=df_val,
-                                                   df_test_rgbof=df_test)
+            generators = get_data_generators(
+                prepare_generator_func=dh.prepare_generator_2stream(),
+                df_train_rgbof=df_train,
+                df_val_rgbof=df_val,
+                df_test_rgbof=df_test)
         else:
             print('4d input model')
             if args.data_type == 'rgb':
                 print('Only RGB data')
             if args.data_type == 'of':
                 print('Only optical flow data')
-            generators = get_data_4d_input(dh=dh,
-                                           data_type=args.data_type,
-                                           df_train=df_train,
-                                           df_test=df_test,
-                                           df_val=df_val)
+            generators = get_data_generators(
+                prepare_generator_func=dh.prepare_image_generator(),
+                df_train=df_train,
+                df_test=df_test,
+                df_val=df_val)
 
     train_generator, val_generator, test_generator, eval_generator = generators
     

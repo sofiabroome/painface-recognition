@@ -41,15 +41,12 @@ class DataHandler:
         self.aug_light = aug_light
         self.nb_input_dims = nb_input_dims
 
-    def prepare_generator_2stream(self, df, train, val, test, evaluate):
+    def prepare_generator_2stream(self, df, train, config_dict):
         """
         Prepare the frames into labeled train and test sets, with help from the
         DataFrame with .jpg-paths and labels for train and pain.
         :param df: pd.DataFrame
         :param train: Boolean
-        :param val: Boolean
-        :param test: Boolean
-        :param evaluate: Boolean
         :return: np.ndarray, np.ndarray, np.ndarray, np.ndarray
         """
 
@@ -126,18 +123,13 @@ class DataHandler:
                     # print(X_array.shape, flow_array.shape, y_array.shape)
                     yield [X_array, flow_array], [y_array]
 
-    def prepare_2stream_image_generator_5D(self, df, train, val, test, evaluate,
-                                           rgb_period, flow_period):
+    def prepare_2stream_image_generator_5D(self, df, train, config_dict):
         """
         Prepare the frames into labeled train and test sets, with help from the
         DataFrame with .jpg-paths and labels for train and pain.
         :param df: pd.DataFrame
         :param train: Boolean
-        :param val: Boolean
-        :param test: Boolean
-        :param evaluate: Boolean
-        :param rgb_period: int, if 10, take every 10th frame.
-        :param flow_period: int, if 1, take every frame.
+        :param config_dict: dict
         :return: np.ndarray, np.ndarray, np.ndarray, np.ndarray
         """
 
@@ -187,15 +179,15 @@ class DataHandler:
                         old_vid_seq_name = vid_seq_name
                         break  # Skip this one and jump to next window
 
-                    if (seq_index % rgb_period) == 0:
+                    if (seq_index % config_dict['rgb_period']) == 0:
                         x = self.get_image(row['Path'])
                         X_seq_list.append(x)
                         y = row['Pain']
                         y_seq_list.append(y)
 
-                    if (seq_index % flow_period) == 0:
+                    if (seq_index % config_dict['flow_period']) == 0:
                         flow = self.get_image(row['OF_Path'])
-                        if rgb_period > 1:
+                        if config_dict['rgb_period'] > 1:
                             # We only want the first two channels of the flow.
                             flow = np.take(flow, [0,1], axis=2)
                         flow_seq_list.append(flow)
@@ -208,7 +200,7 @@ class DataHandler:
                     flow_batch_list = []
 
                 if seq_index == self.seq_length:
-                    if rgb_period > 1:
+                    if config_dict['rgb_period'] > 1:
                         flow_seq_list = np.array(flow_seq_list)
                         flow_seq_list = np.reshape(np.array(flow_seq_list),
                                                   (-1, self.image_size[0], self.image_size[1]))
@@ -269,22 +261,19 @@ class DataHandler:
                         y_array = np.reshape(y_array, (self.batch_size, -1, self.nb_labels))
                     else:
                         y_array = np.reshape(y_array, (self.batch_size, -1, self.nb_labels))
-                    if rgb_period > 1:
+                    if config_dict['rgb_period'] > 1:
                         y_array = np.reshape(y_array, (self.batch_size, self.nb_labels))
                     batch_index = 0
                     # print(X_array.shape, flow_array.shape, y_array.shape)
                     yield [X_array, flow_array], [y_array]
 
-    def prepare_image_generator_5D(self, df, data_type, train, val, test, evaluate):
+    def prepare_image_generator_5D(self, df, train, config_dict):
         """
         Prepare the frames into labeled train and test sets, with help from the
         DataFrame with .jpg-paths and labels for train and pain.
         :param df: pd.DataFrame
-        :param data_type: str ['rgb' || 'of']
         :param train: Boolean
-        :param val: Boolean
-        :param test: Boolean
-        :param evaluate: Boolean
+        :param config_dict: dict
         :return: np.ndarray, np.ndarray, np.ndarray, np.ndarray
         """
         nb_frames = len(df)
@@ -332,9 +321,9 @@ class DataHandler:
                         old_vid_seq_name = vid_seq_name
                         break  # In that case want to jump to the next window.
 
-                    if data_type == 'rgb':
+                    if config_dict['data_type'] == 'rgb':
                         x = self.get_image(row['Path'])
-                    if data_type == 'of':
+                    if config_dict['data_type'] == 'of':
                         x = self.get_image(row['OF_Path'])
                         # If no magnitude:
                         # extra_channel = np.zeros((x.shape[0], x.shape[1], 1))
@@ -387,21 +376,19 @@ class DataHandler:
                     batch_index = 0
                     yield (X_array, y_array)
 
-    def prepare_image_generator(self, df, data_type, train, val, test, evaluate):
+    def prepare_image_generator(self, df, train, config_dict):
         """
         Prepare the frames into labeled train and test sets, with help from the
         DataFrame with .jpg-paths and labels for train and pain.
         :param df: pd.DataFrame
-        :param data_type: str ['rgb' || 'of']
         :param train: Boolean
-        :param val: Boolean
-        :param test: Boolean
+        :param config_dict: dict
         :return: np.ndarray, np.ndarray, np.ndarray, np.ndarray
         """
         print("LEN DF:")
         print(len(df))
         print('Datatype:')
-        print(data_type)
+        print(config_dict['data_type'])
 
         while True:
             if train:
@@ -412,10 +399,10 @@ class DataHandler:
                 if batch_index == 0:
                     X_list = []
                     y_list = []
-                if data_type == 'rgb':
+                if config_dict['data_type'] == 'rgb':
                     x = self.get_image(row['Path'])
                     x /= 255
-                if data_type == 'of':
+                if config_dict['data_type'] == 'of':
                     x = self.get_image(row['OF_Path'])
                 y = row['Pain']
                 X_list.append(x)
