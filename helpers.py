@@ -1,6 +1,7 @@
 from keras.preprocessing.image import load_img, img_to_array
 import numpy as np
 import importlib
+import os
 
 
 def process_image(image_path, target_shape):
@@ -26,6 +27,11 @@ def load_module(module_path_and_name):
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
+
+
+def get_dataset_path(data_path, dataset, data_type):
+
+    return os.path.join(data_path, )
 
 
 def get_last_characters_from_string(string, nb_chars):

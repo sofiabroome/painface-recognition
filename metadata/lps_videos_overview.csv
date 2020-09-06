@@ -7,7 +7,6 @@
 5,aslan,A_20190104_IND3_STA_2,../data/lps/raw_videos/aslan/A_20190104_IND3_STA_2.MP4,303.36,IND3,1,1.67
 6,aslan,A_20190104_IND4_STA_1,../data/lps/raw_videos/aslan/A_20190104_IND4_STA_1.MP4,301.92,IND4,1,0.33
 7,aslan,A_20190105_IND5_STA_1,../data/lps/raw_videos/aslan/A_20190105_IND5_STA_1.MP4,301.92,IND5,1,0.5
-8,aslan,A_20190105_IND5_STA_2,../data/lps/raw_videos/aslan/A_20190105_IND5_STA_2.MP4,303.36,IND5,1,0
 9,aslan,A_20190105_IND6_STA_1,../data/lps/raw_videos/aslan/A_20190105_IND6_STA_1.MP4,302.88,IND6,1,0
 10,brava,B_20181102_IND0_STA_1,../data/lps/raw_videos/brava/B_20181102_IND0_STA_1.MP4,301.44,IND0,1,0
 11,brava,B_20181102_IND0_STA_2,../data/lps/raw_videos/brava/B_20181102_IND0_STA_2.MP4,305.76,IND0,1,0
@@ -25,7 +24,6 @@
 23,herrera,H_20190103_IND0_STA_2(2),../data/lps/raw_videos/herrera/H_20190103_IND0_STA_2(2).MP4,512.64,IND0,1,0
 24,herrera,H_20190103_IND0_STA_2,../data/lps/raw_videos/herrera/H_20190103_IND0_STA_2.MP4,137.28,IND0,1,0
 25,herrera,H_20190105_IND'_STA_1,../data/lps/raw_videos/herrera/H_20190105_IND'_STA_1.MP4,483.84,IND',1,0
-26,herrera,H_20190105_IND'_STA_2,../data/lps/raw_videos/herrera/H_20190105_IND'_STA_2.MP4,361.44,IND',1,0
 27,herrera,H_20190105_IND1_STA_1,../data/lps/raw_videos/herrera/H_20190105_IND1_STA_1.MP4,413.76,IND1,1,1
 28,herrera,H_20190105_IND2_STA_1,../data/lps/raw_videos/herrera/H_20190105_IND2_STA_1.MP4,324.96,IND2,1,3.67
 29,herrera,H_20190105_IND2_STA_2,../data/lps/raw_videos/herrera/H_20190105_IND2_STA_2.MP4,332.64,IND2,1,1.33
@@ -39,7 +37,6 @@
 37,inkasso,I_20190328_IND0_STA_1,../data/lps/raw_videos/inkasso/I_20190328_IND0_STA_1.MP4,310.56,IND0,1,3.33
 38,inkasso,I_20190328_IND0_STA_2,../data/lps/raw_videos/inkasso/I_20190328_IND0_STA_2.MP4,302.88,IND0,1,0
 39,inkasso,I_20190330_IND'_STA_1,../data/lps/raw_videos/inkasso/I_20190330_IND'_STA_1.MP4,357.6,IND',1,3
-40,inkasso,I_20190330_IND'_STA_2,../data/lps/raw_videos/inkasso/I_20190330_IND'_STA_2.MP4,304.8,IND',1,3
 41,inkasso,I_20190330_IND1_STA_1,../data/lps/raw_videos/inkasso/I_20190330_IND1_STA_1.MP4,310.08,IND1,1,4.33
 42,inkasso,I_20190330_IND1_STA_2,../data/lps/raw_videos/inkasso/I_20190330_IND1_STA_2.MP4,331.2,IND1,1,3.33
 43,inkasso,I_20190330_IND2_STA_1 (2),../data/lps/raw_videos/inkasso/I_20190330_IND2_STA_1 (2).MP4,303.84,IND2,1,6.33
@@ -54,7 +51,6 @@
 52,julia,J_20190328_IND0_STA_1,../data/lps/raw_videos/julia/J_20190328_IND0_STA_1.MP4,315.84,IND0,1,0
 53,julia,J_20190328_IND0_STA_2,../data/lps/raw_videos/julia/J_20190328_IND0_STA_2.MP4,312.48,IND0,1,0
 54,julia,J_20190329_IND'_STA_1,../data/lps/raw_videos/julia/J_20190329_IND'_STA_1.MP4,312.0,IND',1,0
-55,julia,J_20190329_IND'_STA_2,../data/lps/raw_videos/julia/J_20190329_IND'_STA_2.MP4,312.48,IND',1,0
 56,julia,J_20190329_IND1_STA_1,../data/lps/raw_videos/julia/J_20190329_IND1_STA_1.MP4,311.04,IND1,1,0
 57,julia,J_20190329_IND1_STA_2,../data/lps/raw_videos/julia/J_20190329_IND1_STA_2.MP4,309.6,IND1,1,0.33
 58,julia,J_20190329_IND2_STA_1,../data/lps/raw_videos/julia/J_20190329_IND2_STA_1.MP4,311.04,IND2,1,0
@@ -71,7 +67,6 @@
 69,kastanjett,K_20181206_IND0_STA_1,../data/lps/raw_videos/kastanjett/K_20181206_IND0_STA_1.MP4,316.32,IND0,1,0
 70,kastanjett,K_20181206_IND0_STA_2,../data/lps/raw_videos/kastanjett/K_20181206_IND0_STA_2.MP4,306.24,IND0,1,0
 71,kastanjett,K_20181208_IND'_STA_1,../data/lps/raw_videos/kastanjett/K_20181208_IND'_STA_1.MP4,332.16,IND',1,0
-72,kastanjett,K_20181208_IND'_STA_2,../data/lps/raw_videos/kastanjett/K_20181208_IND'_STA_2.MP4,352.8,IND',1,0
 73,kastanjett,K_20181208_IND1_STA_1,../data/lps/raw_videos/kastanjett/K_20181208_IND1_STA_1.MP4,318.24,IND1,1,0.67
 74,kastanjett,K_20181208_IND1_STA_2,../data/lps/raw_videos/kastanjett/K_20181208_IND1_STA_2.MP4,300.96,IND1,1,0.33
 75,kastanjett,K_20181208_IND2_STA_1,../data/lps/raw_videos/kastanjett/K_20181208_IND2_STA_1.MP4,311.04,IND2,1,0

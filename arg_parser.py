@@ -18,43 +18,13 @@ class ArgParser:
 def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument('--data-path', nargs='?', type=str,
-                        help="Name of folder with all the data to be processed")
+                        help="Path to folder containing all data")
+    parser.add_argument('--rgb-path', nargs='?', type=str,
+                        help="Name of folder with all the rgb data to be processed")
     parser.add_argument('--of-path', nargs='?', type=str,
-                        help="Name of folder with all the data to be processed")
-    parser.add_argument('--model', nargs='?', type=str,
-                        help="Choose neural network architecture.")
-    parser.add_argument('--input-width', nargs='?', type=int,
-                        help="Input image width")
-    parser.add_argument('--input-height', nargs='?', type=int,
-                        help="Input image height")
-    parser.add_argument('--nb-labels', nargs='?', type=int,
-                        help="Number of unique labels for this dataset")
-    parser.add_argument('--nb-lstm-layers', nargs='?', type=int,
-                        help="Number of stacked LSTM layers")
-    parser.add_argument('--nb-lstm-units', nargs='?', type=int,
-                        help="Number of LSTM units")
-    parser.add_argument('--nb-conv-filters', nargs='?', type=int,
-                        help="Number of convolutional filters")
-    parser.add_argument('--nb-dense-units', nargs='?', type=int,
-                        help="Number of dense/fully connected units")
-    parser.add_argument('--kernel-size', nargs='?', type=int,
-                        help="Kernel size of convolutional filter")
-    parser.add_argument('--dropout-1', nargs='?', type=float,
-                        help="Probability of dropout 1")
-    parser.add_argument('--dropout-2', nargs='?', type=float,
-                        help="Probability of dropout 2")
-    parser.add_argument('--nb-epochs', nargs='?', type=int,
-                        help="Number of training epochs")
-    parser.add_argument('--early-stopping', nargs='?', type=int,
-                        help="Early stopping patience")
-    parser.add_argument('--optimizer', nargs='?', type=str,
-                        help="Choice of optimizer (can choose from Keras' different default optimizers)")
-    parser.add_argument('--lr', nargs='?', type=float,
-                        help="Learning rate")
-    parser.add_argument('--batch-size', nargs='?', type=int,
-                        help="Batch size")
-    parser.add_argument('--round-to-batch', nargs='?', type=int,
-                        help='Choose whether to round the last batch to the specified batch size')
+                        help="Name of folder with all the optical flow data to be processed")
+    parser.add_argument('--config-file', nargs='?', type=str,
+                        help="path to config file")
     parser.add_argument('--train-subjects', nargs='?', type=str,
                         help="List of subject-id:s to train on, choosing from range(0,6): ex [0,1,2,3]")
     parser.add_argument('--val-subjects', nargs='?', type=str,
@@ -63,26 +33,10 @@ def parse_arguments():
                         help="List of subject-id:s to test on, choosing from range(0,6): ex [4,5]")
     parser.add_argument('--subjects-overview', nargs='?', type=str,
                         help="List with ID:s of subjects in dataset.")
-    parser.add_argument('--image-identifier', nargs='?', type=str,
+    parser.add_argument('--job-identifier', nargs='?', type=str,
                         help='Choose some string to identify the image of the training process')
     parser.add_argument('--test-run', nargs='?', type=int,
                         help='Whether to run as a quick test or not.')
-    parser.add_argument('--seq-length', nargs='?', type=int,
-                        help="Length of sequence for LSTM and for 5D input stuff")
-    parser.add_argument('--seq-stride', nargs='?', type=int,
-                        help="Stride for (sliding window) sequence extraction. Same as seq length if b2b.")
-    parser.add_argument('--nb-input-dims', nargs='?', type=int,
-                        help="Number of input dimensions")
-    parser.add_argument('--val-fraction', nargs='?', type=int,
-                        help="Whether to use val fract instead of separate subjects. 0 false 1 true.")
-    parser.add_argument('--data-type', nargs='?', type=str,
-                        help='The type of input data')
-    parser.add_argument('--aug-flip', nargs='?', type=int,
-                        help='Whether to augment the dataset by flipping all sequences horizontally.')
-    parser.add_argument('--aug-crop', nargs='?', type=int,
-                        help='Whether to augment the dataset by cropping the frames of all sequences randomly, but consistently within one sequence.')
-    parser.add_argument('--aug-light', nargs='?', type=int,
-                        help='Whether to augment the dataset by changing the brightness of an entire sequence.')
     return parser.parse_args()
 
 

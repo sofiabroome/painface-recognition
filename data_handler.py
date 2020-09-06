@@ -8,40 +8,69 @@ import random
 import cv2
 import os
 
-from keras.preprocessing.image import ImageDataGenerator
 from keras.utils import np_utils
 
 from helpers import process_image, split_string_at_last_occurence_of_certain_char
 
 
 class DataHandler:
-    def __init__(self, path, of_path, clip_list_file, data_columns, 
-                 image_size, seq_length, seq_stride, batch_size,
-                 color, nb_labels, aug_flip, aug_crop, aug_light, nb_input_dims):
+    def __init__(self, path, of_path, data_columns, config_dict, color):
         """
         Constructor for the DataHandler.
         :param path: str
-        :param image_size: (int, int)
-        :param seq_length: int
+        :param config_dict: dict
         :param color: bool
         :param nb_labels: int
         """
         self.path = path
         self.of_path = of_path
         self.data_columns = data_columns
-        self.clip_list_file = clip_list_file
-        self.image_size = image_size
-        self.seq_length = seq_length
-        self.seq_stride = seq_stride
-        self.batch_size = batch_size
+        self.image_size = config_dict['input_width'], config_dict['input_height']
+        self.seq_length = config_dict['seq_length']
+        self.seq_stride = config_dict['seq_stride']
+        self.batch_size = config_dict['batch_size']
         self.color = color
-        self.nb_labels = nb_labels
-        self.aug_flip = aug_flip
-        self.aug_crop = aug_crop
-        self.aug_light = aug_light
-        self.nb_input_dims = nb_input_dims
+        self.nb_labels = config_dict['nb_labels']
+        self.aug_flip = config_dict['aug_flip']
+        self.aug_crop = config_dict['aug_crop']
+        self.aug_light = config_dict['aug_light']
+        self.nb_input_dims = config_dict['nb_input_dims']
+        self.dataset_rgb_path_dict = {'pf': config_dict['pf_rgb_path'],
+                                      'lps': config_dict['lps_rgb_path']}
+        self.dataset_of_path_dict = {'pf': config_dict['pf_of_path'],
+                                     'lps': config_dict['lps_of_path']}
+        self.config_dict = config_dict
 
-    def prepare_generator_2stream(self, df, train, config_dict):
+    def get_generator(self, df, train):
+        """
+        Get a generator for a DataFrame, appropriate for the model.
+        :param df: pd.DataFrame
+        :param train:  boolean
+        :return: generator
+        """
+
+        if self.config_dict['nb_input_dims'] == 5:
+            if '2stream' in self.config_dict['model']:
+                generator = self.prepare_2stream_image_generator_5D(
+                    df, train
+                )
+            else:
+                generator = self.prepare_image_generator_5D(
+                    df, train
+                )
+        if self.config_dict['nb_input_dims'] == 4:
+            if '2stream' in self.config_dict['model']:
+                generator = self.prepare_generator_2stream(
+                    df, train
+                )
+            else:
+                generator = self.prepare_image_generator(
+                    df, train
+                )
+
+        return generator
+
+    def prepare_generator_2stream(self, df, train):
         """
         Prepare the frames into labeled train and test sets, with help from the
         DataFrame with .jpg-paths and labels for train and pain.
@@ -53,8 +82,6 @@ class DataHandler:
         nb_frames = len(df)
         print("LEN DF (nb. of frames): ", nb_frames)
 
-        this_index = 0
-
         # Make sure that no augmented batches are thrown away,
         # because we really want to augment the dataset.
 
@@ -65,7 +92,7 @@ class DataHandler:
         while True:
             # Shuffle blocks between epochs.
             if train:
-                df = shuffle_blocks(df, 'Video_ID')
+                df = shuffle_blocks(df, 'video_id')
             batch_index = 0
             for index, row in df.iterrows():
                 if batch_index == 0:
@@ -73,11 +100,11 @@ class DataHandler:
                     y_batch_list = []
                     flow_batch_list = []
 
-                x = self.get_image(row['Path'])
+                x = self.get_image(row['path'])
                 X_batch_list.append(x)
-                y = row['Pain']
+                y = row['pain']
                 y_batch_list.append(y)
-                flow = self.get_image(row['OF_Path'])
+                flow = self.get_image(row['of_path'])
                 flow_batch_list.append(flow)
 
                 batch_index += 1
@@ -123,7 +150,7 @@ class DataHandler:
                     # print(X_array.shape, flow_array.shape, y_array.shape)
                     yield [X_array, flow_array], [y_array]
 
-    def prepare_2stream_image_generator_5D(self, df, train, config_dict):
+    def prepare_2stream_image_generator_5D(self, df, train):
         """
         Prepare the frames into labeled train and test sets, with help from the
         DataFrame with .jpg-paths and labels for train and pain.
@@ -155,7 +182,7 @@ class DataHandler:
         while True:
             # Shuffle blocks between epochs.
             if train:
-                df = shuffle_blocks(df, 'Video_ID')
+                df = shuffle_blocks(df, 'video_id')
             batch_index = 0
             for window_index in range(nw):
                 start = window_index * ss
@@ -167,7 +194,7 @@ class DataHandler:
                 flow_seq_list = []
 
                 for index, row in rows.iterrows():
-                    vid_seq_name = row['Video_ID']
+                    vid_seq_name = row['video_id']
 
                     if this_index == 0:
                         print('First frame. Set oldname=vidname')
@@ -179,15 +206,15 @@ class DataHandler:
                         old_vid_seq_name = vid_seq_name
                         break  # Skip this one and jump to next window
 
-                    if (seq_index % config_dict['rgb_period']) == 0:
-                        x = self.get_image(row['Path'])
+                    if (seq_index % self.config_dict['rgb_period']) == 0:
+                        x = self.get_image(row['path'])
                         X_seq_list.append(x)
-                        y = row['Pain']
+                        y = row['pain']
                         y_seq_list.append(y)
 
-                    if (seq_index % config_dict['flow_period']) == 0:
-                        flow = self.get_image(row['OF_Path'])
-                        if config_dict['rgb_period'] > 1:
+                    if (seq_index % self.config_dict['flow_period']) == 0:
+                        flow = self.get_image(row['of_path'])
+                        if self.config_dict['rgb_period'] > 1:
                             # We only want the first two channels of the flow.
                             flow = np.take(flow, [0,1], axis=2)
                         flow_seq_list.append(flow)
@@ -200,7 +227,7 @@ class DataHandler:
                     flow_batch_list = []
 
                 if seq_index == self.seq_length:
-                    if config_dict['rgb_period'] > 1:
+                    if self.config_dict['rgb_period'] > 1:
                         flow_seq_list = np.array(flow_seq_list)
                         flow_seq_list = np.reshape(np.array(flow_seq_list),
                                                   (-1, self.image_size[0], self.image_size[1]))
@@ -261,13 +288,13 @@ class DataHandler:
                         y_array = np.reshape(y_array, (self.batch_size, -1, self.nb_labels))
                     else:
                         y_array = np.reshape(y_array, (self.batch_size, -1, self.nb_labels))
-                    if config_dict['rgb_period'] > 1:
+                    if self.config_dict['rgb_period'] > 1:
                         y_array = np.reshape(y_array, (self.batch_size, self.nb_labels))
                     batch_index = 0
                     # print(X_array.shape, flow_array.shape, y_array.shape)
                     yield [X_array, flow_array], [y_array]
 
-    def prepare_image_generator_5D(self, df, train, config_dict):
+    def prepare_image_generator_5D(self, df, train):
         """
         Prepare the frames into labeled train and test sets, with help from the
         DataFrame with .jpg-paths and labels for train and pain.
@@ -298,7 +325,7 @@ class DataHandler:
         while True:
             # Shuffle blocks between epochs if during training.
             if train:
-                df = shuffle_blocks(df, 'Video_ID')
+                df = shuffle_blocks(df, 'video_id')
             batch_index = 0
             for window_index in range(nw):
                 start = window_index * ss
@@ -309,7 +336,7 @@ class DataHandler:
                 y_seq_list = []
 
                 for index, row in rows.iterrows():
-                    vid_seq_name = row['Video_ID']
+                    vid_seq_name = row['video_id']
 
                     if this_index == 0:
                         print('First frame. Set oldname=vidname.')
@@ -321,14 +348,14 @@ class DataHandler:
                         old_vid_seq_name = vid_seq_name
                         break  # In that case want to jump to the next window.
 
-                    if config_dict['data_type'] == 'rgb':
-                        x = self.get_image(row['Path'])
-                    if config_dict['data_type'] == 'of':
-                        x = self.get_image(row['OF_Path'])
+                    if self.config_dict['data_type'] == 'rgb':
+                        x = self.get_image(row['path'])
+                    if self.config_dict['data_type'] == 'of':
+                        x = self.get_image(row['of_path'])
                         # If no magnitude:
                         # extra_channel = np.zeros((x.shape[0], x.shape[1], 1))
                         # x = np.concatenate((x, extra_channel), axis=2)
-                    y = row['Pain']
+                    y = row['pain']
                     X_seq_list.append(x)
                     y_seq_list.append(y)
                     seq_index += 1
@@ -376,7 +403,7 @@ class DataHandler:
                     batch_index = 0
                     yield (X_array, y_array)
 
-    def prepare_image_generator(self, df, train, config_dict):
+    def prepare_image_generator(self, df, train):
         """
         Prepare the frames into labeled train and test sets, with help from the
         DataFrame with .jpg-paths and labels for train and pain.
@@ -388,23 +415,23 @@ class DataHandler:
         print("LEN DF:")
         print(len(df))
         print('Datatype:')
-        print(config_dict['data_type'])
+        print(self.config_dict['data_type'])
 
         while True:
             if train:
                 # Shuffle blocks between epochs.
-                df = shuffle_blocks(df, 'Video_ID')
+                df = shuffle_blocks(df, 'video_id')
             batch_index = 0
             for index, row in df.iterrows():
                 if batch_index == 0:
                     X_list = []
                     y_list = []
-                if config_dict['data_type'] == 'rgb':
-                    x = self.get_image(row['Path'])
+                if self.config_dict['data_type'] == 'rgb':
+                    x = self.get_image(row['path'])
                     x /= 255
-                if config_dict['data_type'] == 'of':
-                    x = self.get_image(row['OF_Path'])
-                y = row['Pain']
+                if self.config_dict['data_type'] == 'of':
+                    x = self.get_image(row['of_path'])
+                y = row['pain']
                 X_list.append(x)
                 y_list.append(y)
                 batch_index += 1
@@ -437,7 +464,6 @@ class DataHandler:
         return X_flip
 
     def flip_image(self, image):
-        X_flip = []
         tf.reset_default_graph()
         # Tensorflow wants [height, width, channels] input below, hence [1] before [0].
         X = tf.placeholder(tf.float32, shape=(self.image_size[1], self.image_size[0], 3))
@@ -608,37 +634,45 @@ class DataHandler:
 
     # TODO Merge the two below functions (subject_to_df and save_OF_paths_to_df, same functionality)
 
-    def subject_to_df(self, subject_id):
+    def subject_to_df(self, subject_id, dataset, config_file):
         """
         Create a DataFrame with all the frames with annotations from a csv-file.
         :param subject_id: int
         :return: pd.DataFrame
         """
-        df_csv = pd.read_csv(self.clip_list_file, sep=';')
-        column_headers = ['Video_ID', 'Path', 'Train']
+        clip_file = config_file['clip_list_pf']\
+            if dataset == 'pf' else config_file['clip_list_lps']
+        df_csv = pd.read_csv(clip_file)
+        column_headers = ['video_id', 'path', 'train']
         for dc in self.data_columns:
             column_headers.append(dc)
         print(column_headers)
-        subject_path = self.path + subject_id + '/'
+        subject_path = os.path.join(
+            self.dataset_rgb_path_dict[dataset], subject_id)
         big_list = []
         for path, dirs, files in sorted(os.walk(subject_path)):
             print(path)
             for filename in sorted(files):
                 total_path = os.path.join(path, filename)
                 print(total_path)
-                vid_id = get_video_id_stem_from_path(path)
-                csv_row = df_csv.loc[df_csv['Video_ID'] == vid_id]
+                vid_id = get_video_id_stem_from_path(path, dataset)
+                csv_row = df_csv.loc[df_csv['video_id'] == vid_id]
+                if csv_row.empty:
+                    continue
                 if '.jpg' in filename or '.png' in filename:
                     train_field = -1
                     row_list = [vid_id, total_path, train_field]
                     for dc in self.data_columns:
                         field = csv_row.iloc[0][dc]
+                        if dc == 'pain':
+                            pain = 1 if field > 0 else 0
+                            field = pain
                         row_list.append(field)
                     big_list.append(row_list)
         subject_df = pd.DataFrame(big_list, columns=column_headers)
         return subject_df
 
-    def save_OF_paths_to_df(self, subject_id, subject_df):
+    def save_OF_paths_to_df(self, subject_id, subject_df, dataset):
         """
         Create a DataFrame with all the optical flow paths with annotations
         from a csv-file, then join it with the existing subject df with rgb paths,
@@ -650,7 +684,8 @@ class DataHandler:
         c = 0  # Per subject frame counter.
         per_clip_frame_counter = 0
         old_path = 'NoPath'
-        root_of_path = self.of_path + subject_id + '/'
+        root_of_path = os.path.join(
+            self.dataset_of_path_dict[dataset], subject_id)
         of_path_list = []
 
         # Walk through all the files in the of-folders and put them in a
@@ -659,7 +694,7 @@ class DataHandler:
         for path, dirs, files in sorted(os.walk(root_of_path)):
             print(path)
             video_id = get_video_id_from_path(path)
-            nb_frames_in_clip = len(subject_df.loc[subject_df['Path'].str.contains(video_id)])
+            nb_frames_in_clip = len(subject_df.loc[subject_df['path'].str.contains(video_id)])
             print(video_id)
             if old_path != path and c != 0:  # If entering a new folder
                 per_clip_frame_counter = 0
@@ -690,8 +725,8 @@ class DataHandler:
             else:  # Vice versa with subject-df
                 subject_df = subject_df[:-diff]
         try:
-            subject_df.loc[:, 'OF_Path'] = pd.Series(of_path_list)
-            subject_df.loc['Train'] = -1
+            subject_df.loc[:, 'of_path'] = pd.Series(of_path_list)
+            subject_df.loc['train'] = -1
         except AssertionError:
             print('Horse df and OF_df were not the same length and could not'
                   'be concatenated. Even despite having removed the last'
@@ -710,7 +745,7 @@ class DataHandler:
             channels = 3
         else:
             channels = 1
-        for path in df['Path']:
+        for path in df['path']:
             im = process_image(path,
                                (self.image_size[0],
                                 self.image_size[1],
@@ -764,11 +799,13 @@ def plot_augmentation(train, val, test, evaluate, rgb, X_seq_list, flipped, crop
                                                            rgb))
     plt.close()
 
-def get_video_id_stem_from_path(path):
+
+def get_video_id_stem_from_path(path, dataset):
     _, vid_id = split_string_at_last_occurence_of_certain_char(path, '/')
-    nb_underscore = vid_id.count('_')
-    if nb_underscore > 1:
-        vid_id, _ = split_string_at_last_occurence_of_certain_char(vid_id, '_')
+    if dataset == 'pf':
+        nb_underscore = vid_id.count('_')
+        if nb_underscore > 1:
+            vid_id, _ = split_string_at_last_occurence_of_certain_char(vid_id, '_')
     return vid_id
 
 

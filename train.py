@@ -12,7 +12,7 @@ config.gpu_options.allow_growth = True
 sess = tf.Session(config=config)
 
 
-def train(model_instance, args, train_steps, val_steps, val_fraction,
+def train(model_instance, config_dict, train_steps, val_steps, val_fraction,
           generator=None, val_generator=None, X_train=None, y_train=None):
     """
     Train the model.
@@ -30,13 +30,13 @@ def train(model_instance, args, train_steps, val_steps, val_fraction,
     """
     print(model_instance.model.summary())
 
-    best_model_path = create_best_model_path(model_instance, args)
+    best_model_path = create_best_model_path(model_instance, config_dict)
     print('best model path:')
     print(best_model_path)
 
-    if args.model == 'inception_4d_input':
+    if config_dict['model'] == 'inception_4d_input':
         early_stopping = EarlyStopping(monitor='val_loss',
-                                       patience=args.early_stopping)
+                                       patience=config_dict['early_stopping'])
         checkpointer = ModelCheckpoint(filepath=best_model_path,
                                        monitor="val_loss",
                                        verbose=1,
@@ -44,7 +44,7 @@ def train(model_instance, args, train_steps, val_steps, val_fraction,
                                        mode='min')
     else:
         early_stopping = EarlyStopping(monitor='val_binary_accuracy',
-                                       patience=args.early_stopping)
+                                       patience=config_dict['early_stopping'])
         checkpointer = ModelCheckpoint(filepath=best_model_path,
                                        monitor="val_binary_accuracy",
                                        verbose=1,
@@ -63,7 +63,7 @@ def train(model_instance, args, train_steps, val_steps, val_fraction,
         print("VAL STEPS:")
         print(val_steps)
 
-        if args.model == 'inception_4d_input':
+        if config_dict['model'] == 'inception_4d_input':
             # let's visualize layer names and layer indices to see how many layers
             # we should freeze:
             # for i, layer in enumerate(model_instance.base_model.layers):
@@ -80,52 +80,52 @@ def train(model_instance, args, train_steps, val_steps, val_fraction,
             # print(model_instance.model.summary())
             model_instance.model.fit_generator(generator=generator,
                                                steps_per_epoch=train_steps,
-                                               epochs=args.nb_epochs,
+                                               epochs=config_dict['nb_epochs'],
                                                callbacks=[early_stopping, checkpointer,
                                                           binacc_test_history, binacc_train_history],
                                                validation_data=val_generator,
                                                validation_steps=val_steps,
                                                verbose=1,
-                                               workers=args.nb_workers)
+                                               workers=config_dict['nb_workers'])
         else:
 
             model_instance.model.fit_generator(generator=generator,
                                                steps_per_epoch=train_steps,
-                                               epochs=args.nb_epochs,
+                                               epochs=config_dict['nb_epochs'],
                                                callbacks=[early_stopping, checkpointer,
                                                           binacc_test_history, binacc_train_history],
                                                validation_data=val_generator,
                                                validation_steps=val_steps,
                                                verbose=1,
-                                               workers=args.nb_workers)
+                                               workers=config_dict['nb_workers'])
 
     else:
-        if args.round_to_batch:
-            X_train, y_train, X_val, y_val = val_split(X_train, y_train, val_fraction, args.batch_size)
-            X_train = round_to_batch_size(X_train, args.batch_size)
-            y_train = round_to_batch_size(y_train, args.batch_size)
+        if config_dict['round_to_batch']:
+            X_train, y_train, X_val, y_val = val_split(X_train, y_train, val_fraction, config_dict['batch_size'])
+            X_train = round_to_batch_size(X_train, config_dict['batch_size'])
+            y_train = round_to_batch_size(y_train, config_dict['batch_size'])
 
             print(X_train.shape)
             print(y_train.shape)
 
             model_instance.model.fit(X_train, y_train,
-                                     epochs=args.nb_epochs,
+                                     epochs=config_dict['nb_epochs'],
                                      shuffle=False,
-                                     batch_size=args.batch_size,
+                                     batch_size=config_dict['batch_size'],
                                      validation_data=(X_val, y_val),
                                      callbacks=[early_stopping, checkpointer,
                                                 catacc_test_history, catacc_train_history])
 
         else:
             model_instance.model.fit(X_train, y_train,
-                                     epochs=args.nb_epochs,
+                                     epochs=config_dict['nb_epochs'],
                                      shuffle=False,
-                                     batch_size=args.batch_size,
+                                     batch_size=config_dict['batch_size'],
                                      validation_split=val_fraction,
                                      callbacks=[early_stopping, checkpointer,
                                                 catacc_test_history, catacc_train_history])
 
-    plot_training(binacc_test_history, binacc_train_history, args)
+    plot_training(binacc_test_history, binacc_train_history, config_dict)
 
     return best_model_path
 
@@ -157,10 +157,10 @@ def round_to_batch_size(data_array, batch_size):
     return data_array_rounded
 
 
-def create_best_model_path(model, args):
-    model_path = "models/BEST_MODEL_" + model.name + "_" + str(args.optimizer) +\
+def create_best_model_path(model, config_dict):
+    model_path = "models/BEST_MODEL_" + model.name + "_" + str(config_dict['optimizer']) +\
                  "_LSTMunits_" + str(model.nb_lstm_units) + "_CONVfilters_" + str(model.nb_conv_filters) +\
-                 "_" + args.image_identifier + ".h5"
+                 "_" + config_dict['job_identifier'] + ".h5"
     return model_path
 
 
@@ -215,13 +215,13 @@ class PrintBatch(Callback):
 
 def plot_training(test_history,
                   train_history,
-                  args):
+                  config_dict):
     plt.plot(test_history.binaccs, label='Validation set, categorical accuracy')
     plt.plot(train_history.binaccs, label='Training set, categorical accuracy')
     plt.xlabel('Epochs')
     plt.legend()
-    plt.savefig(args.model + "_" + args.image_identifier + "_LSTM_UNITS_" +\
-                str(args.nb_lstm_units) + "_CONV_FILTERS_" +\
-                str(args.nb_conv_filters) + ".png")
+    plt.savefig(config_dict['model'] + "_" + config_dict['job_identifier'] + "_LSTM_UNITS_" +\
+                str(config_dict['nb_lstm_units']) + "_CONV_FILTERS_" +\
+                str(config_dict['nb_conv_filters']) + ".png")
     plt.close()
 
