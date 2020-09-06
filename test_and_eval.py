@@ -21,7 +21,7 @@ class Evaluator:
         """
         self.test_set = df_test
 
-    def test(self, model, args, test_generator, eval_generator, nb_steps, X_test=None):
+    def test(self, model, test_generator, eval_generator, nb_steps, X_test=None):
         ###### If not a generator:
         #    y_pred = model.predict_classes(X_test, batch_size=model.batch_size)
 
@@ -33,14 +33,16 @@ class Evaluator:
                                               steps=nb_steps)
         return y_pred, scores
 
-    def evaluate(self, model, y_test, y_pred, softmax_predictions, scores, args, y_paths):
+    def evaluate(self, model, y_test, y_pred, softmax_predictions,
+                 scores, config_dict, y_paths):
         """
         Compute confusion matrix and class report with F1-scores.
         :param model: Model object
         :param y_test: np.ndarray (dim, seq_length, nb_classes)
         :param y_pred: np.ndarray (dim, seq_length, nb_classes)
         :param scores: [np.ndarray]
-        :param args: command line args
+        :param config_dict: dict
+        :param y_paths: [str]
         :return: None
         """
         print('Scores: ', scores)
@@ -89,7 +91,7 @@ class Evaluator:
         confidence_level = softmax_predictions[FN_ind]
         print('Sequence starting with ', paths[FN_ind], 'was a false negative with confidence ', confidence_level)
 
-    def print_and_save_evaluations(self, y_test, y_pred, softmax_predictions, args):
+    def print_and_save_evaluations(self, y_test, y_pred, softmax_predictions, config_dict):
         """
         :params y_pred, y_test: 2D-arrays [nsamples, nclasses]
         """
@@ -97,7 +99,7 @@ class Evaluator:
             cr = classification_report(np.argmax(y_test, axis=1), np.argmax(y_pred, axis=1),
                                        target_names=self.target_names,
                                        digits=NB_DECIMALS)
-            f = open(_make_cr_filename(args), 'w')
+            f = open(_make_cr_filename(config_dict), 'w')
             print(cr, end="", file=f)
             f.close()
             print(cr)
@@ -109,7 +111,7 @@ class Evaluator:
             total_samples = np.sum(cm)
             acc = correct/total_samples
             print(acc, ' acc.')
-            f = open(_make_cm_filename(args), 'w')
+            f = open(_make_cm_filename(config_dict), 'w')
             print(cm,' ', acc, ' acc.', end="", file=f)
             f.close()
 
@@ -121,7 +123,7 @@ class Evaluator:
             print('Macro AUC: ', auc_macro)
             print('Micro AUC: ', auc_micro)
 
-            with open(args.model + "_" + args.image_identifier +'_auc' + '.txt', 'w') as f:
+            with open(config_dict['model'] + "_" + config_dict['job_identifier'] +'_auc' + '.txt', 'w') as f:
                 # print('Filename:', filename, file=f) 
                 print('Weighted AUC: ', auc_weighted, file=f)
                 print('Macro AUC: ', auc_macro, file=f)
@@ -137,16 +139,16 @@ def get_index_of_type_of_classification(y_true, y_pred, true=1, pred=1):
                 if np.argmax(y_pred[index]) == pred:
                     return index
 
-def _make_cr_filename(args):
-    return args.model + "_" + args.image_identifier + "_LSTM_UNITS_" +\
-                  str(args.nb_lstm_units) + "_CONV_FILTERS_" +\
-                  str(args.nb_conv_filters) + "_CR.txt"
+def _make_cr_filename(config_dict):
+    return config_dict['model'] + "_" + config_dict['job_identifier'] + "_LSTM_UNITS_" +\
+                  str(config_dict['nb_lstm_units']) + "_CONV_FILTERS_" +\
+                  str(config_dict['nb_conv_filters']) + "_CR.txt"
 
 
-def _make_cm_filename(args):
-    return args.model + "_" + args.image_identifier + "_LSTM_UNITS_" + \
-                  str(args.nb_lstm_units) + "_CONV_FILTERS_" + \
-                  str(args.nb_conv_filters) + "_CM.txt"
+def _make_cm_filename(config_dict):
+    return config_dict['model'] + "_" + config_dict['job_identifier'] + "_LSTM_UNITS_" + \
+                  str(config_dict['nb_lstm_units']) + "_CONV_FILTERS_" + \
+                  str(config_dict['nb_conv_filters']) + "_CM.txt"
 
 
 def get_majority_vote_for_sequence(sequence, nb_classes):

@@ -8,7 +8,7 @@ from keras.models import Sequential, Model
 
 
 class MyModel:
-    def __init__(self, args):
+    def __init__(self, config_dict):
         """
         A class to build the preferred model.
         :param name: str | The name of the model
@@ -21,20 +21,20 @@ class MyModel:
         :param lr: float | The learning rate during training.
         :param optimizer: str | The name of the optimizer (Adam or Adagrad, here).
         """
-        self.name = args.model
-        self.input_shape = (args.input_height, args.input_width)
-        self.nb_conv_filters = args.nb_conv_filters
-        self.nb_lstm_units = args.nb_lstm_units
-        self.kernel_size = args.kernel_size
-        self.nb_labels = args.nb_labels
-        self.dropout_2 = args.dropout_2
-        self.dropout_1 = args.dropout_1
-        self.seq_length = args.seq_length
-        self.lr = args.lr
-        self.optimizer = args.optimizer
-        self.batch_size = args.batch_size
-        self.nb_lstm_layers = args.nb_lstm_layers
-        self.nb_dense_units = args.nb_dense_units
+        self.name = config_dict['model']
+        self.input_shape = config_dict['input_height'], config_dict['input_width']
+        self.nb_conv_filters = config_dict['nb_conv_filters']
+        self.nb_lstm_units = config_dict['nb_lstm_units']
+        self.kernel_size = config_dict['kernel_size']
+        self.nb_labels = config_dict['nb_labels']
+        self.dropout_2 = config_dict['dropout_2']
+        self.dropout_1 = config_dict['dropout_1']
+        self.seq_length = config_dict['seq_length']
+        self.lr = config_dict['lr']
+        self.optimizer = config_dict['optimizer']
+        self.batch_size = config_dict['batch_size']
+        self.nb_lstm_layers = config_dict['nb_lstm_layers']
+        self.nb_dense_units = config_dict['nb_dense_units']
 
         if self.name == 'conv2d_timedist_lstm':
             print("Conv2d-lstm model timedist")

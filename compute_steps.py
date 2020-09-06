@@ -5,13 +5,13 @@ import arg_parser
 import sys
 
 
-def compute_steps(df, train, kwargs):
+def compute_steps(df, train, config_dict):
     """
     Computes the ultimate number of valid steps given that sometimes the last
     sequence doesn't fit within the same video clip.
     :param df: pd.DataFrame
     :param train: Boolean
-    :param kwargs: command line flags
+    :param config_dict: dict
     :return: int
     """
 
@@ -22,17 +22,17 @@ def compute_steps(df, train, kwargs):
     nb_frames = len(df)
     print("LEN DF, in compute_steps(): ", nb_frames)
 
-    ws = kwargs.seq_length  # "Window size" in a sliding window.
-    ss = kwargs.seq_stride  # Provide argument for slinding w. stride.
+    ws = config_dict['seq_length']  # "Window size" in a sliding window.
+    ss = config_dict['seq_stride']  # Provide argument for slinding w. stride.
     valid = nb_frames - (ws - 1)
     nw = valid // ss  # Number of windows
 
     y_batches = []  # List where to put all the y_arrays generated.
     y_batches_paths = []
 
-    nb_aug = kwargs.aug_flip + kwargs.aug_crop + kwargs.aug_light
+    nb_aug = config_dict['aug_flip'] + config_dict['aug_crop'] + config_dict['aug_light']
     batch_requirement = 1 + nb_aug  # Normal sequence plus augmented sequences.
-    assert (kwargs.batch_size % batch_requirement) == 0
+    assert (config_dict['batch_size'] % batch_requirement) == 0
 
     for window_index in range(nw):
         start = window_index * ss
@@ -43,7 +43,7 @@ def compute_steps(df, train, kwargs):
         y_seq_list_paths = []
 
         for index, row in rows.iterrows():
-            vid_seq_name = row['Video_ID']
+            vid_seq_name = row['video_id']
 
             if index == 0:
                 print('First frame. Set oldname=vidname.')
@@ -54,8 +54,8 @@ def compute_steps(df, train, kwargs):
                 # print('New sequence. Settin seq ind to 0 and start on new.')
                 old_vid_seq_name = vid_seq_name
                 break  # In that case want to jump to the next window.
-            y = row['Pain']
-            y_path = row['Path']
+            y = row['pain']
+            y_path = row['path']
             y_seq_list.append(y)
             y_seq_list_paths.append(y_path)
             seq_index += 1
@@ -63,7 +63,7 @@ def compute_steps(df, train, kwargs):
             y_batch_list = []
             y_batch_list_paths = []
 
-        if seq_index == kwargs.seq_length:
+        if seq_index == config_dict['seq_length']:
             # Everytime a full sequence is amassed, we reset the seq_ind,
             # and increment the batch_ind.
             y_batch_list.append(y_seq_list)
@@ -71,24 +71,24 @@ def compute_steps(df, train, kwargs):
             
             seq_index = 0
             batch_index += 1
-            if train and (kwargs.aug_flip==1):
+            if train and (config_dict['aug_flip'] == 1):
                 y_batch_list.append(y_seq_list)
                 y_batch_list_paths.append(y_seq_list_paths)
                 batch_index += 1
-            if train and (kwargs.aug_crop==1):
+            if train and (config_dict['aug_crop'] == 1):
                 y_batch_list.append(y_seq_list)
                 y_batch_list_paths.append(y_seq_list_paths)
                 batch_index += 1
-            if train and (kwargs.aug_light==1):
+            if train and (config_dict['aug_light'] == 1):
                 y_batch_list.append(y_seq_list)
                 y_batch_list_paths.append(y_seq_list_paths)
                 batch_index += 1
 
-        if batch_index % kwargs.batch_size == 0 and not batch_index == 0:
+        if batch_index % config_dict['batch_size'] == 0 and not batch_index == 0:
             y_array = np.array(y_batch_list, dtype=np.uint8)
-            if kwargs.nb_labels == 2:
-                y_array = np_utils.to_categorical(y_array, num_classes=kwargs.nb_labels)
-                y_array = np.reshape(y_array, (kwargs.batch_size, kwargs.seq_length, kwargs.nb_labels))
+            if config_dict['nb_labels'] == 2:
+                y_array = np_utils.to_categorical(y_array, num_classes=config_dict['nb_labels'])
+                y_array = np.reshape(y_array, (config_dict['batch_size'], config_dict['seq_length'], config_dict['nb_labels']))
             nb_steps += 1
             batch_index = 0
             y_batches.append(y_array)
