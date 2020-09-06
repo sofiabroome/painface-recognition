@@ -6,7 +6,7 @@ import sys
 import ast
 import os
 
-from data_handler import DataHandler, shuffle_blocks
+from data_handler import DataHandler
 from test_and_eval import Evaluator
 from keras.utils import np_utils
 from train import train

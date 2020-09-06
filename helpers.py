@@ -29,11 +29,6 @@ def load_module(module_path_and_name):
     return mod
 
 
-def get_dataset_path(data_path, dataset, data_type):
-
-    return os.path.join(data_path, )
-
-
 def get_last_characters_from_string(string, nb_chars):
     return string[-nb_chars:]
 
