@@ -3,13 +3,13 @@ import matplotlib
 matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import tensorflow as tf
+import wandb
 import os
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+from wandb.keras import WandbCallback
 
-config = tf.ConfigProto(log_device_placement=True)
-config.gpu_options.allow_growth = True
-sess = tf.Session(config=config)
+wandb.init(project='pfr')
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 
 def train(model_instance, args, train_steps, val_steps, val_fraction,
@@ -82,22 +82,24 @@ def train(model_instance, args, train_steps, val_steps, val_fraction,
                                                steps_per_epoch=train_steps,
                                                epochs=args.nb_epochs,
                                                callbacks=[early_stopping, checkpointer,
-                                                          binacc_test_history, binacc_train_history],
+                                                          binacc_test_history, binacc_train_history,
+                                                          WandbCallback(monitor='val_acc')],
                                                validation_data=val_generator,
                                                validation_steps=val_steps,
                                                verbose=1,
-                                               workers=args.nb_workers)
+                                               workers=1)
         else:
 
             model_instance.model.fit_generator(generator=generator,
                                                steps_per_epoch=train_steps,
                                                epochs=args.nb_epochs,
                                                callbacks=[early_stopping, checkpointer,
-                                                          binacc_test_history, binacc_train_history],
+                                                          binacc_test_history, binacc_train_history,
+                                                          WandbCallback(monitor='val_acc')],
                                                validation_data=val_generator,
                                                validation_steps=val_steps,
                                                verbose=1,
-                                               workers=args.nb_workers)
+                                               workers=1)
 
     else:
         if args.round_to_batch:
@@ -114,7 +116,8 @@ def train(model_instance, args, train_steps, val_steps, val_fraction,
                                      batch_size=args.batch_size,
                                      validation_data=(X_val, y_val),
                                      callbacks=[early_stopping, checkpointer,
-                                                catacc_test_history, catacc_train_history])
+                                                catacc_test_history, catacc_train_history,
+                                                WandbCallback(monitor='val_acc')])
 
         else:
             model_instance.model.fit(X_train, y_train,
@@ -123,7 +126,8 @@ def train(model_instance, args, train_steps, val_steps, val_fraction,
                                      batch_size=args.batch_size,
                                      validation_split=val_fraction,
                                      callbacks=[early_stopping, checkpointer,
-                                                catacc_test_history, catacc_train_history])
+                                                catacc_test_history, catacc_train_history,
+                                                WandbCallback(monitor='val_acc')])
 
     plot_training(binacc_test_history, binacc_train_history, args)
 
