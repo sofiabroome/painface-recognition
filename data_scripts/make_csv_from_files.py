@@ -40,6 +40,8 @@ big_list = []
 for dirpath, dirnames, files in os.walk(video_folder):
     if '.DS_Store' not in files[0]:
         for filename in files:
+            if video_file_ext not in filename:
+                continue
             fn_parts = filename.split('_')
             horse = lps_subjects[filename[0]]
             print(horse)
