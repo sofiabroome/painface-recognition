@@ -72,7 +72,7 @@ class Evaluator:
         # print('y_test and y_test.shape: ', y_test, y_test.shape)
         # print('y_pred and y_pred.shape: ', y_pred, y_pred.shape)
 
-        self.print_and_save_evaluations(y_test, y_pred, softmax_predictions, args)
+        self.print_and_save_evaluations(y_test, y_pred, softmax_predictions, config_dict)
 
     def look_at_classifications(self, y_true, y_pred, paths, softmax_predictions):
         TP_ind = get_index_of_type_of_classification(y_true, y_pred, true=1, pred=1)
@@ -96,7 +96,7 @@ class Evaluator:
         :params y_pred, y_test: 2D-arrays [nsamples, nclasses]
         """
         if self.cr:
-            cr = classification_report(np.argmax(y_test, axis=1), np.argmax(y_pred, axis=1),
+            cr = classification_report(y_test, y_pred,
                                        target_names=self.target_names,
                                        digits=NB_DECIMALS)
             f = open(_make_cr_filename(config_dict), 'w')

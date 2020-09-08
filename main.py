@@ -258,8 +258,9 @@ def run():
         # Get the ground truth for the test set
         y_test_paths = np.array(y_batches_paths)
         if args.test_run == 1:
-            y_test_paths = y_batches_paths[:2]
             nb_batches = int(y_preds.shape[0]/config_dict['batch_size'])
+            y_test_paths = helpers.flatten_batch_lists(
+                y_batches_paths, nb_batches)
             nb_total = nb_batches * config_dict['batch_size'] * config_dict['seq_length']
             y_test = y_test[:nb_total]
             y_test = np.reshape(y_test, (nb_batches*config_dict['batch_size'],
