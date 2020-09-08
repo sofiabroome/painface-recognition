@@ -1,10 +1,11 @@
 import pandas as pd
 import numpy as np
+import wandb
 import keras
 import time
 import sys
-import ast
 import os
+import re
 
 from data_handler import DataHandler
 from test_and_eval import Evaluator
@@ -14,6 +15,7 @@ import compute_steps
 import arg_parser
 import helpers
 import models
+
 
 TARGET_NAMES = ['NO_PAIN', 'PAIN']
 VAL_FRACTION = 0.2
@@ -67,7 +69,7 @@ def read_or_create_subject_dfs(dh, subject_ids):
             print('Making a DataFrame for subject id: ', subject_id)
             sdf = dh.subject_to_df(subject_id, dataset, config_dict)
             sdf.to_csv(path_or_buf=subject_csv_path)
-        subject_dfs[ind] = sdf
+        subject_dfs[subject_id] = sdf
     return subject_dfs
 
 
@@ -128,8 +130,8 @@ def run():
 
     subject_ids = all_subjects_df['subject'].values
 
-    train_subjects = ast.literal_eval(args.train_subjects)
-    test_subjects = ast.literal_eval(args.test_subjects)
+    train_subjects = re.split('/', args.train_subjects)
+    test_subjects = re.split('/', args.test_subjects)
 
     print('Subjects to train on: ', train_subjects)
     print('Subjects to test on: ', test_subjects)
@@ -162,7 +164,7 @@ def run():
     # Set the train-column to 1 (train), 2 (val) or 0 (test).
     if config_dict['val_fraction'] == 0:
         print("Using separate subject validation.")
-        val_subjects = ast.literal_eval(args.val_subjects)
+        val_subjects = re.split('/', args.val_subjects)
         print('Horses to validate on: ', val_subjects)
         subject_dfs = set_train_val_test_in_df(train_subjects=train_subjects,
                                                val_subjects=val_subjects,
@@ -310,6 +312,7 @@ if __name__ == '__main__':
     args = arg_parser.parse()
     config_dict_module = helpers.load_module(args.config_file)
     config_dict = config_dict_module.config_dict
+    wandb.init(project='pfr', config=config_dict)
 
     if config_dict['round_to_batch'] == 1:
         round_to_batch = True
@@ -317,6 +320,7 @@ if __name__ == '__main__':
         round_to_batch = False
 
     config_dict['job_identifier'] = args.job_identifier
+    print('Job identifier: ', args.job_identifier)
 
     all_subjects_df = pd.read_csv(args.subjects_overview)
 

@@ -3,12 +3,10 @@ import matplotlib
 matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import tensorflow as tf
-import wandb
 import os
 
 from wandb.keras import WandbCallback
 
-wandb.init(project='pfr')
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 
