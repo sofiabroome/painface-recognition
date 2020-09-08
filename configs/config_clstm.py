@@ -1,12 +1,14 @@
+data_path = '/local_storage/users/sbroome/painface-recognition/'
+
 config_dict = {
 'train_dataset' : 'pf',
 'test_dataset' : 'lps',
 'clip_list_pf' : 'metadata/videos_overview_missingremoved.csv',
 'clip_list_lps' : 'metadata/lps_videos_overview.csv',
-'pf_rgb_path' : 'data/pf/jpg_128_128_2fps/',
-'lps_rgb_path' : 'data/lps/jpg_128_128_2fps/',
-'pf_of_path' : 'data/pf/jpg_128_128_16fps_OF_magnitude_cv2/',
-'lps_of_path' : 'data/lps/jpg_128_128_16fps_OF_magnitude_cv2/',
+'pf_rgb_path' : data_path + 'pf/jpg_128_128_2fps/',
+'lps_rgb_path' : data_path + 'lps/jpg_128_128_2fps/',
+'pf_of_path' : data_path + 'jpg_128_128_16fps_OF_magnitude_cv2/',
+'lps_of_path' : data_path + 'jpg_128_128_16fps_OF_magnitude_cv2/',
 'model' : 'convolutional_LSTM',
 'rgb_period' : 1, # Set to 10 if simonyan-like model
 'flow_period' : 1,
