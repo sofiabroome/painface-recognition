@@ -7,7 +7,7 @@ config_dict = {
 'lps_rgb_path' : data_path + 'lps/jpg_128_128_2fps/',
 'pf_of_path' : data_path + 'jpg_128_128_16fps_OF_magnitude_cv2/',
 'lps_of_path' : data_path + 'jpg_128_128_16fps_OF_magnitude_cv2/',
-'model' : 'convolutional_LSTM',
+'model' : '2stream_5d_add',
 'rgb_period' : 1, # Set to 10 if simonyan-like model
 'flow_period' : 1,
 'input_width' : 128,
@@ -19,7 +19,7 @@ config_dict = {
 'kernel_size' : 5,
 'dropout_1' : 0.25,
 'dropout_2' : 0.5,
-'nb_epochs' : 1,
+'nb_epochs' : 100,
 'early_stopping' : 15,
 'optimizer' : 'adadelta',
 'lr' : 0.001,
