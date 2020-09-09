@@ -1,6 +1,8 @@
 data_path = '/local_storage/users/sbroome/painface-recognition/'
 
 config_dict = {
+'train_dataset' : 'pf',
+'test_dataset' : 'lps',
 'clip_list_pf' : 'metadata/videos_overview_missingremoved.csv',
 'clip_list_lps' : 'metadata/lps_videos_overview.csv',
 'pf_rgb_path' : data_path + 'pf/jpg_128_128_2fps/',
@@ -19,7 +21,7 @@ config_dict = {
 'kernel_size' : 5,
 'dropout_1' : 0.25,
 'dropout_2' : 0.5,
-'nb_epochs' : 100,
+'nb_epochs' : 1,
 'early_stopping' : 15,
 'optimizer' : 'adadelta',
 'lr' : 0.001,
