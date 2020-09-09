@@ -26,12 +26,13 @@ class Evaluator:
         ###### If not a generator:
         #    y_pred = model.predict_classes(X_test, batch_size=model.batch_size)
 
-        y_pred = model.predict_generator(test_generator,
-                                         steps=nb_steps,
-                                         verbose=1)
+        y_pred = model.predict(x=test_generator,
+                               steps=nb_steps,
+                               verbose=1)
         if self.acc:
-            scores = model.evaluate_generator(eval_generator,
-                                              steps=nb_steps)
+            scores = model.evaluate(x=eval_generator,
+                                    steps=nb_steps,
+                                    return_dict=True)
         return y_pred, scores
 
     def evaluate(self, model, y_test, y_pred, softmax_predictions,
