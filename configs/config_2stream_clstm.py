@@ -6,7 +6,7 @@ config_dict = {
 'pf_rgb_path' : data_path + 'pf/jpg_128_128_2fps/',
 'lps_rgb_path' : data_path + 'lps/jpg_128_128_2fps/',
 'pf_of_path' : data_path + 'jpg_128_128_16fps_OF_magnitude_cv2/',
-'lps_of_path' : data_path + 'jpg_128_128_16fps_OF_magnitude_cv2/',
+'lps_of_path' : data_path + 'jpg_128_128_16fps_OF_magnitude_cv2_2fpsrate/',
 'model' : '2stream_5d_add',
 'rgb_period' : 1, # Set to 10 if simonyan-like model
 'flow_period' : 1,
