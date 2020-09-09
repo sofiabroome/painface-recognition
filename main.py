@@ -66,7 +66,7 @@ def read_or_create_subject_dfs(dh, subject_ids):
         if os.path.isfile(subject_csv_path):
             sdf = pd.read_csv(subject_csv_path)
         else:
-            print('Making a DataFrame for subject id: ', subject_id)
+            print('Making a DataFrame for: ', subject_id)
             sdf = dh.subject_to_df(subject_id, dataset, config_dict)
             sdf.to_csv(path_or_buf=subject_csv_path)
         subject_dfs[subject_id] = sdf
@@ -86,16 +86,19 @@ def read_or_create_subject_rgb_and_OF_dfs(dh,
     """
     subject_rgb_OF_dfs = {}
     for ind, subject_id in enumerate(subject_ids):
+        dataset = all_subjects_df.loc[ind]['dataset']
+        path_key = 'pf_of_path' if dataset == 'pf' else 'lps_of_path'
         subject_of_csv_path = os.path.join(
-            args.data_path, args.of_path, subject_id) + '.csv'
+            config_dict[path_key], subject_id) + '.csv'
         if os.path.isfile(subject_of_csv_path):
             sdf = pd.read_csv(subject_of_csv_path)
         else:
-            print('Making a DataFrame for subject id: ', subject_id)
+            print('Making a DataFrame with optical flow for: ', subject_id)
             sdf = dh.save_OF_paths_to_df(subject_id,
-                                         subject_dfs[ind])
+                                         subject_dfs[subject_id],
+                                         dataset=dataset)
             sdf.to_csv(path_or_buf=subject_of_csv_path)
-        subject_rgb_OF_dfs[ind] = sdf
+        subject_rgb_OF_dfs[subject_id] = sdf
     return subject_rgb_OF_dfs
 
 
@@ -138,9 +141,7 @@ def run():
 
     model = models.MyModel(config_dict=config_dict)
 
-    dh = DataHandler(path=args.rgb_path,
-                     of_path=args.of_path,
-                     data_columns=['pain'],  # Here one can append f. ex. 'Observer',
+    dh = DataHandler(data_columns=['pain'],  # Here one can append f. ex. 'Observer',
                      config_dict=config_dict,
                      color=COLOR)
     ev = Evaluator(acc=True,

@@ -17,12 +17,6 @@ class ArgParser:
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data-path', nargs='?', type=str,
-                        help="Path to folder containing all data")
-    parser.add_argument('--rgb-path', nargs='?', type=str,
-                        help="Name of folder with all the rgb data to be processed")
-    parser.add_argument('--of-path', nargs='?', type=str,
-                        help="Name of folder with all the optical flow data to be processed")
     parser.add_argument('--config-file', nargs='?', type=str,
                         help="path to config file")
     parser.add_argument('--train-subjects', nargs='?', type=str,

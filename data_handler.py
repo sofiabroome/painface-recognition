@@ -14,7 +14,7 @@ from helpers import process_image, split_string_at_last_occurence_of_certain_cha
 
 
 class DataHandler:
-    def __init__(self, path, of_path, data_columns, config_dict, color):
+    def __init__(self, data_columns, config_dict, color):
         """
         Constructor for the DataHandler.
         :param path: str
@@ -22,8 +22,6 @@ class DataHandler:
         :param color: bool
         :param nb_labels: int
         """
-        self.path = path
-        self.of_path = of_path
         self.data_columns = data_columns
         self.image_size = config_dict['input_width'], config_dict['input_height']
         self.seq_length = config_dict['seq_length']
@@ -684,21 +682,22 @@ class DataHandler:
         c = 0  # Per subject frame counter.
         per_clip_frame_counter = 0
         old_path = 'NoPath'
-        root_of_path = os.path.join(
+        subject_path = os.path.join(
             self.dataset_of_path_dict[dataset], subject_id)
         of_path_list = []
 
         # Walk through all the files in the of-folders and put them in a
         # list, in order (the same order they were extracted in.)
 
-        for path, dirs, files in sorted(os.walk(root_of_path)):
+        for path, dirs, files in sorted(os.walk(subject_path)):
             print(path)
             video_id = get_video_id_from_path(path)
             nb_frames_in_clip = len(subject_df.loc[subject_df['path'].str.contains(video_id)])
             print(video_id)
             if old_path != path and c != 0:  # If entering a new folder
                 per_clip_frame_counter = 0
-                if '1fps' in self.of_path or 'ShoulderPain' in self.of_path: # To match the #pictures with #of I disregard the first frame.
+                if '1fps' in subject_path or 'ShoulderPain' in subject_path:
+                    print('Dropping first optical flow to match with rgb.')
                     subject_df.drop(c, inplace=True)  # Delete first element
                     subject_df.reset_index(drop=True, inplace=True)  # And adjust the index
             old_path = path
