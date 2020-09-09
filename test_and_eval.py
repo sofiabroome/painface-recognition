@@ -1,6 +1,7 @@
 import numpy as np
 from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score
 from keras.utils import np_utils
+import wandb
 
 NB_DECIMALS = 4
 
@@ -103,28 +104,39 @@ class Evaluator:
             print(cr, end="", file=f)
             f.close()
             print(cr)
+            cr = classification_report(y_test, y_pred,
+                                       target_names=self.target_names,
+                                       digits=NB_DECIMALS,
+                                       output_dict=True)
+            wandb.log({'test f1-score' : cr['macro avg']['f1-score']})
 
         if self.cm:
             cm = confusion_matrix(np.argmax(y_test, axis=1), np.argmax(y_pred, axis=1))
             print(cm)
             correct = np.sum([ar[i] for i, ar in enumerate(cm)])
             total_samples = np.sum(cm)
-            acc = correct/total_samples
+            acc = round(correct/total_samples, NB_DECIMALS)
+            wandb.log({'test accuracy' : acc})
             print(acc, ' acc.')
             f = open(_make_cm_filename(config_dict), 'w')
             print(cm,' ', acc, ' acc.', end="", file=f)
             f.close()
 
         if self.auc:
-            auc_weighted = roc_auc_score(y_test, softmax_predictions, average='weighted')
-            auc_macro = roc_auc_score(y_test, softmax_predictions, average='macro')
-            auc_micro = roc_auc_score(y_test, softmax_predictions, average='micro')
+            auc_weighted = round(
+                roc_auc_score(y_test, softmax_predictions, average='weighted'), NB_DECIMALS)
+            auc_macro = round(
+                roc_auc_score(y_test, softmax_predictions, average='macro'), NB_DECIMALS)
+            auc_micro = round(
+                roc_auc_score(y_test, softmax_predictions, average='micro'), NB_DECIMALS)
             print('Weighted AUC: ', auc_weighted)
             print('Macro AUC: ', auc_macro)
             print('Micro AUC: ', auc_micro)
+            wandb.log({'test AUC weighted' : auc_weighted})
+            wandb.log({'test AUC macro' : auc_macro})
+            wandb.log({'test AUC micro' : auc_micro})
 
             with open(config_dict['model'] + "_" + config_dict['job_identifier'] +'_auc' + '.txt', 'w') as f:
-                # print('Filename:', filename, file=f) 
                 print('Weighted AUC: ', auc_weighted, file=f)
                 print('Macro AUC: ', auc_macro, file=f)
                 print('Micro AUC: ', auc_micro, file=f)
@@ -140,15 +152,11 @@ def get_index_of_type_of_classification(y_true, y_pred, true=1, pred=1):
                     return index
 
 def _make_cr_filename(config_dict):
-    return config_dict['model'] + "_" + config_dict['job_identifier'] + "_LSTM_UNITS_" +\
-                  str(config_dict['nb_lstm_units']) + "_CONV_FILTERS_" +\
-                  str(config_dict['nb_conv_filters']) + "_CR.txt"
+    return config_dict['model'] + "_" + config_dict['job_identifier'] + "_CR.txt"
 
 
 def _make_cm_filename(config_dict):
-    return config_dict['model'] + "_" + config_dict['job_identifier'] + "_LSTM_UNITS_" + \
-                  str(config_dict['nb_lstm_units']) + "_CONV_FILTERS_" + \
-                  str(config_dict['nb_conv_filters']) + "_CM.txt"
+    return config_dict['model'] + "_" + config_dict['job_identifier'] + "_CM.txt"
 
 
 def get_majority_vote_for_sequence(sequence, nb_classes):
