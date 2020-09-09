@@ -160,9 +160,7 @@ def round_to_batch_size(data_array, batch_size):
 
 
 def create_best_model_path(model, config_dict):
-    model_path = "models/BEST_MODEL_" + model.name + "_" + str(config_dict['optimizer']) +\
-                 "_LSTMunits_" + str(model.nb_lstm_units) + "_CONVfilters_" + str(model.nb_conv_filters) +\
-                 "_" + config_dict['job_identifier'] + ".h5"
+    model_path = "models/BEST_MODEL_" + model.name + "_" + config_dict['job_identifier'] + ".h5"
     return model_path
 
 
