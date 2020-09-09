@@ -178,7 +178,8 @@ def run():
                                                dfs=subject_dfs)
 
     # Put all the separate subject-dfs into one DataFrame.
-    df = pd.concat(list(subject_dfs.values()))
+    # sort=False is just to suppress a warning.
+    df = pd.concat(list(subject_dfs.values()), sort=False)
 
     print("Total length of dataframe:", len(df))
 
