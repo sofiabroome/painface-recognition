@@ -23,9 +23,8 @@ if __name__ == '__main__':
         output_dir_path = os.path.join(frames_dir, output_dir)
         if not os.path.exists(output_dir_path):
             subprocess.call(['mkdir', output_dir_path])
-        horse_df = df.loc[df['subject'] == output_dir]
+        horse_df = df.loc[df['subject'] == horse]
         for ind, row in horse_df.iterrows():
-            path = row['path']
             seq_dir_path = os.path.join(frames_dir, output_dir, row['video_id'])
             subprocess.call(['mkdir', seq_dir_path])
 
