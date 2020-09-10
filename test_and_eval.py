@@ -1,6 +1,5 @@
 import numpy as np
 from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score
-from keras.utils import np_utils
 import wandb
 
 NB_DECIMALS = 4

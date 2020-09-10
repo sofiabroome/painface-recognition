@@ -1,8 +1,8 @@
-from keras.callbacks import EarlyStopping, ModelCheckpoint, Callback
+from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, Callback
+import tensorflow as tf
 import matplotlib
 matplotlib.use('agg')
 import matplotlib.pyplot as plt
-import tensorflow as tf
 import os
 
 from wandb.keras import WandbCallback
@@ -71,7 +71,7 @@ def train(model_instance, config_dict, train_steps, val_steps, val_fraction,
             for layer in model_instance.model.layers[249:]:
                layer.trainable = True
 
-            from keras.optimizers import SGD
+            from tf.keras.optimizers import SGD
             model_instance.model.compile(optimizer=SGD(lr=0.0001, momentum=0.9),
                                                        loss='binary_crossentropy')
             # print('Model summary after unfreezing the layers after 249') 
