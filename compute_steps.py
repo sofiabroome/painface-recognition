@@ -1,8 +1,5 @@
-from keras.utils import np_utils
-import pandas as pd
+import tensorflow as tf
 import numpy as np
-import arg_parser
-import sys
 
 
 def compute_steps(df, train, config_dict):
@@ -87,7 +84,7 @@ def compute_steps(df, train, config_dict):
         if batch_index % config_dict['batch_size'] == 0 and not batch_index == 0:
             y_array = np.array(y_batch_list, dtype=np.uint8)
             if config_dict['nb_labels'] == 2:
-                y_array = np_utils.to_categorical(y_array, num_classes=config_dict['nb_labels'])
+                y_array = tf.keras.utils.to_categorical(y_array, num_classes=config_dict['nb_labels'])
                 y_array = np.reshape(y_array, (config_dict['batch_size'], config_dict['seq_length'], config_dict['nb_labels']))
             nb_steps += 1
             batch_index = 0

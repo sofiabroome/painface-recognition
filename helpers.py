@@ -1,7 +1,6 @@
-from keras.preprocessing.image import load_img, img_to_array
+from tensorflow.keras.preprocessing.image import load_img, img_to_array
 import numpy as np
 import importlib
-import os
 
 
 def process_image(image_path, target_shape):
@@ -32,8 +31,9 @@ def load_module(module_path_and_name):
 def flatten_batch_lists(batch_list, nb_batches):
     flat_list = []
     for b in range(nb_batches):
-       flat_list += batch_list[b]
+        flat_list += batch_list[b]
     return flat_list
+
 
 def get_last_characters_from_string(string, nb_chars):
     return string[-nb_chars:]
