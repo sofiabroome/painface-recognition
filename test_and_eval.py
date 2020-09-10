@@ -153,11 +153,11 @@ def get_index_of_type_of_classification(y_true, y_pred, true=1, pred=1):
                     return index
 
 def _make_cr_filename(config_dict):
-    return config_dict['model'] + "_" + config_dict['job_identifier'] + "_CR.txt"
+    return 'classreport_' + config_dict['model'] + '_' + config_dict['job_identifier'] + '.txt'
 
 
 def _make_cm_filename(config_dict):
-    return config_dict['model'] + "_" + config_dict['job_identifier'] + "_CM.txt"
+    return 'confmat_' + config_dict['model'] + '_' + config_dict['job_identifier'] + '.txt'
 
 
 def get_majority_vote_for_sequence(sequence, nb_classes):

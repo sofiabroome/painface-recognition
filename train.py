@@ -220,8 +220,6 @@ def plot_training(test_history,
     plt.plot(train_history.binaccs, label='Training set, categorical accuracy')
     plt.xlabel('Epochs')
     plt.legend()
-    plt.savefig(config_dict['model'] + "_" + config_dict['job_identifier'] + "_LSTM_UNITS_" +\
-                str(config_dict['nb_lstm_units']) + "_CONV_FILTERS_" +\
-                str(config_dict['nb_conv_filters']) + ".png")
+    plt.savefig('train_plot_' + config_dict['model'] + '_' + config_dict['job_identifier'] + '.png')
     plt.close()
 
