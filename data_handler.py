@@ -8,8 +8,6 @@ import random
 import cv2
 import os
 
-from keras.utils import np_utils
-
 from helpers import process_image, split_string_at_last_occurence_of_certain_char
 
 
@@ -142,7 +140,7 @@ class DataHandler:
                     y_array = np.array(y_batch_list, dtype=np.uint8)
                     flow_array = np.array(flow_batch_list, dtype=np.float32)
                     if self.nb_labels == 2:
-                        y_array = np_utils.to_categorical(y_array, num_classes=self.nb_labels)
+                        y_array = tf.keras.utils.to_categorical(y_array, num_classes=self.nb_labels)
                     y_array = np.reshape(y_array, (self.batch_size, self.nb_labels))
                     batch_index = 0
                     # print(X_array.shape, flow_array.shape, y_array.shape)
@@ -282,7 +280,7 @@ class DataHandler:
                     y_array = np.array(y_batch_list, dtype=np.uint8)
                     flow_array = np.array(flow_batch_list, dtype=np.float32)
                     if self.nb_labels == 2:
-                        y_array = np_utils.to_categorical(y_array, num_classes=self.nb_labels)
+                        y_array = tf.keras.utils.to_categorical(y_array, num_classes=self.nb_labels)
                         y_array = np.reshape(y_array, (self.batch_size, -1, self.nb_labels))
                     else:
                         y_array = np.reshape(y_array, (self.batch_size, -1, self.nb_labels))
@@ -396,7 +394,7 @@ class DataHandler:
                     X_array = np.array(X_batch_list, dtype=np.float32)
                     y_array = np.array(y_batch_list, dtype=np.uint8)
                     if self.nb_labels == 2:
-                        y_array = np_utils.to_categorical(y_array, num_classes=self.nb_labels)
+                        y_array = tf.keras.utils.to_categorical(y_array, num_classes=self.nb_labels)
                         y_array = np.reshape(y_array, (self.batch_size, -1, self.nb_labels))
                     batch_index = 0
                     yield (X_array, y_array)
@@ -437,7 +435,7 @@ class DataHandler:
                 if batch_index % self.batch_size == 0:
                     X_array = np.array(X_list, dtype=np.float32)
                     y_array = np.array(y_list, dtype=np.uint8)
-                    y_array = np_utils.to_categorical(y_array,
+                    y_array = tf.keras.utils.to_categorical(y_array,
                                                       num_classes=self.nb_labels)
                     batch_index = 0
                     yield (X_array, y_array)
@@ -651,13 +649,15 @@ class DataHandler:
         for path, dirs, files in sorted(os.walk(subject_path)):
             print(path)
             for filename in sorted(files):
-                total_path = os.path.join(path, filename)
-                print(total_path)
-                vid_id = get_video_id_stem_from_path(path, dataset)
-                csv_row = df_csv.loc[df_csv['video_id'] == vid_id]
-                if csv_row.empty:
-                    continue
-                if '.jpg' in filename or '.png' in filename:
+                # if '.jpg' in filename or '.png' in filename:
+                if filename.startswith('frame_')\
+                        and ('.jpg' in filename or '.png' in filename):
+                    total_path = os.path.join(path, filename)
+                    print(total_path)
+                    vid_id = get_video_id_stem_from_path(path, dataset)
+                    csv_row = df_csv.loc[df_csv['video_id'] == vid_id]
+                    if csv_row.empty:
+                        continue
                     train_field = -1
                     row_list = [vid_id, total_path, train_field]
                     for dc in self.data_columns:
@@ -703,7 +703,8 @@ class DataHandler:
             old_path = path
             for filename in sorted(files):
                 total_path = os.path.join(path, filename)
-                if '.npy' in filename or '.jpg' in filename:        # (If it's an optical flow-array.)
+                if filename.startswith('flow_')\
+                        and ('.npy' in filename or '.jpg' in filename):        # (If it's an optical flow-array.)
                     if per_clip_frame_counter > nb_frames_in_clip:  # This can probably be removed but will
                         break                                       # leave it here for now.
                     of_path_list.append(total_path)

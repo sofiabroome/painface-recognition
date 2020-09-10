@@ -1,7 +1,7 @@
+import tensorflow as tf
 import pandas as pd
 import numpy as np
 import wandb
-import keras
 import time
 import sys
 import os
@@ -9,7 +9,6 @@ import re
 
 from data_handler import DataHandler
 from test_and_eval import Evaluator
-from keras.utils import np_utils
 from train import train
 import compute_steps
 import arg_parser
@@ -248,7 +247,7 @@ def run():
                             generator=train_generator,
                             val_generator=val_generator)
 
-    model = keras.models.load_model(best_model_path)
+    model = tf.keras.models.load_model(best_model_path)
 
     # Get test predictions
     y_preds, scores = ev.test(model=model,
@@ -291,12 +290,12 @@ def run():
             y_test = np.argmax(y_test, axis=1)
         else:
             y_preds_argmax = np.argmax(y_preds, axis=2)
-            y_preds_argmax = np.array([np_utils.to_categorical(x,
+            y_preds_argmax = np.array([tf.keras.utils.to_categorical(x,
                                        num_classes=config_dict['nb_labels']) for x in y_preds_argmax])
     
     if config_dict['nb_input_dims'] == 4:
         y_preds_argmax = np.argmax(y_preds, axis=1)
-        y_preds_argmax = np.array([np_utils.to_categorical(x,
+        y_preds_argmax = np.array([tf.keras.utils.to_categorical(x,
                                    num_classes=config_dict['nb_labels']) for x in y_preds_argmax])
         if args.test_run == 1:
             y_test = y_test[:len(y_preds)]

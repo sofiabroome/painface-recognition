@@ -1,10 +1,10 @@
-from keras.layers import Convolution2D, MaxPooling2D, MaxPooling3D, GlobalAveragePooling2D, LSTM, Dense, Flatten, Conv2D
-from keras.layers import Dropout, BatchNormalization, concatenate, add, average, Input, Conv3D, multiply, Activation
-from keras.layers.convolutional_recurrent import ConvLSTM2D
-from keras.layers.wrappers import TimeDistributed
-from keras.optimizers import Adam, Adagrad, Adadelta
-from keras.applications import InceptionV3
-from keras.models import Sequential, Model
+from tensorflow.keras.layers import Convolution2D, MaxPooling2D, MaxPooling3D, GlobalAveragePooling2D, LSTM, Dense, Flatten, Conv2D
+from tensorflow.keras.layers import Dropout, BatchNormalization, concatenate, add, average, Input, Conv3D, multiply, Activation
+from tensorflow.keras.layers import ConvLSTM2D
+from tensorflow.keras.layers import TimeDistributed
+from tensorflow.keras.optimizers import Adam, Adagrad, Adadelta
+from tensorflow.keras.applications import InceptionV3
+from tensorflow.keras.models import Sequential, Model
 
 
 class MyModel:
@@ -186,7 +186,7 @@ class MyModel:
         return two_stream_model
 
     def rodriguez(self, top_layer=True):
-        from keras.applications.vgg16 import VGG16
+        from tensorflow.keras.applications.vgg16 import VGG16
         image_input = Input(shape=(self.seq_length,
                                    self.input_shape[0],
                                    self.input_shape[1], 3))
@@ -211,7 +211,7 @@ class MyModel:
         return model
 
     def vgg16(self, w):
-        from keras.applications.vgg16 import VGG16
+        from tensorflow.keras.applications.vgg16 import VGG16
         image_input = Input(shape=(self.input_shape[0],
                                    self.input_shape[1], 3))
         base_model = VGG16(weights=w,
@@ -229,7 +229,7 @@ class MyModel:
         return model
 
     def vgg16_GAP_dense(self, w):
-        from keras.applications.vgg16 import VGG16
+        from tensorflow.keras.applications.vgg16 import VGG16
         image_input = Input(shape=(self.input_shape[0],
                                    self.input_shape[1], 3))
         base_model = VGG16(weights=w,
@@ -431,7 +431,7 @@ class MyModel:
         return model
 
     def convolutional_LSTM(self, channels=3, top_layer=True):
-        from keras import backend as K  # Have not confirmed that this makes a difference..
+        from tensorflow.keras import backend as K  # Have not confirmed that this makes a difference..
         K.set_learning_phase(0) 
         model = Sequential()
         if self.nb_lstm_layers >= 1:
