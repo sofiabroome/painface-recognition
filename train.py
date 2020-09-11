@@ -216,10 +216,11 @@ class PrintBatch(Callback):
 def plot_training(test_history,
                   train_history,
                   config_dict):
-    plt.plot(test_history.binaccs, label='Validation set, categorical accuracy')
-    plt.plot(train_history.binaccs, label='Training set, categorical accuracy')
+    plt.plot(test_history.binaccs, label='Validation accuracy')
+    plt.plot(train_history.binaccs, label='Training accuracy')
     plt.xlabel('Epochs')
     plt.legend()
-    plt.savefig('train_plot_' + config_dict['model'] + '_' + config_dict['job_identifier'] + '.png')
+    plt.savefig('results/train_plot_' + config_dict['model'] + '_' + \
+                config_dict['job_identifier'] + '.png')
     plt.close()
 

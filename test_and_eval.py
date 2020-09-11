@@ -1,6 +1,8 @@
-import numpy as np
 from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score
+import numpy as np
+import subprocess
 import wandb
+import os
 
 NB_DECIMALS = 4
 
@@ -100,7 +102,7 @@ class Evaluator:
             cr = classification_report(y_test, y_pred,
                                        target_names=self.target_names,
                                        digits=NB_DECIMALS)
-            f = open(_make_cr_filename(config_dict), 'w')
+            f = open(self._make_filename('classreport', config_dict), 'w')
             print(cr, end="", file=f)
             f.close()
             print(cr)
@@ -118,7 +120,7 @@ class Evaluator:
             acc = round(correct/total_samples, NB_DECIMALS)
             wandb.log({'test accuracy' : acc})
             print(acc, ' acc.')
-            f = open(_make_cm_filename(config_dict), 'w')
+            f = open(self._make_filename('confmat', config_dict), 'w')
             print(cm,' ', acc, ' acc.', end="", file=f)
             f.close()
 
@@ -142,6 +144,12 @@ class Evaluator:
                 print('Micro AUC: ', auc_micro, file=f)
                 f.close()
 
+    def _make_filename(self, thing_to_save, config_dict):
+        if not os.path.exists('results/'):
+           subprocess.call(['mkdir', 'results']) 
+        return 'results/' + thing_to_save + config_dict['model'] + \
+               '_' + config_dict['job_identifier'] + '.txt'
+
 
 def get_index_of_type_of_classification(y_true, y_pred, true=1, pred=1):
     for index, value in enumerate(y_true):
@@ -150,13 +158,6 @@ def get_index_of_type_of_classification(y_true, y_pred, true=1, pred=1):
             if np.argmax(value) == true:
                 if np.argmax(y_pred[index]) == pred:
                     return index
-
-def _make_cr_filename(config_dict):
-    return 'classreport_' + config_dict['model'] + '_' + config_dict['job_identifier'] + '.txt'
-
-
-def _make_cm_filename(config_dict):
-    return 'confmat_' + config_dict['model'] + '_' + config_dict['job_identifier'] + '.txt'
 
 
 def get_majority_vote_for_sequence(sequence, nb_classes):
@@ -175,7 +176,7 @@ def get_majority_vote_for_sequence(sequence, nb_classes):
 
 def get_majority_vote_3d(y_pred, y_paths):
     """
-    I want to take the majority vote for every sequence.
+    Take the majority vote for every sequence.
     If there's a tie the choice is randomized.
     :param y_pred: Array with 3 dimensions.
     :return: Array with 2 dims.
