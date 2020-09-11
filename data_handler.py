@@ -628,8 +628,6 @@ class DataHandler:
         X_crops = np.reshape(X_crops, (height, width, 3))
         return X_crops
 
-    # TODO Merge the two below functions (subject_to_df and save_OF_paths_to_df, same functionality)
-
     def subject_to_df(self, subject_id, dataset, config_file):
         """
         Create a DataFrame with all the frames with annotations from a csv-file.
@@ -685,6 +683,7 @@ class DataHandler:
         subject_path = os.path.join(
             self.dataset_of_path_dict[dataset], subject_id)
         of_path_list = []
+        list_of_video_ids = list(set(subject_df['video_id'].values))
 
         # Walk through all the files in the of-folders and put them in a
         # list, in order (the same order they were extracted in.)
@@ -692,9 +691,13 @@ class DataHandler:
         for path, dirs, files in sorted(os.walk(subject_path)):
             print(path)
             video_id = get_video_id_from_path(path)
-            nb_frames_in_clip = len(subject_df.loc[subject_df['path'].str.contains(video_id)])
+            if video_id not in list_of_video_ids:
+                print(video_id, ' was excluded')
+                continue
             print(video_id)
-            if old_path != path and c != 0:  # If entering a new folder
+            nb_frames_in_clip = len(
+                subject_df.loc[subject_df['video_id'] == video_id])
+            if old_path != path and c != 0:  # If entering a new folder (but not first time)
                 per_clip_frame_counter = 0
                 if '1fps' in subject_path or 'ShoulderPain' in subject_path:
                     print('Dropping first optical flow to match with rgb.')
@@ -704,33 +707,31 @@ class DataHandler:
             for filename in sorted(files):
                 total_path = os.path.join(path, filename)
                 if filename.startswith('flow_')\
-                        and ('.npy' in filename or '.jpg' in filename):        # (If it's an optical flow-array.)
-                    if per_clip_frame_counter > nb_frames_in_clip:  # This can probably be removed but will
-                        break                                       # leave it here for now.
+                        and ('.npy' in filename or '.jpg' in filename): 
                     of_path_list.append(total_path)
                     c += 1
                     per_clip_frame_counter += 1
+            if per_clip_frame_counter < nb_frames_in_clip:
+                diff = nb_frames_in_clip - per_clip_frame_counter
+                if diff > 1:
+                    print('Warning: flow/rgb diff is larger than 1')
+                else:
+                    print('Counted {} flow-frames for {} rgb frames \n'.format(
+                            per_clip_frame_counter, nb_frames_in_clip))
+                    subject_df.drop(c, inplace=True)
+                    subject_df.reset_index(drop=True, inplace=True)
+                    print('Dropped the last rgb frame of the clip. \n')
 
         # Now extend subject_df to contain both rgb and OF paths,
         # and then return whole thing.
         nb_of_paths = len(of_path_list)
         nb_rgb_frames = len(subject_df)
-        if nb_rgb_frames != nb_of_paths:
-            diff = nb_rgb_frames - nb_of_paths
-            print("Differed by:", diff)
-            # (They should only differ by one row.
-            # Else an error should be raised when concatenating.)
-            if diff < 0: # If the of-df was larger, reduce it
-                of_path_list = of_path_list[:diff]
-            else:  # Vice versa with subject-df
-                subject_df = subject_df[:-diff]
         try:
             subject_df.loc[:, 'of_path'] = pd.Series(of_path_list)
             subject_df.loc['train'] = -1
         except AssertionError:
-            print('Horse df and OF_df were not the same length and could not'
-                  'be concatenated. Even despite having removed the last'
-                  'element of subject df which should be 1 longer.')
+            print('RGB and flow columns were not the same length
+                  and the data could not be merged.')
 
         return subject_df
 
@@ -802,10 +803,6 @@ def plot_augmentation(train, val, test, evaluate, rgb, X_seq_list, flipped, crop
 
 def get_video_id_stem_from_path(path, dataset):
     _, vid_id = split_string_at_last_occurence_of_certain_char(path, '/')
-    if dataset == 'pf':
-        nb_underscore = vid_id.count('_')
-        if nb_underscore > 1:
-            vid_id, _ = split_string_at_last_occurence_of_certain_char(vid_id, '_')
     return vid_id
 
 
