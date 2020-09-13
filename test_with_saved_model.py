@@ -1,8 +1,6 @@
-from keras.utils import np_utils
 import tensorflow as tf
 import pandas as pd
 import numpy as np
-import keras
 import time
 import sys
 import ast
@@ -23,168 +21,7 @@ sess = tf.Session(config=config)
 
 
 def load_model(file_name):
-    return keras.models.load_model(file_name)
-
-
-def df_val_split(df, val_fraction, batch_size, round_to_batch=True):
-    df = df.loc[df['Train'] == 1]
-    if round_to_batch:
-        ns = len(df)
-        ns_rounded = ns - ns % batch_size
-        num_val = int(val_fraction * ns_rounded - val_fraction * ns_rounded % batch_size)
-        df = df.iloc[:ns_rounded]
-        df_val = df.iloc[-num_val:, :]
-        df_train = df.iloc[:-num_val, :]
-
-    return df_train, df_val
-
-
-def read_or_create_subject_dfs(dh, subject_ids):
-    """
-    Read or create the per-subject dataframes listing
-    all the frame paths and corresponding labels and metadata.
-    :param dh: DataHandler
-    :return: [pd.Dataframe]
-    """
-    subject_dfs = []
-    for subject_id in subject_ids:
-        print(kwargs.data_path)
-        subject_csv_path = kwargs.data_path + subject_id + '.csv'
-        if os.path.isfile(subject_csv_path):
-            sdf = pd.read_csv(subject_csv_path)
-        else:
-            print('Making a DataFrame for subject id: ', subject_id)
-            sdf = dh.subject_to_df(subject_id)
-            sdf.to_csv(path_or_buf=subject_csv_path)
-        subject_dfs.append(sdf)
-    return subject_dfs
-
-
-def read_or_create_subject_rgb_and_OF_dfs(dh, subject_ids, subject_dfs):
-    # Read or create the per-subject optical flow files listing all the frame paths and labels.
-    subject_rgb_OF_dfs = []
-    for ind, subject_id in enumerate(subject_ids):
-        print(kwargs.data_path)
-        subject_of_csv_path = dh.of_path + subject_id + '.csv'
-        if os.path.isfile(subject_of_csv_path):
-            hdf = pd.read_csv(subject_of_csv_path)
-        else:
-            print('Making a DataFrame for subject id: ', subject_id)
-            hdf = dh.save_OF_paths_to_df(subject_id, subject_dfs[ind])
-            hdf.to_csv(path_or_buf=subject_of_csv_path)
-        subject_rgb_OF_dfs.append(hdf)
-    return subject_rgb_OF_dfs
-
-
-def set_train_val_test_in_df(train_subjects, val_subjects, test_subjects, dfs):
-    for trh in train_subjects:
-        dfs[trh]['Train'] = 1
-
-    for vh in val_subjects:
-        dfs[vh]['Train'] = 2
-
-    for teh in test_subjects:
-        dfs[teh]['Train'] = 0
-    return dfs
-
-
-def set_train_test_in_df(train_subjects, test_subjects, dfs):
-    for trh in train_subjects:
-        dfs[trh]['Train'] = 1
-
-    for teh in test_subjects:
-        dfs[teh]['Train'] = 0
-    return dfs
-
-
-def get_data_4d_input(dh, data_type, df_train, df_test, df_val=None):
-    """
-    Prepare the training and testing data for 4D-input (batches of frames)
-    """
-    train_generator = dh.prepare_image_generator(df_train, data_type, train=True, val=False, test=False, evaluate=False)
-    val_generator = dh.prepare_image_generator(df_val, data_type, train=False, val=True, test=False, evaluate=False)
-    test_generator = dh.prepare_image_generator(df_test, data_type, train=False, val=False, test=True, evaluate=False)
-    eval_generator = dh.prepare_image_generator(df_test, data_type, train=False, val=False, test=False,  evaluate=True)
-    generators = (train_generator, val_generator, test_generator, eval_generator)
-    return generators
-
-
-def get_data_5d_input(dh, data_type, df_train, df_val, df_test):
-    """
-    Prepare the training and testing data for 5D-input (batches of sequences of frames)
-    """
-    train_generator = dh.prepare_image_generator_5D(df_train,
-                                                    data_type=data_type,
-                                                    train=True,
-                                                    val=False, test=False, evaluate=False)
-    val_generator = dh.prepare_image_generator_5D(df_val,
-                                                  data_type=data_type,
-                                                  train=False,
-                                                  val=True, test=False, evaluate=False)
-    test_generator = dh.prepare_image_generator_5D(df_test,
-                                                   data_type=data_type,
-                                                   train=False,
-                                                   val=False, test=True, evaluate=False)
-    eval_generator = dh.prepare_image_generator_5D(df_test,
-                                                   data_type=data_type,
-                                                   train=False,
-                                                   val=False, test=False, evaluate=True)
-    generators = (train_generator, val_generator, test_generator, eval_generator)
-    return generators
-
-
-def get_data_2stream_4d_input(dh, df_train_rgbof, df_val_rgbof, df_test_rgbof):
-    train_generator = dh.prepare_generator_2stream(df_train_rgbof, train=True,
-                                                   val=False, test=False, evaluate=False)
-    val_generator = dh.prepare_generator_2stream(df_val_rgbof, train=False,
-                                                 val=True, test=False, evaluate=False)
-    test_generator = dh.prepare_generator_2stream(df_test_rgbof, train=False,
-                                                  val=False, test=True, evaluate=False)
-    eval_generator = dh.prepare_generator_2stream(df_test_rgbof, train=False,
-                                                  val=False, test=False, evaluate=True)
-    generators = (train_generator, val_generator, test_generator, eval_generator)
-    return generators
-
-
-def get_data_2stream_5d_input(dh,
-                              df_train_rgbof,
-                              df_val_rgbof,
-                              df_test_rgbof):
-    """
-    Prepare the training and testing data for 5D-input
-    (batches of sequences of frames).
-    :param dh: DataHandler object
-    :param subject_dfs: [pd.DataFrame]
-    :param train_subjects: [int]
-    :param test_subjects: [int]
-    :param val_subjects: [int]
-    :return: (4-tuple of Generator objects)
-    """
-    print("2stream model of some sort.", kwargs.model)
-
-    print("Using the 5D generator for 2stream")
-    train_generator = dh.prepare_2stream_image_generator_5D(df_train_rgbof,
-                                                            train=True,
-                                                            val=False,
-                                                            test=False,
-                                                            evaluate=False)
-    val_generator = dh.prepare_2stream_image_generator_5D(df_val_rgbof,
-                                                          train=False,
-                                                          val=True,
-                                                          test=False,
-                                                          evaluate=False)
-    test_generator = dh.prepare_2stream_image_generator_5D(df_test_rgbof,
-                                                           train=False,
-                                                           val=False,
-                                                           test=True,
-                                                           evaluate=False)
-    eval_generator = dh.prepare_2stream_image_generator_5D(df_test_rgbof,
-                                                           train=False,
-                                                           val=False,
-                                                           test=False,
-                                                           evaluate=True)
-    generators = (train_generator, val_generator, test_generator, eval_generator)
-    return generators
+    return tf.keras.models.load_model(file_name)
 
 
 def run():
@@ -328,7 +165,7 @@ def run():
             nb_batches = int(y_preds.shape[0]/kwargs.batch_size)
             nb_total = nb_batches * kwargs.batch_size * kwargs.seq_length
             y_test = y_test[:nb_total]
-            y_test = np_utils.to_categorical(y_test, num_classes=kwargs.nb_labels)
+            y_test = tf.keras.utils.to_categorical(y_test, num_classes=kwargs.nb_labels)
             y_test = np.reshape(y_test, (nb_batches*kwargs.batch_size,
                                          kwargs.seq_length,
                                          kwargs.nb_labels))
@@ -349,7 +186,7 @@ def run():
     if kwargs.nb_input_dims == 5:
         y_preds_argmax = np.argmax(y_preds, axis=2)
         tesst = np.array([x.shape for x in y_preds])
-        y_preds_argmax = np.array([np_utils.to_categorical(x,
+        y_preds_argmax = np.array([tf.keras.utils.to_categorical(x,
                                    num_classes=kwargs.nb_labels) for x in y_preds_argmax])
     
     if kwargs.nb_input_dims == 4:
