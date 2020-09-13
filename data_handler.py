@@ -728,10 +728,10 @@ class DataHandler:
         nb_rgb_frames = len(subject_df)
         try:
             subject_df.loc[:, 'of_path'] = pd.Series(of_path_list)
-            subject_df.loc['train'] = -1
+            subject_df.loc[:, 'train'] = -1
         except AssertionError:
-            print('RGB and flow columns were not the same length
-                  and the data could not be merged.')
+            print('RGB and flow columns were not the same length'
+                  'and the data could not be merged.')
 
         return subject_df
 
