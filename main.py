@@ -36,7 +36,7 @@ def df_val_split(df,
     :param round_to_batch: int [0 or 1]
     :return: pd.Dataframe, pd.Dataframe
     """
-    df = df.loc[df['Train'] == 1]
+    df = df.loc[df['train'] == 1]
     if round_to_batch:
         ns = len(df)
         ns_rounded = ns - ns % batch_size
@@ -115,13 +115,13 @@ def set_train_val_test_in_df(train_subjects,
     :return: [pd.DataFrame]
     """
     for trh in train_subjects:
-        dfs[trh]['Train'] = 1
+        dfs[trh]['train'] = 1
 
     for vh in val_subjects:
-        dfs[vh]['Train'] = 2
+        dfs[vh]['train'] = 2
 
     for teh in test_subjects:
-        dfs[teh]['Train'] = 0
+        dfs[teh]['train'] = 0
     return dfs
 
 
@@ -189,10 +189,10 @@ def run():
                                         val_fraction=VAL_FRACTION,
                                         batch_size=config_dict['batch_size'])
     if config_dict['val_fraction'] == 0:
-        df_train = df[df['Train'] == 1]
-        df_val = df[df['Train'] == 2]
+        df_train = df[df['train'] == 1]
+        df_val = df[df['train'] == 2]
 
-    df_test = df[df['Train'] == 0]
+    df_test = df[df['train'] == 0]
 
     # Count the number of samples in each partition of the data.
     nb_train_samples = len(df_train)
