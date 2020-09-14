@@ -138,12 +138,6 @@ class Evaluator:
             wandb.log({'test AUC macro' : auc_macro})
             wandb.log({'test AUC micro' : auc_micro})
 
-            with open(config_dict['model'] + "_" + config_dict['job_identifier'] +'_auc' + '.txt', 'w') as f:
-                print('Weighted AUC: ', auc_weighted, file=f)
-                print('Macro AUC: ', auc_macro, file=f)
-                print('Micro AUC: ', auc_micro, file=f)
-                f.close()
-
     def _make_filename(self, thing_to_save, config_dict):
         if not os.path.exists('results/'):
            subprocess.call(['mkdir', 'results']) 
