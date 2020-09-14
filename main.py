@@ -313,6 +313,9 @@ if __name__ == '__main__':
     args = arg_parser.parse()
     config_dict_module = helpers.load_module(args.config_file)
     config_dict = config_dict_module.config_dict
+    config_dict['train_subjects'] = args.train_subjects
+    config_dict['val_subjects'] = args.val_subjects
+    config_dict['test_subjects'] = args.test_subjects
     wandb.init(project='pfr', config=config_dict)
 
     if config_dict['round_to_batch'] == 1:
