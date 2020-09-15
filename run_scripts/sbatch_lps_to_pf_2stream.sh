@@ -1,1 +1,1 @@
-sbatch --export CONFIG_FILE=configs/config_2stream_clstm.py,TRAIN_SUBJECTS='aslan/brava/herrera/inkasso/julia/kastanjett/naughty_but_nice/sir_holger',VAL_SUBJECTS='horse_5',TEST_SUBJECTS='horse_1/horse_2/horse_3/horse_4/horse_6' eqpain.sbatch
+sbatch --export CONFIG_FILE=configs/config_2stream_clstm.py,TRAIN_SUBJECTS='aslan/brava/herrera/inkasso/julia/kastanjett/naughty_but_nice/sir_holger',VAL_SUBJECTS='horse_5',TEST_SUBJECTS='horse_1/horse_2/horse_3/horse_4' eqpain.sbatch
