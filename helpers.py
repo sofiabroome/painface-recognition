@@ -1,6 +1,7 @@
 from tensorflow.keras.preprocessing.image import load_img, img_to_array
 import numpy as np
 import importlib
+import os
 
 
 def process_image(image_path, target_shape):
@@ -35,6 +36,11 @@ def flatten_batch_lists(batch_list, nb_batches):
     return flat_list
 
 
+def mkdir(dir_path):
+    if not os.path.exists(dir_path):
+        os.mkdir(dir_path);
+
+
 def get_last_characters_from_string(string, nb_chars):
     return string[-nb_chars:]
 
@@ -58,3 +64,10 @@ def find_between(s, first, last):
         return s[start:end]
     except ValueError:
         return ""
+
+
+def write_file(file_name, list_to_write):
+    with open(file_name, 'w') as f:
+        for string in list_to_write:
+            f.write(string+'\n');
+

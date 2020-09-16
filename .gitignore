@@ -97,6 +97,7 @@ models/
 logs/
 examples/
 practical_scripts/
+run_scripts/
 results/
 tensorboard/
 wandb/
