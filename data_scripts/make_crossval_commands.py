@@ -104,10 +104,15 @@ def main():
                           nb_repetitions=nb_reps)
 
 if __name__=='__main__':
-    # dataset_str = 'lps'
-    dataset_str = 'all'
-    nb_reps = 3
-    config_file = 'configs/config_2stream_clstm.py'
-    job_name = 'configs_to_run_2stream_' + dataset_str + '_crossval'
+    dataset_str = 'pf'
+    # dataset_str = 'all'
+    nb_reps = 5
+    model = '2stream'
+    # model = 'clstm1'
+    if model == '2stream':
+        config_file = 'configs/config_2stream_clstm.py'
+    if model == 'clstm1':
+        config_file = 'configs/config_clstm.py'
+    job_name = 'configs_to_run_'+ model + '_' + dataset_str + '_crossval'
     main()
 
