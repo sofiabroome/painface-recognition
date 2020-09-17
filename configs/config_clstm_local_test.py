@@ -32,6 +32,7 @@ config_dict = {
 'batch_size' : 16,
 'nb_input_dims' : 5,
 'val_fraction' : 1,
+'val_fraction_value' : 0.001,
 'data_type' : 'rgb',
 'nb_lstm_layers' : 4,
 'aug_flip' : 0,

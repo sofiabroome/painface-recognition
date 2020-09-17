@@ -17,7 +17,6 @@ import models
 
 
 TARGET_NAMES = ['NO_PAIN', 'PAIN']
-VAL_FRACTION = 0.2
 COLOR = True
 
 # Prettyprint for dataframes with long values (filenames).
@@ -167,7 +166,7 @@ def run():
                                                dfs=subject_dfs)
 
     if config_dict['val_fraction'] == 1:
-        print("Val fract: ", VAL_FRACTION)
+        print("Val fract: ", config_dict['val_fraction_value'])
         subject_dfs = set_train_val_test_in_df(train_subjects=train_subjects,
                                                test_subjects=test_subjects,
                                                dfs=subject_dfs)
@@ -181,7 +180,7 @@ def run():
     # Split training data so there is a held out validation set.
     if config_dict['val_fraction'] == 1:
         df_train, df_val = df_val_split(df=df,
-                                        val_fraction=VAL_FRACTION,
+                                        val_fraction=config_dict['val_fraction_value'],
                                         batch_size=config_dict['batch_size'])
     if config_dict['val_fraction'] == 0:
         df_train = df[df['train'] == 1]
@@ -238,7 +237,7 @@ def run():
                             config_dict=config_dict,
                             train_steps=train_steps,
                             val_steps=val_steps,
-                            val_fraction=VAL_FRACTION,
+                            val_fraction=config_dict['val_fraction_value'],
                             generator=train_generator,
                             val_generator=val_generator)
 
