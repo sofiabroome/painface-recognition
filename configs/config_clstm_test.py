@@ -34,4 +34,5 @@ config_dict = {
 'nb_lstm_layers' : 4,
 'aug_flip' : 0,
 'aug_crop' : 0,
-'aug_light' : 0 }
+'aug_light' : 0,
+'do_evaluate' : True}

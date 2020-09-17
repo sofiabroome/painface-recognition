@@ -117,8 +117,9 @@ def set_train_val_test_in_df(train_subjects,
     for trh in train_subjects:
         dfs[trh]['train'] = 1
 
-    for vh in val_subjects:
-        dfs[vh]['train'] = 2
+    if not config_dict['val_fraction'] == 1:
+        for vh in val_subjects:
+            dfs[vh]['train'] = 2
 
     for teh in test_subjects:
         dfs[teh]['train'] = 0
@@ -143,12 +144,6 @@ def run():
     dh = DataHandler(data_columns=['pain'],  # Here one can append f. ex. 'Observer',
                      config_dict=config_dict,
                      color=COLOR)
-    ev = Evaluator(acc=True,
-                   cm=True,
-                   cr=True,
-                   auc=True,
-                   target_names=TARGET_NAMES,
-                   batch_size=config_dict['batch_size'])
 
     # Read or create the per-subject dataframes listing all the frame paths and labels.
     subject_dfs = read_or_create_subject_dfs(
@@ -249,62 +244,70 @@ def run():
 
     model = tf.keras.models.load_model(best_model_path)
 
-    # Get test predictions
-    y_preds, scores = ev.test(model=model,
-                              test_generator=test_generator,
-                              eval_generator=eval_generator,
-                              nb_steps=test_steps)
+    if config_dict['do_evaluate']:
 
-    y_test = np.array(y_batches)  # Now in format [nb_batches, batch_size, seq_length, nb_classes]
+        ev = Evaluator(acc=True,
+                       cm=True,
+                       cr=True,
+                       auc=True,
+                       target_names=TARGET_NAMES,
+                       batch_size=config_dict['batch_size'])
 
-    if config_dict['nb_input_dims'] == 5:
-        # Get the ground truth for the test set
-        y_test_paths = np.array(y_batches_paths)
-        if args.test_run == 1:
-            nb_batches = int(y_preds.shape[0]/config_dict['batch_size'])
-            y_test_paths = helpers.flatten_batch_lists(
-                y_batches_paths, nb_batches)
-            nb_total = nb_batches * config_dict['batch_size'] * config_dict['seq_length']
-            y_test = y_test[:nb_total]
-            y_test = np.reshape(y_test, (nb_batches*config_dict['batch_size'],
-                                         config_dict['seq_length'],
-                                         config_dict['nb_labels']))
-        else:
+        y_preds, scores = ev.test(model=model,
+                                  test_generator=test_generator,
+                                  eval_generator=eval_generator,
+                                  nb_steps=test_steps)
+
+        y_test = np.array(y_batches)  # Now in format [nb_batches, batch_size, seq_length, nb_classes]
+
+        if config_dict['nb_input_dims'] == 5:
+            # Get the ground truth for the test set
+            y_test_paths = np.array(y_batches_paths)
+            if args.test_run == 1:
+                nb_batches = int(y_preds.shape[0]/config_dict['batch_size'])
+                y_test_paths = helpers.flatten_batch_lists(
+                    y_batches_paths, nb_batches)
+                nb_total = nb_batches * config_dict['batch_size'] * config_dict['seq_length']
+                y_test = y_test[:nb_total]
+                y_test = np.reshape(y_test, (nb_batches*config_dict['batch_size'],
+                                             config_dict['seq_length'],
+                                             config_dict['nb_labels']))
+            else:
+                nb_batches = y_test.shape[0]
+                # Make 3D
+                y_test = np.reshape(y_test, (nb_batches*config_dict['batch_size'],
+                                             config_dict['seq_length'],
+                                             config_dict['nb_labels']))
+                y_test_paths = np.reshape(y_test_paths, (nb_batches*config_dict['batch_size'],
+                                                         config_dict['seq_length']))
+
+        if config_dict['nb_input_dims'] == 4:
             nb_batches = y_test.shape[0]
-            # Make 3D
-            y_test = np.reshape(y_test, (nb_batches*config_dict['batch_size'],
-                                         config_dict['seq_length'],
-                                         config_dict['nb_labels']))
-            y_test_paths = np.reshape(y_test_paths, (nb_batches*config_dict['batch_size'],
-                                                     config_dict['seq_length']))
+            y_test = np.reshape(y_test, (nb_batches*config_dict['batch_size'], config_dict['nb_labels']))
+            y_test_paths = np.array(y_batches_paths)
 
-    if config_dict['nb_input_dims'] == 4:
-        nb_batches = y_test.shape[0]
-        y_test = np.reshape(y_test, (nb_batches*config_dict['batch_size'], config_dict['nb_labels']))
-        y_test_paths = np.array(y_batches_paths)
+        # Put y_preds into same format as y_test, first take the max probabilities.
+        if config_dict['nb_input_dims'] == 5:
+            if config_dict['rgb_period'] > 1:
+                y_preds_argmax = y_preds  # We only have one label per sample, Simonyan case.
+                y_test = np.argmax(y_test, axis=1)
+            else:
+                y_preds_argmax = np.argmax(y_preds, axis=2)
+                y_preds_argmax = np.array([tf.keras.utils.to_categorical(x,
+                                           num_classes=config_dict['nb_labels']) for x in y_preds_argmax])
 
-    # Put y_preds into same format as y_test, first take the max probabilities.
-    if config_dict['nb_input_dims'] == 5:
-        if config_dict['rgb_period'] > 1:
-            y_preds_argmax = y_preds  # We only have one label per sample, Simonyan case.
-            y_test = np.argmax(y_test, axis=1)
-        else:
-            y_preds_argmax = np.argmax(y_preds, axis=2)
+        if config_dict['nb_input_dims'] == 4:
+            y_preds_argmax = np.argmax(y_preds, axis=1)
             y_preds_argmax = np.array([tf.keras.utils.to_categorical(x,
                                        num_classes=config_dict['nb_labels']) for x in y_preds_argmax])
-    
-    if config_dict['nb_input_dims'] == 4:
-        y_preds_argmax = np.argmax(y_preds, axis=1)
-        y_preds_argmax = np.array([tf.keras.utils.to_categorical(x,
-                                   num_classes=config_dict['nb_labels']) for x in y_preds_argmax])
-        if args.test_run == 1:
-            y_test = y_test[:len(y_preds)]
+            if args.test_run == 1:
+                y_test = y_test[:len(y_preds)]
 
-    # Evaluate the model's performance
-    ev.set_test_set(df_test)
-    ev.evaluate(model=model, y_test=y_test, y_pred=y_preds_argmax,
-                softmax_predictions=y_preds, scores=scores,
-                config_dict=config_dict, y_paths=y_test_paths)
+        # Evaluate the model's performance
+        ev.set_test_set(df_test)
+        ev.evaluate(model=model, y_test=y_test, y_pred=y_preds_argmax,
+                    softmax_predictions=y_preds, scores=scores,
+                    config_dict=config_dict, y_paths=y_test_paths)
 
 if __name__ == '__main__':
 
