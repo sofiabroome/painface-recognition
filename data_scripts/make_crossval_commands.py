@@ -41,27 +41,28 @@ def get_val(dataset, test_subject):
 
     return val_horses
 
-def make_commands(dataset):
+def make_commands(dataset, nb_repetitions):
     
     train_horses, test_horses = get_train_test(dataset)
 
-    commands = []
-    for test_subject in test_horses:
+    for rep in range(nb_repetitions):
+        commands = []
+        for test_subject in test_horses:
 
-        val_horses = get_val(dataset, test_subject)
-        train_subjects = [x for x in train_horses
-                            if x is not test_subject
-                            and x not in val_horses]
+            val_horses = get_val(dataset, test_subject)
+            train_subjects = [x for x in train_horses
+                                if x is not test_subject
+                                and x not in val_horses]
 
-        str_com = ['sbatch --export ']
-        str_com+= ['CONFIG_FILE=', config_file]
-        str_com+= [',TRAIN_SUBJECTS=', '/'.join(train_subjects)]
-        str_com+= [',VAL_SUBJECTS=', '/'.join(val_horses)]
-        str_com+= [',TEST_SUBJECTS=', test_subject]
-        str_com+= ' eqpain.sbatch'
-        str_com = ''.join(str_com)
-        commands.append(str_com)
-        print(str_com)
+            str_com = ['sbatch --export ']
+            str_com+= ['CONFIG_FILE=', config_file]
+            str_com+= [',TRAIN_SUBJECTS=', '/'.join(train_subjects)]
+            str_com+= [',VAL_SUBJECTS=', '/'.join(val_horses)]
+            str_com+= [',TEST_SUBJECTS=', test_subject]
+            str_com+= ' eqpain.sbatch'
+            str_com = ''.join(str_com)
+            commands.append(str_com)
+            print(str_com)
 
     out_file = os.path.join('../run_scripts', job_name + '.sh')
     helpers.write_file(out_file, commands)
@@ -99,14 +100,16 @@ def make_jobarray_configs(dataset, nb_repetitions):
 
 
 def main():
-    # make_commands(dataset=dataset_str)
-    make_jobarray_configs(dataset=dataset_str,
-                          nb_repetitions=nb_reps)
+    make_commands(dataset=dataset_str,
+                  nb_repetitions=nb_reps)
+    # make_jobarray_configs(dataset=dataset_str,
+    #                       nb_repetitions=nb_reps)
 
 if __name__=='__main__':
     dataset_str = 'pf'
+    # dataset_str = 'lps'
     # dataset_str = 'all'
-    nb_reps = 5
+    nb_reps = 3
     model = '2stream'
     # model = 'clstm1'
     if model == '2stream':
