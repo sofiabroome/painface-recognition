@@ -31,6 +31,8 @@ config_dict = {
 'nb_input_dims' : 5,
 'val_fraction' : 0,
 'val_fraction_value' : 0.001,
+'monitor' : 'val_binary_accuracy',
+'monitor_mode' : 'max',
 'data_type' : 'rgb',
 'nb_lstm_layers' : 4,
 'aug_flip' : 0,

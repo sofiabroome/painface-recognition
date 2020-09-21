@@ -237,13 +237,13 @@ def run():
                             config_dict=config_dict,
                             train_steps=train_steps,
                             val_steps=val_steps,
-                            val_fraction=config_dict['val_fraction_value'],
                             generator=train_generator,
                             val_generator=val_generator)
 
-    model = tf.keras.models.load_model(best_model_path)
-
     if config_dict['do_evaluate']:
+
+        model.model.load_weights(best_model_path)
+        model = model.model
 
         ev = Evaluator(acc=True,
                        cm=True,
@@ -257,7 +257,7 @@ def run():
                                   eval_generator=eval_generator,
                                   nb_steps=test_steps)
 
-        y_test = np.array(y_batches)  # Now in format [nb_batches, batch_size, seq_length, nb_classes]
+        y_test = np.array(y_batches)  # [nb_batches, batch_size, seq_length, nb_classes]
 
         if config_dict['nb_input_dims'] == 5:
             # Get the ground truth for the test set
