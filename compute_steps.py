@@ -19,10 +19,13 @@ def compute_steps(df, train, config_dict):
     nb_frames = len(df)
     print("LEN DF, in compute_steps(): ", nb_frames)
 
-    ws = config_dict['seq_length']  # "Window size" in a sliding window.
-    ss = config_dict['seq_stride']  # Provide argument for slinding w. stride.
-    valid = nb_frames - (ws - 1)
-    nw = valid // ss  # Number of windows
+    window_size = config_dict['seq_length']
+    window_stride = config_dict['seq_stride']
+    last_valid_start_index = nb_frames - (window_size - 1)
+    last_valid_end_index = last_valid_start_index + (window_size-1)
+    number_of_windows = last_valid_end_index // window_stride
+
+    assert (number_of_windows >= config_dict['batch_size'])
 
     y_batches = []  # List where to put all the y_arrays generated.
     y_batches_paths = []
@@ -31,9 +34,9 @@ def compute_steps(df, train, config_dict):
     batch_requirement = 1 + nb_aug  # Normal sequence plus augmented sequences.
     assert (config_dict['batch_size'] % batch_requirement) == 0
 
-    for window_index in range(nw):
-        start = window_index * ss
-        stop = start + ws
+    for window_index in range(number_of_windows):
+        start = window_index * window_stride
+        stop = start + window_size
         rows = df.iloc[start:stop]  # A new dataframe for the window in question.
 
         y_seq_list = []
@@ -84,11 +87,16 @@ def compute_steps(df, train, config_dict):
         if batch_index % config_dict['batch_size'] == 0 and not batch_index == 0:
             y_array = np.array(y_batch_list, dtype=np.uint8)
             if config_dict['nb_labels'] == 2:
-                y_array = tf.keras.utils.to_categorical(y_array, num_classes=config_dict['nb_labels'])
-                y_array = np.reshape(y_array, (config_dict['batch_size'], config_dict['seq_length'], config_dict['nb_labels']))
+                y_array = tf.keras.utils.to_categorical(y_array,
+                                                        num_classes=config_dict['nb_labels'])
+                y_array = np.reshape(y_array,
+                                     (config_dict['batch_size'],
+                                      config_dict['seq_length'],
+                                      config_dict['nb_labels']))
             nb_steps += 1
             batch_index = 0
             y_batches.append(y_array)
             y_batches_paths.append(y_batch_list_paths)
+
     return nb_steps, y_batches, y_batches_paths
 
