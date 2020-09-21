@@ -125,11 +125,7 @@ def set_train_val_test_in_df(train_subjects,
     return dfs
 
 
-def run():
-
-    print('Batch size: ', config_dict['batch_size'])
-    print('Sequence length: ', config_dict['seq_length'])
-
+def get_data_indices(dh):
     subject_ids = all_subjects_df['subject'].values
 
     train_subjects = re.split('/', args.train_subjects)
@@ -137,12 +133,6 @@ def run():
 
     print('Subjects to train on: ', train_subjects)
     print('Subjects to test on: ', test_subjects)
-
-    model = models.MyModel(config_dict=config_dict)
-
-    dh = DataHandler(data_columns=['pain'],  # Here one can append f. ex. 'Observer',
-                     config_dict=config_dict,
-                     color=COLOR)
 
     # Read or create the per-subject dataframes listing all the frame paths and labels.
     subject_dfs = read_or_create_subject_dfs(
@@ -201,10 +191,36 @@ def run():
     df_val.reset_index(drop=True, inplace=True)
     df_test.reset_index(drop=True, inplace=True)
 
-    train_generator = dh.get_generator(df_train, train=True)
-    val_generator = dh.get_generator(df_val, train=False)
-    test_generator = dh.get_generator(df_test, train=False)
-    eval_generator = dh.get_generator(df_test, train=False)
+    return df_train, df_val, df_test
+
+
+def get_data_generators(dh, df_train, df_val, df_test):
+
+    train_gen = dh.get_generator(df_train, train=True)
+    val_gen = dh.get_generator(df_val, train=False)
+    test_gen = dh.get_generator(df_test, train=False)
+    eval_gen = dh.get_generator(df_test, train=False)
+
+    return train_gen, val_gen, test_gen, eval_gen
+
+
+def run():
+
+    print('Batch size: ', config_dict['batch_size'])
+    print('Sequence length: ', config_dict['seq_length'])
+    dh = DataHandler(data_columns=['pain'],  # Here one can append f. ex. 'Observer',
+                     config_dict=config_dict,
+                     color=COLOR)
+
+    df_train, df_val, df_test = get_data_indices(dh)
+
+    train_generator,\
+        val_generator,\
+        test_generator,\
+        eval_generator = get_data_generators(dh,
+                                             df_train=df_train,
+                                             df_val=df_val,
+                                             df_test=df_test)
 
     start = time.time()
     train_steps, _, _ = compute_steps.compute_steps(
@@ -233,6 +249,8 @@ def run():
         y_batches_paths = y_batches_paths[:test_steps]
 
     # Train the model
+
+    model = models.MyModel(config_dict=config_dict)
     best_model_path = train(model_instance=model,
                             config_dict=config_dict,
                             train_steps=train_steps,
