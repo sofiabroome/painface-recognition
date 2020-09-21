@@ -2,7 +2,6 @@ from tensorflow.keras.layers import Convolution2D, MaxPooling2D, MaxPooling3D, G
 from tensorflow.keras.layers import Dropout, BatchNormalization, concatenate, add, average, Input, Conv3D, multiply, Activation
 from tensorflow.keras.layers import ConvLSTM2D
 from tensorflow.keras.layers import TimeDistributed
-from tensorflow.keras.optimizers import Adam, Adagrad, Adadelta
 from tensorflow.keras.applications import InceptionV3
 from tensorflow.keras.models import Sequential, Model
 
@@ -125,19 +124,6 @@ class MyModel:
             print('VGG-16 trained from scratch, then global avg pooling, then one FC layer.')
             self.model = self.vgg16_GAP_dense(w=None)
 
-        if self.optimizer == 'adam':
-            optimizer = Adam(lr=self.lr)
-        elif self.optimizer == 'adadelta':
-            print("Setting the optimizer to Adadelta.")
-            optimizer = Adadelta(lr=self.lr)
-        else:
-            print("Setting the optimizer to Adagrad.")
-            optimizer = Adagrad(lr=self.lr)
-
-        print("Using binary crossentropy and binary accuracy metrics.")
-        self.model.compile(loss='binary_crossentropy',
-                           optimizer=optimizer,
-                           metrics=['binary_accuracy'])
 
     def two_stream(self):
         # Functional API

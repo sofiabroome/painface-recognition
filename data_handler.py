@@ -193,7 +193,6 @@ class DataHandler:
                     vid_seq_name = row['video_id']
 
                     if this_index == 0:
-                        print('First frame. Set oldname=vidname')
                         old_vid_seq_name = vid_seq_name  # This variable is set once
                         this_index += 1
                     
@@ -335,7 +334,6 @@ class DataHandler:
                     vid_seq_name = row['video_id']
 
                     if this_index == 0:
-                        print('First frame. Set oldname=vidname.')
                         old_vid_seq_name = vid_seq_name # Set this variable (only once).
                         this_index += 1
 

@@ -38,4 +38,6 @@ config_dict = {
 'aug_flip' : 0,
 'aug_crop' : 0,
 'aug_light' : 0,
-'do_evaluate' : True}
+'do_evaluate' : True,
+'train_mode' : 'keras',
+'print_loss_every' : 100}

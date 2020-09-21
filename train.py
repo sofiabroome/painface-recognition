@@ -1,8 +1,13 @@
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, Callback
+from tensorflow.keras.optimizers import Adam, Adagrad, Adadelta
 from tensorflow.keras.optimizers import SGD
+import tensorflow as tf
+from tqdm import tqdm
 import matplotlib
 matplotlib.use('agg')
 import matplotlib.pyplot as plt
+import wandb
+import time
 import os
 
 from wandb.keras import WandbCallback
@@ -27,9 +32,39 @@ def train(model_instance, config_dict, train_steps, val_steps,
     best_model_path = create_best_model_path(model_instance, config_dict)
     print('Saving best epoch model to: ', best_model_path)
 
+    print("Setting the optimizer to {}.".format(config_dict['optimizer']))
+    if config_dict['optimizer'] == 'adam':
+        optimizer = Adam(lr=config_dict['lr'])
+    if config_dict['optimizer'] == 'adadelta':
+        optimizer = Adadelta(lr=config_dict['lr'])
+    if config_dict['optimizer'] == 'adagrad':
+        optimizer = Adagrad(lr=config_dict['lr'])
+
+    print("Using binary crossentropy and binary accuracy metrics.")
+    model_instance.model.compile(loss='binary_crossentropy',
+                                 optimizer=optimizer,
+                                 metrics=['binary_accuracy'])
+
+
+    if config_dict['train_mode'] == 'keras':
+        keras_train(model_instance.model, best_model_path,
+                    optimizer, config_dict, train_steps,
+                    val_steps, generator, val_generator)
+
+    if config_dict['train_mode'] == 'low_level':
+        low_level_train(model_instance.model, best_model_path,
+                        optimizer, config_dict, train_steps,
+                        val_steps, generator, val_generator)
+
+    return best_model_path
+
+
+def keras_train(model, ckpt_path, optimizer, config_dict,
+                train_steps, val_steps,
+                train_generator, val_generator):
     early_stopping = EarlyStopping(monitor=config_dict['monitor'],
                                    patience=config_dict['early_stopping'])
-    checkpointer = ModelCheckpoint(filepath=best_model_path,
+    checkpointer = ModelCheckpoint(filepath=ckpt_path,
                                    monitor=config_dict['monitor'],
                                    verbose=1,
                                    save_best_only=True,
@@ -43,46 +78,97 @@ def train(model_instance, config_dict, train_steps, val_steps,
     print('VAL STEPS: ', val_steps)
 
     if config_dict['model'] == 'inception_4d_input':
-        for layer in model_instance.model.layers[:249]:
+        for layer in model.layers[:249]:
             layer.trainable = False
-        for layer in model_instance.model.layers[249:]:
+        for layer in model.layers[249:]:
             layer.trainable = True
 
-        model_instance.model.compile(optimizer=SGD(lr=0.0001, momentum=0.9),
-                                     loss='binary_crossentropy')
-        model_instance.model.fit_generator(generator=generator,
-                                           steps_per_epoch=train_steps,
-                                           epochs=config_dict['nb_epochs'],
-                                           callbacks=[early_stopping, checkpointer,
-                                                      binacc_test_history, binacc_train_history,
-                                                      WandbCallback(monitor='val_acc')],
-                                           validation_data=val_generator,
-                                           validation_steps=val_steps,
-                                           verbose=1,
-                                           workers=config_dict['nb_workers'])
-    else:
+        model.compile(optimizer=SGD(lr=0.0001, momentum=0.9),
+                      loss='binary_crossentropy')
 
-        model_instance.model.fit_generator(generator=generator,
-                                           steps_per_epoch=train_steps,
-                                           epochs=config_dict['nb_epochs'],
-                                           callbacks=[early_stopping, checkpointer,
-                                                      binacc_test_history, binacc_train_history,
-                                                      WandbCallback(monitor='val_acc')],
-                                           validation_data=val_generator,
-                                           validation_steps=val_steps,
-                                           verbose=1,
-                                           workers=config_dict['nb_workers'])
+    model.fit_generator(generator=train_generator,
+                        steps_per_epoch=train_steps,
+                        epochs=config_dict['nb_epochs'],
+                        callbacks=[early_stopping, checkpointer,
+                                   binacc_test_history, binacc_train_history,
+                                   WandbCallback(monitor=config_dict['monitor'])],
+                        validation_data=val_generator,
+                        validation_steps=val_steps,
+                        verbose=1,
+                        workers=config_dict['nb_workers'])
 
     plot_training(binacc_test_history, binacc_train_history, config_dict)
 
-    return best_model_path
 
+def low_level_train(model, ckpt_path, optimizer, config_dict,
+                    train_steps, val_steps,
+                    train_generator, val_generator):
 
-def keras_train(model, train_steps, val_steps, generator, val_generator):
-    pass
+    loss_fn = tf.keras.losses.BinaryCrossentropy()
+    train_acc_metric = tf.keras.metrics.BinaryAccuracy()
+    val_acc_metric = tf.keras.metrics.BinaryAccuracy()
+    val_acc_old = 0
 
-def low_level_train(model, train_steps, val_steps, generator, val_generator):
-    pass
+    @tf.function
+    def train_step(x, y):
+        with tf.GradientTape() as tape:
+            preds = model(x, training=True)
+            loss = loss_fn(y, preds)
+        grads = tape.gradient(loss, model.trainable_weights)
+        optimizer.apply_gradients(zip(grads, model.trainable_weights))
+        train_acc_metric.update_state(y, preds)
+        return loss
+
+    @tf.function
+    def validation_step(x, y):
+        preds = model(x, training=False)
+        loss = loss_fn(y, preds)
+        val_acc_metric.update_state(y, preds)
+        return loss
+
+    for epoch in range(config_dict['nb_epochs']):
+        print('\nStart of epoch %d' % (epoch,))
+        start_time = time.time()
+
+        with tqdm(total=train_steps) as pbar:
+            for step in range(train_steps):
+                pbar.update(1)
+                x_batch_train, y_batch_train = next(train_generator)
+                loss_value = train_step(x_batch_train, y_batch_train)
+                wandb.log({'train_loss': loss_value.numpy()})
+
+                if step % config_dict['print_loss_every'] == 0:
+                    print(
+                        "Training loss (for one batch) at step %d: %.4f"
+                        % (step, float(loss_value.numpy()))
+                    )
+                    print("Seen so far: %d samples" %
+                      ((step + 1) * config_dict['batch_size']))
+
+        train_acc = train_acc_metric.result()
+        print('Training acc over epoch: %.4f' % (float(train_acc),))
+
+        # Reset training metrics at the end of each epoch
+        train_acc_metric.reset_states()
+
+        with tqdm(total=train_steps) as pbar:
+            for step in range(val_steps):
+                pbar.update(1)
+                x_batch_val, y_batch_val = next(val_generator)
+                loss_value = validation_step(x_batch_val, y_batch_val)
+                wandb.log({'val_loss': loss_value.numpy()})
+
+        val_acc = val_acc_metric.result()
+        print("Validation acc: %.4f" % (float(val_acc),))
+
+        if val_acc > val_acc_old:
+            print('The validation acc improved, saving checkpoint...')
+            model.save_weights(ckpt_path)
+            val_acc_old = val_acc
+
+        val_acc_metric.reset_states()
+        print("Time taken: %.2fs" % (time.time() - start_time))
+
 
 def val_split(X_train, y_train, val_fraction, batch_size, round_to_batch=True):
     if round_to_batch:
