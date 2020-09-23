@@ -86,16 +86,16 @@ def keras_train(model, ckpt_path, optimizer, config_dict,
         model.compile(optimizer=SGD(lr=0.0001, momentum=0.9),
                       loss='binary_crossentropy')
 
-    model.fit_generator(generator=train_generator,
-                        steps_per_epoch=train_steps,
-                        epochs=config_dict['nb_epochs'],
-                        callbacks=[early_stopping, checkpointer,
-                                   binacc_test_history, binacc_train_history,
-                                   WandbCallback(monitor=config_dict['monitor'])],
-                        validation_data=val_generator,
-                        validation_steps=val_steps,
-                        verbose=1,
-                        workers=config_dict['nb_workers'])
+    model.fit(x=train_generator,
+              steps_per_epoch=train_steps,
+              epochs=config_dict['nb_epochs'],
+              callbacks=[early_stopping, checkpointer,
+                         binacc_test_history, binacc_train_history,
+                         WandbCallback(monitor=config_dict['monitor'])],
+              validation_data=val_generator,
+              validation_steps=val_steps,
+              verbose=1,
+              workers=config_dict['nb_workers'])
 
     plot_training(binacc_test_history, binacc_train_history, config_dict)
 
@@ -131,12 +131,16 @@ def low_level_train(model, ckpt_path, optimizer, config_dict,
         start_time = time.time()
 
         with tqdm(total=train_steps) as pbar:
-            for step in range(train_steps):
+            for sample in train_generator:
+                step_time = time.time()
+            # for step in range(train_steps):
                 pbar.update(1)
-                x_batch_train, y_batch_train = next(train_generator)
+                # x_batch_train, y_batch_train = next(train_generator)
+                x_batch_train, y_batch_train = sample
                 if config_dict['model'] == '2stream_5d_add':
                     y_batch_train = y_batch_train[0]
                 loss_value = train_step(x_batch_train, y_batch_train)
+                end_time = time.time() - step_time
                 wandb.log({'train_loss': loss_value.numpy()})
 
                 if step % config_dict['print_loss_every'] == 0:

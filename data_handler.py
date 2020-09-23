@@ -47,9 +47,9 @@ class DataHandler:
 
         if self.config_dict['nb_input_dims'] == 5:
             if '2stream' in self.config_dict['model']:
-                generator = self.prepare_2stream_image_generator_5D(
-                    df, train
-                )
+                dataset = tf.data.Dataset.from_generator(
+                    lambda: self.prepare_2stream_image_generator_5D(df, train),
+                    output_types=(tf.float32, tf.uint8))
             else:
                 generator = self.prepare_image_generator_5D(
                     df, train
@@ -64,7 +64,7 @@ class DataHandler:
                     df, train
                 )
 
-        return generator
+        return dataset
 
     def prepare_generator_2stream(self, df, train):
         """
@@ -144,7 +144,7 @@ class DataHandler:
                     y_array = np.reshape(y_array, (self.batch_size, self.nb_labels))
                     batch_index = 0
                     # print(X_array.shape, flow_array.shape, y_array.shape)
-                    yield [X_array, flow_array], [y_array]
+                    yield [X_array, flow_array], y_array
 
     def prepare_2stream_image_generator_5D(self, df, train):
         """
@@ -287,7 +287,10 @@ class DataHandler:
                         y_array = np.reshape(y_array, (self.batch_size, self.nb_labels))
                     batch_index = 0
                     # print(X_array.shape, flow_array.shape, y_array.shape)
+                    # X = np.array([X_array, flow_array], dtype=np.float32)
                     yield [X_array, flow_array], [y_array]
+                    # print(X.shape, y_array.shape)
+                    # yield X, y_array
 
     def prepare_image_generator_5D(self, df, train):
         """
