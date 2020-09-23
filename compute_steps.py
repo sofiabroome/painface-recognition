@@ -17,7 +17,6 @@ def compute_steps(df, train, config_dict):
     seq_index = 0
 
     nb_frames = len(df)
-    print("LEN DF, in compute_steps(): ", nb_frames)
 
     window_size = config_dict['seq_length']
     window_stride = config_dict['seq_stride']
@@ -46,12 +45,10 @@ def compute_steps(df, train, config_dict):
             vid_seq_name = row['video_id']
 
             if index == 0:
-                print('First frame. Set oldname=vidname.')
                 old_vid_seq_name = vid_seq_name
 
             if vid_seq_name != old_vid_seq_name:
                 seq_index = 0
-                # print('New sequence. Settin seq ind to 0 and start on new.')
                 old_vid_seq_name = vid_seq_name
                 break  # In that case want to jump to the next window.
             y = row['pain']
