@@ -27,7 +27,7 @@ def df_val_split(df,
                  val_fraction,
                  batch_size):
     """
-    If args.val_fraction == 1, split the dataframe with training data into two parts,
+    If args.val_mode == 'fraction', split the dataframe with training data into two parts,
     a training set and a held out validation set (the last specified fraction from the df).
     :param df: pd.Dataframe
     :param val_fraction: float
@@ -106,7 +106,7 @@ def set_train_val_test_in_df(train_subjects,
                              val_subjects=None):
     """
     Mark in input dataframe which subjects to use for train, val or test.
-    Used when args.val_fraction == 0.
+    Used when val_mode == 'subject'
     :param train_subjects: [int]
     :param val_subjects: [int]
     :param test_subjects: [int]
@@ -116,7 +116,7 @@ def set_train_val_test_in_df(train_subjects,
     for trh in train_subjects:
         dfs[trh]['train'] = 1
 
-    if not config_dict['val_fraction'] == 1:
+    if config_dict['val_mode'] == 'subject':
         for vh in val_subjects:
             dfs[vh]['train'] = 2
 
@@ -128,15 +128,9 @@ def set_train_val_test_in_df(train_subjects,
 def get_data_indices(dh):
     subject_ids = all_subjects_df['subject'].values
 
-    train_subjects = re.split('/', args.train_subjects)
-    test_subjects = re.split('/', args.test_subjects)
-
-    print('Subjects to train on: ', train_subjects)
-    print('Subjects to test on: ', test_subjects)
-
-    # Read or create the per-subject dataframes listing all the frame paths and labels.
+    # Read the dataframes listing all the frame paths and labels
     subject_dfs = read_or_create_subject_dfs(
-        dh, subject_ids=subject_ids)  # Returns a dict of dataframes, per subject.
+        dh, subject_ids=subject_ids)
 
     # If we need optical flow
     if '2stream' in config_dict['model'] or config_dict['data_type'] == 'of':
@@ -146,7 +140,7 @@ def get_data_indices(dh):
             subject_dfs=subject_dfs)
 
     # Set the train-column to 1 (train), 2 (val) or 0 (test).
-    if config_dict['val_fraction'] == 0:
+    if config_dict['val_mode'] == 'subject':
         print("Using separate subject validation.")
         val_subjects = re.split('/', args.val_subjects)
         print('Horses to validate on: ', val_subjects)
@@ -155,41 +149,42 @@ def get_data_indices(dh):
                                                test_subjects=test_subjects,
                                                dfs=subject_dfs)
 
-    if config_dict['val_fraction'] == 1:
-        print("Val fract: ", config_dict['val_fraction_value'])
+    if config_dict['val_mode'] == 'fraction' or config_dict['val_mode'] == 'no_val':
         subject_dfs = set_train_val_test_in_df(train_subjects=train_subjects,
                                                test_subjects=test_subjects,
                                                dfs=subject_dfs)
 
     # Put all the separate subject-dfs into one DataFrame.
-    # sort=False is just to suppress a warning.
     df = pd.concat(list(subject_dfs.values()), sort=False)
 
     print("Total length of dataframe:", len(df))
 
     # Split training data so there is a held out validation set.
-    if config_dict['val_fraction'] == 1:
+    if config_dict['val_mode'] == 'fraction':
+        print("Val fract: ", config_dict['val_fraction_value'])
         df_train, df_val = df_val_split(df=df,
                                         val_fraction=config_dict['val_fraction_value'],
                                         batch_size=config_dict['batch_size'])
-    if config_dict['val_fraction'] == 0:
-        df_train = df[df['train'] == 1]
+    else:
+        df_train = df.loc[df['train'] == 1]
+
+    if config_dict['val_mode'] == 'subject':
         df_val = df[df['train'] == 2]
 
     df_test = df[df['train'] == 0]
 
-    # Count the number of samples in each partition of the data.
-    nb_train_samples = len(df_train)
-    nb_val_samples = len(df_val)
-    nb_test_samples = len(df_test)
-
-    print("Lengths dftr, dfval and dftest: ", nb_train_samples, nb_val_samples, nb_test_samples)
-
     # Reset all indices so they're 0->N.
-    print('Resetting dataframe indices...')
+    print('\nResetting dataframe indices...')
     df_train.reset_index(drop=True, inplace=True)
-    df_val.reset_index(drop=True, inplace=True)
     df_test.reset_index(drop=True, inplace=True)
+
+    if not config_dict['val_mode'] == 'no_val':
+        df_val.reset_index(drop=True, inplace=True)
+    else:
+        df_val = []
+
+    print("Nb. of train, val and test samples: ",
+          len(df_train), len(df_val), len(df_test), '\n')
 
     return df_train, df_val, df_test
 
@@ -202,6 +197,18 @@ def get_data_generators(dh, df_train, df_val, df_test):
     eval_gen = dh.get_generator(df_test, train=False)
 
     return train_gen, val_gen, test_gen, eval_gen
+
+
+def get_nb_steps(df, train_str='train'):
+    start = time.time()
+    train_mode = True if train_str == 'train' else False
+    nb_steps, y_batches, y_batches_paths = compute_steps.compute_steps(
+        df, train=train_mode, config_dict=config_dict)
+    end = time.time()
+    print('\nTook {:.2f} s to compute {} {} steps'.format(
+        end - start, nb_steps, train_str))
+
+    return nb_steps, y_batches, y_batches_paths
 
 
 def run():
@@ -222,23 +229,14 @@ def run():
                                              df_val=df_val,
                                              df_test=df_test)
 
-    start = time.time()
-    train_steps, _, _ = compute_steps.compute_steps(
-        df_train, train=True, config_dict=config_dict)
-    end = time.time()
-    print('Took {} s to compute training steps'.format(end - start))
+    train_steps, _, _ = get_nb_steps(df_train, 'train')
 
-    start = time.time()
-    val_steps, _, _ = compute_steps.compute_steps(
-        df_val, train=False, config_dict=config_dict)
-    end = time.time()
-    print('Took {} s to compute validation steps'.format(end - start))
+    test_steps,\
+        y_batches,\
+        y_batches_paths = get_nb_steps(df_test, 'test')
 
-    start = time.time()
-    test_steps, y_batches, y_batches_paths = compute_steps.compute_steps(
-        df_test, train=False, config_dict=config_dict)
-    end = time.time()
-    print('Took {} s to compute testing steps'.format(end - start))
+    if not config_dict['val_mode'] == 'no_val':
+        val_steps, _, _ = get_nb_steps(df_val, 'val')
 
     if args.test_run == 1:
         config_dict['nb_epochs'] = 1
@@ -331,6 +329,12 @@ if __name__ == '__main__':
     # Parse the command line arguments
     arg_parser = arg_parser.ArgParser(len(sys.argv))
     args = arg_parser.parse()
+    train_subjects = re.split('/', args.train_subjects)
+    test_subjects = re.split('/', args.test_subjects)
+
+    print('Subjects to train on: ', train_subjects)
+    print('Subjects to test on: ', test_subjects)
+
     config_dict_module = helpers.load_module(args.config_file)
     config_dict = config_dict_module.config_dict
     config_dict['train_subjects'] = args.train_subjects

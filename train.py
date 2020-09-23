@@ -101,8 +101,8 @@ def keras_train(model, ckpt_path, optimizer, config_dict,
 
 
 def low_level_train(model, ckpt_path, optimizer, config_dict,
-                    train_steps, val_steps,
-                    train_generator, val_generator):
+                    train_steps, val_steps=None,
+                    train_generator=None, val_generator=None):
 
     loss_fn = tf.keras.losses.BinaryCrossentropy()
     train_acc_metric = tf.keras.metrics.BinaryAccuracy()
@@ -143,7 +143,7 @@ def low_level_train(model, ckpt_path, optimizer, config_dict,
                         % (step, float(loss_value.numpy()))
                     )
                     print("Seen so far: %d samples" %
-                      ((step + 1) * config_dict['batch_size']))
+                          ((step + 1) * config_dict['batch_size']))
 
         train_acc = train_acc_metric.result()
         print('Training acc over epoch: %.4f' % (float(train_acc),))
@@ -151,23 +151,28 @@ def low_level_train(model, ckpt_path, optimizer, config_dict,
         # Reset training metrics at the end of each epoch
         train_acc_metric.reset_states()
 
-        with tqdm(total=train_steps) as pbar:
-            for step in range(val_steps):
-                pbar.update(1)
-                x_batch_val, y_batch_val = next(val_generator)
-                loss_value = validation_step(x_batch_val, y_batch_val)
-                wandb.log({'val_loss': loss_value.numpy()})
+        if not config_dict['val_mode'] == 'no_val':
 
-        val_acc = val_acc_metric.result()
-        print("Validation acc: %.4f" % (float(val_acc),))
+            with tqdm(total=train_steps) as pbar:
+                for step in range(val_steps):
+                    pbar.update(1)
+                    x_batch_val, y_batch_val = next(val_generator)
+                    loss_value = validation_step(x_batch_val, y_batch_val)
+                    wandb.log({'val_loss': loss_value.numpy()})
 
-        if val_acc > val_acc_old:
-            print('The validation acc improved, saving checkpoint...')
+            val_acc = val_acc_metric.result()
+            print("Validation acc: %.4f" % (float(val_acc),))
+
+            if val_acc > val_acc_old:
+                print('The validation acc improved, saving checkpoint...')
+                model.save_weights(ckpt_path)
+                val_acc_old = val_acc
+            val_acc_metric.reset_states()
+        else:
+            print('\n Not validating but saving '
+                  'checkpoint after epoch {}'.format(epoch))
             model.save_weights(ckpt_path)
-            val_acc_old = val_acc
-
-        val_acc_metric.reset_states()
-        print("Time taken: %.2fs" % (time.time() - start_time))
+        print("Epoch time taken: %.2fs" % (time.time() - start_time))
 
 
 def val_split(X_train, y_train, val_fraction, batch_size, round_to_batch=True):
