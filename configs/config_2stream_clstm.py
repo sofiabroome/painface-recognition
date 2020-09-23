@@ -29,7 +29,7 @@ config_dict = {
 'nb_workers' : 1,
 'batch_size' : 8,
 'nb_input_dims' : 5,
-'val_fraction' : 0,
+'val_mode' : 'no_val', # subject | fraction | no_val
 'val_fraction_value' : 0.001,
 'monitor' : 'val_binary_accuracy',
 'monitor_mode' : 'max',

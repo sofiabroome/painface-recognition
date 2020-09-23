@@ -31,11 +31,13 @@ config_dict = {
 'nb_workers' : 1,
 'batch_size' : 16,
 'nb_input_dims' : 5,
-'val_fraction' : 0,
+'val_mode' : 'no_val', # subject | fraction | no_val
 'val_fraction_value' : 0.001,
 'data_type' : 'rgb',
 'nb_lstm_layers' : 4,
 'aug_flip' : 0,
 'aug_crop' : 0,
 'aug_light' : 0 ,
-'do_evaluate' : True}
+'do_evaluate' : True,
+'train_mode' : 'low_level',
+'print_loss_every' : 1}

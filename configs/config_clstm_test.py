@@ -7,7 +7,7 @@ config_dict = {
 'lps_rgb_path' : data_path + 'lps/jpg_128_128_2fps/',
 'pf_of_path' : data_path + 'jpg_128_128_16fps_OF_magnitude_cv2/',
 'lps_of_path' : data_path + 'jpg_128_128_16fps_OF_magnitude_cv2/',
-'model' : 'convolutional_LSTM',
+'model' : '2stream_5d_add',
 'rgb_period' : 1, # Set to 10 if simonyan-like model
 'flow_period' : 1,
 'input_width' : 128,
@@ -19,7 +19,7 @@ config_dict = {
 'kernel_size' : 5,
 'dropout_1' : 0.25,
 'dropout_2' : 0.5,
-'nb_epochs' : 1,
+'nb_epochs' : 2,
 'early_stopping' : 15,
 'optimizer' : 'adadelta',
 'lr' : 0.001,
@@ -29,11 +29,13 @@ config_dict = {
 'nb_workers' : 1,
 'batch_size' : 16,
 'nb_input_dims' : 5,
-'val_fraction' : 0,
+'val_mode' : 'no_val', # subject | fraction | no_val
 'val_fraction_value' : 0.001,
 'data_type' : 'rgb',
 'nb_lstm_layers' : 4,
 'aug_flip' : 0,
 'aug_crop' : 0,
 'aug_light' : 0,
-'do_evaluate' : True}
+'do_evaluate' : True,
+'train_mode' : 'low_level',
+'print_loss_every' : 1}
