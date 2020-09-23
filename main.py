@@ -190,7 +190,7 @@ def get_data_indices(dh):
 
 
 def get_data_generators(dh, df_train, df_val, df_test):
-
+    print('\nPreparing data generators...')
     train_gen = dh.get_generator(df_train, train=True)
     val_gen = dh.get_generator(df_val, train=False)
     test_gen = dh.get_generator(df_test, train=False)
@@ -235,7 +235,9 @@ def run():
         y_batches,\
         y_batches_paths = get_nb_steps(df_test, 'test')
 
-    if not config_dict['val_mode'] == 'no_val':
+    if config_dict['val_mode'] == 'no_val':
+        val_steps = 0
+    else:
         val_steps, _, _ = get_nb_steps(df_val, 'val')
 
     if args.test_run == 1:

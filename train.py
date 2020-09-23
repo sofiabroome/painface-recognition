@@ -134,6 +134,8 @@ def low_level_train(model, ckpt_path, optimizer, config_dict,
             for step in range(train_steps):
                 pbar.update(1)
                 x_batch_train, y_batch_train = next(train_generator)
+                if config_dict['model'] == '2stream_5d_add':
+                    y_batch_train = y_batch_train[0]
                 loss_value = train_step(x_batch_train, y_batch_train)
                 wandb.log({'train_loss': loss_value.numpy()})
 
@@ -146,6 +148,7 @@ def low_level_train(model, ckpt_path, optimizer, config_dict,
                           ((step + 1) * config_dict['batch_size']))
 
         train_acc = train_acc_metric.result()
+        wandb.log({'train_acc': train_acc})
         print('Training acc over epoch: %.4f' % (float(train_acc),))
 
         # Reset training metrics at the end of each epoch
