@@ -30,7 +30,7 @@ config_dict = {
 'batch_size' : 8,
 'nb_input_dims' : 5,
 'val_mode' : 'no_val', # subject | fraction | no_val
-'val_fraction_value' : 0.001,
+'val_fraction_value' : 0.0,
 'data_type' : 'rgb',
 'nb_lstm_layers' : 4,
 'aug_flip' : 0,
@@ -38,4 +38,4 @@ config_dict = {
 'aug_light' : 0,
 'do_evaluate' : True,
 'train_mode' : 'low_level',
-'print_loss_every' : 1}
+'print_loss_every' : 1000}

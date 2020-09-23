@@ -100,16 +100,16 @@ def make_jobarray_configs(dataset, nb_repetitions):
 
 
 def main():
-    make_commands(dataset=dataset_str,
-                  nb_repetitions=nb_reps)
-    # make_jobarray_configs(dataset=dataset_str,
-    #                       nb_repetitions=nb_reps)
+    # make_commands(dataset=dataset_str,
+    #               nb_repetitions=nb_reps)
+    make_jobarray_configs(dataset=dataset_str,
+                          nb_repetitions=nb_reps)
 
 if __name__=='__main__':
-    dataset_str = 'pf'
+    # dataset_str = 'pf'
     # dataset_str = 'lps'
-    # dataset_str = 'all'
-    nb_reps = 3
+    dataset_str = 'all'
+    nb_reps = 2
     model = '2stream'
     # model = 'clstm1'
     if model == '2stream':

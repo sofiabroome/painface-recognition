@@ -5,8 +5,8 @@ config_dict = {
 'clip_list_lps' : 'metadata/lps_videos_overview.csv',
 'pf_rgb_path' : data_path + 'pf/jpg_128_128_2fps/',
 'lps_rgb_path' : data_path + 'lps/jpg_128_128_2fps/',
-'pf_of_path' : data_path + 'jpg_128_128_16fps_OF_magnitude_cv2/',
-'lps_of_path' : data_path + 'jpg_128_128_16fps_OF_magnitude_cv2/',
+'pf_of_path' : data_path + 'pf/jpg_128_128_16fps_OF_magnitude_cv2/',
+'lps_of_path' : data_path + 'lps/jpg_128_128_16fps_OF_magnitude_cv2_2fpsrate/',
 'model' : '2stream_5d_add',
 'rgb_period' : 1, # Set to 10 if simonyan-like model
 'flow_period' : 1,
@@ -30,7 +30,7 @@ config_dict = {
 'batch_size' : 16,
 'nb_input_dims' : 5,
 'val_mode' : 'no_val', # subject | fraction | no_val
-'val_fraction_value' : 0.001,
+'val_fraction_value' : 0.0,
 'data_type' : 'rgb',
 'nb_lstm_layers' : 4,
 'aug_flip' : 0,
@@ -38,4 +38,4 @@ config_dict = {
 'aug_light' : 0,
 'do_evaluate' : True,
 'train_mode' : 'low_level',
-'print_loss_every' : 1}
+'print_loss_every' : 100}
