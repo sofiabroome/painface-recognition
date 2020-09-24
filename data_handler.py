@@ -38,12 +38,12 @@ class DataHandler:
                                      'lps': config_dict['lps_of_path']}
         self.config_dict = config_dict
 
-    def get_generator(self, df, train):
+    def get_dataset(self, df, train):
         """
-        Get a generator for a DataFrame, appropriate for the model.
+        Get a dataset corresponding to a DataFrame, appropriate for the model.
         :param df: pd.DataFrame
         :param train:  boolean
-        :return: generator
+        :return: tf.data.Dataset
         """
 
         if self.config_dict['nb_input_dims'] == 5:

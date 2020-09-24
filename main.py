@@ -189,14 +189,14 @@ def get_data_indices(dh):
     return df_train, df_val, df_test
 
 
-def get_data_generators(dh, df_train, df_val, df_test):
+def get_datasets(dh, df_train, df_val, df_test):
     print('\nPreparing data generators...')
-    train_gen = dh.get_generator(df_train, train=True)
-    val_gen = dh.get_generator(df_val, train=False)
-    test_gen = dh.get_generator(df_test, train=False)
-    eval_gen = dh.get_generator(df_test, train=False)
+    train_dataset = dh.get_dataset(df_train, train=True)
+    val_dataset = dh.get_dataset(df_val, train=False)
+    test_dataset = dh.get_dataset(df_test, train=False)
+    eval_dataset = dh.get_dataset(df_test, train=False)
 
-    return train_gen, val_gen, test_gen, eval_gen
+    return train_dataset, val_dataset, test_dataset, eval_dataset
 
 
 def get_nb_steps(df, train_str='train'):
@@ -221,13 +221,13 @@ def run():
 
     df_train, df_val, df_test = get_data_indices(dh)
 
-    train_generator,\
-        val_generator,\
-        test_generator,\
-        eval_generator = get_data_generators(dh,
-                                             df_train=df_train,
-                                             df_val=df_val,
-                                             df_test=df_test)
+    train_dataset,\
+        val_dataset,\
+        test_dataset,\
+        eval_dataset = get_datasets(dh,
+                                      df_train=df_train,
+                                      df_val=df_val,
+                                      df_test=df_test)
 
     train_steps, _, _ = get_nb_steps(df_train, 'train')
 
@@ -255,8 +255,8 @@ def run():
                             config_dict=config_dict,
                             train_steps=train_steps,
                             val_steps=val_steps,
-                            generator=train_generator,
-                            val_generator=val_generator)
+                            train_dataset=train_dataset,
+                            val_dataset=val_dataset)
 
     if config_dict['do_evaluate']:
 
@@ -271,8 +271,8 @@ def run():
                        batch_size=config_dict['batch_size'])
 
         y_preds = ev.test(model=model,
-                          test_generator=test_generator,
-                          eval_generator=eval_generator,
+                          test_dataset=test_dataset,
+                          eval_dataset=eval_dataset,
                           nb_steps=test_steps)
 
         y_test = np.array(y_batches)  # [nb_batches, batch_size, seq_length, nb_classes]

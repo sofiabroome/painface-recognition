@@ -16,7 +16,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 
 def train(model_instance, config_dict, train_steps, val_steps,
-          generator=None, val_generator=None):
+          train_dataset=None, val_dataset=None):
     """
     Train the model.
     :param model_instance: Model object from my file models.py | The model instance.
@@ -24,8 +24,8 @@ def train(model_instance, config_dict, train_steps, val_steps,
     :param config_dict: {}
     :param train_steps: int
     :param val_steps: int
-    :param generator: Generator object
-    :param val_generator: Generator object
+    :param train_dataset: tf.data.Dataset
+    :param val_dataset: tf.data.Dataset
     :return: keras.Sequential() object | The (trained) model instance
     """
     print(model_instance.model.summary())
@@ -45,23 +45,21 @@ def train(model_instance, config_dict, train_steps, val_steps,
                                  optimizer=optimizer,
                                  metrics=['binary_accuracy'])
 
-
     if config_dict['train_mode'] == 'keras':
         keras_train(model_instance.model, best_model_path,
-                    optimizer, config_dict, train_steps,
-                    val_steps, generator, val_generator)
+                    config_dict, train_steps, val_steps,
+                    train_dataset, val_dataset)
 
     if config_dict['train_mode'] == 'low_level':
         low_level_train(model_instance.model, best_model_path,
                         optimizer, config_dict, train_steps,
-                        val_steps, generator, val_generator)
+                        val_steps, train_dataset, val_dataset)
 
     return best_model_path
 
 
-def keras_train(model, ckpt_path, optimizer, config_dict,
-                train_steps, val_steps,
-                train_generator, val_generator):
+def keras_train(model, ckpt_path, config_dict, train_steps, val_steps,
+                train_dataset, val_dataset):
     early_stopping = EarlyStopping(monitor=config_dict['monitor'],
                                    patience=config_dict['early_stopping'])
     checkpointer = ModelCheckpoint(filepath=ckpt_path,
@@ -86,13 +84,13 @@ def keras_train(model, ckpt_path, optimizer, config_dict,
         model.compile(optimizer=SGD(lr=0.0001, momentum=0.9),
                       loss='binary_crossentropy')
 
-    model.fit(x=train_generator,
+    model.fit(x=train_dataset,
               steps_per_epoch=train_steps,
               epochs=config_dict['nb_epochs'],
               callbacks=[early_stopping, checkpointer,
                          binacc_test_history, binacc_train_history,
                          WandbCallback(monitor=config_dict['monitor'])],
-              validation_data=val_generator,
+              validation_data=val_dataset,
               validation_steps=val_steps,
               verbose=1,
               workers=config_dict['nb_workers'])
@@ -102,7 +100,7 @@ def keras_train(model, ckpt_path, optimizer, config_dict,
 
 def low_level_train(model, ckpt_path, optimizer, config_dict,
                     train_steps, val_steps=None,
-                    train_generator=None, val_generator=None):
+                    train_dataset=None, val_dataset=None):
 
     loss_fn = tf.keras.losses.BinaryCrossentropy()
     train_acc_metric = tf.keras.metrics.BinaryAccuracy()
@@ -131,7 +129,7 @@ def low_level_train(model, ckpt_path, optimizer, config_dict,
         start_time = time.time()
 
         with tqdm(total=train_steps) as pbar:
-            for step, sample in enumerate(train_generator):
+            for step, sample in enumerate(train_dataset):
                 if step > train_steps:
                     break
                 step_start_time = time.time()
@@ -160,7 +158,7 @@ def low_level_train(model, ckpt_path, optimizer, config_dict,
         if not config_dict['val_mode'] == 'no_val':
 
             with tqdm(total=train_steps) as pbar:
-                for step, sample in enumerate(val_generator):
+                for step, sample in enumerate(val_dataset):
                     if step > val_steps:
                         break
                     pbar.update(1)
