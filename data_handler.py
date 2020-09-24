@@ -22,10 +22,11 @@ class DataHandler:
         """
         self.data_columns = data_columns
         self.image_size = config_dict['input_width'], config_dict['input_height']
+        self.batch_size = config_dict['batch_size']
         self.seq_length = config_dict['seq_length']
         self.seq_stride = config_dict['seq_stride']
         self.batch_size = config_dict['batch_size']
-        self.color = color
+        self.color_channels = 3 if color else 1
         self.nb_labels = config_dict['nb_labels']
         self.aug_flip = config_dict['aug_flip']
         self.aug_crop = config_dict['aug_crop']
@@ -49,11 +50,15 @@ class DataHandler:
             if '2stream' in self.config_dict['model']:
                 dataset = tf.data.Dataset.from_generator(
                     lambda: self.prepare_2stream_image_generator_5D(df, train),
-                    output_types=(tf.float32, tf.uint8))
+                    output_types=(tf.float32, tf.uint8)) # .prefetch(self.batch_size)
             else:
-                generator = self.prepare_image_generator_5D(
-                    df, train
-                )
+                dataset = tf.data.Dataset.from_generator(
+                    lambda: self.prepare_image_generator_5D(df, train),
+                    output_types=(tf.float32, tf.uint8),
+                    output_shapes=(
+                        tf.TensorShape([None, None, self.image_size[0], self.image_size[1], self.color_channels]),
+                        tf.TensorShape([None, None, 2]))
+                    ) # .prefetch(tf.data.experimental.AUTOTUNE)
         if self.config_dict['nb_input_dims'] == 4:
             if '2stream' in self.config_dict['model']:
                 generator = self.prepare_generator_2stream(
@@ -286,11 +291,7 @@ class DataHandler:
                     if self.config_dict['rgb_period'] > 1:
                         y_array = np.reshape(y_array, (self.batch_size, self.nb_labels))
                     batch_index = 0
-                    # print(X_array.shape, flow_array.shape, y_array.shape)
-                    # X = np.array([X_array, flow_array], dtype=np.float32)
-                    yield [X_array, flow_array], [y_array]
-                    # print(X.shape, y_array.shape)
-                    # yield X, y_array
+                    yield [X_array, flow_array], y_array
 
     def prepare_image_generator_5D(self, df, train):
         """
@@ -398,7 +399,7 @@ class DataHandler:
                         y_array = tf.keras.utils.to_categorical(y_array, num_classes=self.nb_labels)
                         y_array = np.reshape(y_array, (self.batch_size, -1, self.nb_labels))
                     batch_index = 0
-                    yield (X_array, y_array)
+                    yield X_array, y_array
 
     def prepare_image_generator(self, df, train):
         """
@@ -442,8 +443,7 @@ class DataHandler:
                     yield (X_array, y_array)
 
     def get_image(self, path):
-        channels = 3 if self.color else 1
-        im = process_image(path, (self.image_size[0], self.image_size[1], channels))
+        im = process_image(path, (self.image_size[0], self.image_size[1], self.color_channels))
         return im
 
     def flip_images(self, images):
@@ -478,7 +478,6 @@ class DataHandler:
         """
         gaussian_noise_imgs = []
 
-        ch = 3 if self.color else 1
         row, col = self.image_size
     
         mean = 0
@@ -492,7 +491,7 @@ class DataHandler:
         now_b = 0.4
         noise_weight = (now_b - now_a) * np.random.random() + now_a
 
-        gaussian = np.random.normal(mean, sigma, (col, row, ch)).astype(np.float32)
+        gaussian = np.random.normal(mean, sigma, (col, row, self.color_channels)).astype(np.float32)
 
         if self.nb_input_dims == 5:
             for img in images:
@@ -509,7 +508,6 @@ class DataHandler:
         """
         This methods shadens the images with Gaussian noise.
         """
-        ch = 3 if self.color else 1
         row, col = self.image_size
     
         mean = 0
@@ -523,7 +521,7 @@ class DataHandler:
         now_b = 0.4
         noise_weight = (now_b - now_a) * np.random.random() + now_a
 
-        gaussian = np.random.normal(mean, sigma, (col, row, ch)).astype(np.float32)
+        gaussian = np.random.normal(mean, sigma, (col, row, self.color_channels)).astype(np.float32)
 
         gaussian_noise_img = cv2.addWeighted(image, im_weight, gaussian, noise_weight, 0)
     
@@ -743,15 +741,11 @@ class DataHandler:
         :return: [np.ndarray]
         """
         images = []
-        if self.color:
-            channels = 3
-        else:
-            channels = 1
         for path in df['path']:
             im = process_image(path,
                                (self.image_size[0],
                                 self.image_size[1],
-                                channels))
+                                self.color_channels))
             images.append(im)
         return images
 

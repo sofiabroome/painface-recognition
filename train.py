@@ -131,16 +131,15 @@ def low_level_train(model, ckpt_path, optimizer, config_dict,
         start_time = time.time()
 
         with tqdm(total=train_steps) as pbar:
-            for sample in train_generator:
-                step_time = time.time()
-            # for step in range(train_steps):
+            for step, sample in enumerate(train_generator):
+                if step > train_steps:
+                    break
+                step_start_time = time.time()
                 pbar.update(1)
-                # x_batch_train, y_batch_train = next(train_generator)
                 x_batch_train, y_batch_train = sample
-                if config_dict['model'] == '2stream_5d_add':
-                    y_batch_train = y_batch_train[0]
                 loss_value = train_step(x_batch_train, y_batch_train)
-                end_time = time.time() - step_time
+                step_time = time.time() - step_start_time
+                print('Step time: %.2f' % step_time)
                 wandb.log({'train_loss': loss_value.numpy()})
 
                 if step % config_dict['print_loss_every'] == 0:
@@ -161,10 +160,15 @@ def low_level_train(model, ckpt_path, optimizer, config_dict,
         if not config_dict['val_mode'] == 'no_val':
 
             with tqdm(total=train_steps) as pbar:
-                for step in range(val_steps):
+                for step, sample in enumerate(val_generator):
+                    if step > val_steps:
+                        break
                     pbar.update(1)
-                    x_batch_val, y_batch_val = next(val_generator)
+                    step_start_time = time.time()
+                    x_batch_val, y_batch_val = sample
                     loss_value = validation_step(x_batch_val, y_batch_val)
+                    step_time = time.time() - step_start_time
+                    print('Step time: %.2f' % step_time)
                     wandb.log({'val_loss': loss_value.numpy()})
 
             val_acc = val_acc_metric.result()

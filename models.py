@@ -232,15 +232,13 @@ class MyModel:
         return model
 
     def two_stream_5d(self, fusion):
-        # Functional API
 
         rgb_model = self.convolutional_LSTM(channels=3, top_layer=False)
-        image_input = Input(shape=(None, self.input_shape[0], self.input_shape[1], 3))
-        encoded_image = rgb_model(image_input)
+        input_array = Input(shape=(None, None, self.input_shape[0], self.input_shape[1], 3))
+        encoded_image = rgb_model(input_array[0,:])
 
         of_model = self.convolutional_LSTM(channels=3, top_layer=False)
-        of_input = Input(shape=(None, self.input_shape[0], self.input_shape[1], 3))
-        encoded_of = of_model(of_input)
+        encoded_of = of_model(input_array[1,:])
 
         if fusion == 'add':
             merged = add([encoded_image, encoded_of])
@@ -257,7 +255,7 @@ class MyModel:
         else:
             output = Activation('softmax')(dense)
 
-        two_stream_model = Model(inputs=[image_input, of_input], outputs=[output])
+        two_stream_model = Model(inputs=[input_array], outputs=[output])
 
         return two_stream_model
 

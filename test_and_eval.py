@@ -30,25 +30,19 @@ class Evaluator:
         y_pred = model.predict(x=test_generator,
                                steps=nb_steps,
                                verbose=1)
-        if self.acc:
-            scores = model.evaluate(x=eval_generator,
-                                    steps=nb_steps,
-                                    return_dict=True)
-        return y_pred, scores
+        return y_pred
 
     def evaluate(self, model, y_test, y_pred, softmax_predictions,
-                 scores, config_dict, y_paths):
+                 config_dict, y_paths):
         """
         Compute confusion matrix and class report with F1-scores.
         :param model: Model object
         :param y_test: np.ndarray (dim, seq_length, nb_classes)
         :param y_pred: np.ndarray (dim, seq_length, nb_classes)
-        :param scores: [np.ndarray]
         :param config_dict: dict
         :param y_paths: [str]
         :return: None
         """
-        print('Scores: ', scores)
         print('Model metrics: ', model.metrics_names)
         assert(y_test.shape == y_pred.shape)
 

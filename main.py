@@ -270,10 +270,10 @@ def run():
                        target_names=TARGET_NAMES,
                        batch_size=config_dict['batch_size'])
 
-        y_preds, scores = ev.test(model=model,
-                                  test_generator=test_generator,
-                                  eval_generator=eval_generator,
-                                  nb_steps=test_steps)
+        y_preds = ev.test(model=model,
+                          test_generator=test_generator,
+                          eval_generator=eval_generator,
+                          nb_steps=test_steps)
 
         y_test = np.array(y_batches)  # [nb_batches, batch_size, seq_length, nb_classes]
 
@@ -323,7 +323,7 @@ def run():
         # Evaluate the model's performance
         ev.set_test_set(df_test)
         ev.evaluate(model=model, y_test=y_test, y_pred=y_preds_argmax,
-                    softmax_predictions=y_preds, scores=scores,
+                    softmax_predictions=y_preds,
                     config_dict=config_dict, y_paths=y_test_paths)
 
 if __name__ == '__main__':
@@ -339,6 +339,9 @@ if __name__ == '__main__':
 
     config_dict_module = helpers.load_module(args.config_file)
     config_dict = config_dict_module.config_dict
+    if config_dict['val_mode'] == 'no_val':
+        assert (config_dict['train_mode'] == 'low_level'), \
+                'no_val requires low level train mode'
     config_dict['train_subjects'] = args.train_subjects
     config_dict['val_subjects'] = args.val_subjects
     config_dict['test_subjects'] = args.test_subjects
