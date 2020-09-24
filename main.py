@@ -17,26 +17,21 @@ pd.set_option('max_colwidth', 800)
 
 def run():
 
-    print('Batch size: ', config_dict['batch_size'])
-    print('Sequence length: ', config_dict['seq_length'])
-    dh = DataHandler(data_columns=['pain'],  # Here one can append f. ex. 'Observer',
+    dh = DataHandler(data_columns=['pain'],  # or e.g., 'observer',
                      config_dict=config_dict,
-                     color=config_dict['color'],
                      all_subjects_df=all_subjects_df)
 
     df_train, df_val, df_test = dh.get_data_indices(args)
 
-    train_dataset,\
-        val_dataset,\
-        test_dataset = dh.get_datasets(df_train=df_train,
-                                       df_val=df_val,
-                                       df_test=df_test)
+    train_dataset, val_dataset, test_dataset = dh.get_datasets(
+        df_train=df_train,
+        df_val=df_val,
+        df_test=df_test)
 
     train_steps, _, _ = dh.get_nb_steps(df_train, 'train')
 
-    test_steps,\
-        y_batches,\
-        y_batches_paths = dh.get_nb_steps(df_test, 'test')
+    test_steps, y_batches, y_batches_paths = dh.get_nb_steps(
+        df_test, 'test')
 
     if config_dict['val_mode'] == 'no_val':
         val_steps = 0
@@ -73,7 +68,6 @@ def run():
 
 if __name__ == '__main__':
 
-    # Parse the command line arguments
     arg_parser = arg_parser.ArgParser(len(sys.argv))
     args = arg_parser.parse()
     train_subjects = re.split('/', args.train_subjects)

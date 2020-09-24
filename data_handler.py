@@ -1,7 +1,4 @@
 import tensorflow as tf
-import matplotlib
-matplotlib.use('agg')
-import matplotlib.pyplot as plt
 import compute_steps
 import pandas as pd
 import numpy as np
@@ -11,15 +8,17 @@ import cv2
 import re
 import os
 
+import matplotlib
+matplotlib.use('agg')
+import matplotlib.pyplot as plt
 from helpers import process_image, split_string_at_last_occurence_of_certain_char
 
 
 class DataHandler:
-    def __init__(self, data_columns, config_dict, color, all_subjects_df):
+    def __init__(self, data_columns, config_dict, all_subjects_df):
         """
         Constructor for the DataHandler.
         :param config_dict: dict
-        :param color: bool
         """
         self.data_columns = data_columns
         self.image_size = config_dict['input_width'], config_dict['input_height']
@@ -27,7 +26,7 @@ class DataHandler:
         self.seq_length = config_dict['seq_length']
         self.seq_stride = config_dict['seq_stride']
         self.batch_size = config_dict['batch_size']
-        self.color_channels = 3 if color else 1
+        self.color_channels = 3 if config_dict['color'] else 1
         self.nb_labels = config_dict['nb_labels']
         self.aug_flip = config_dict['aug_flip']
         self.aug_crop = config_dict['aug_crop']
@@ -846,6 +845,7 @@ class DataHandler:
         at simultaneous frames.
         :param subject_id: int
         :param subject_df: pd.DataFrame
+        :param dataset: str
         :return: pd.DataFrame
         """
         c = 0  # Per subject frame counter.
@@ -944,11 +944,12 @@ def plot_augmentation(train, val, test, rgb, X_seq_list, flipped, cropped, shade
         partition = 3
     else:
         partition = 4
-    plt.savefig('seq_{}_batch_{}_wi_{}_part_{}_rgb_{}.png'.format(seq_index,
-                                                           batch_index,
-                                                           window_index,
-                                                           partition,
-                                                           rgb))
+    plt.savefig('seq_{}_batch_{}_wi_{}_part_{}_rgb_{}.png'.format(
+        seq_index,
+        batch_index,
+        window_index,
+        partition,
+        rgb))
     plt.close()
 
 
