@@ -23,11 +23,9 @@ class Evaluator:
         """
         self.test_set = df_test
 
-    def test(self, model, test_generator, eval_generator, nb_steps, X_test=None):
-        ###### If not a generator:
-        #    y_pred = model.predict_classes(X_test, batch_size=model.batch_size)
+    def test(self, model, test_dataset, nb_steps):
 
-        y_pred = model.predict(x=test_generator,
+        y_pred = model.predict(x=test_dataset,
                                steps=nb_steps,
                                verbose=1)
         return y_pred
@@ -128,13 +126,13 @@ class Evaluator:
             print('Weighted AUC: ', auc_weighted)
             print('Macro AUC: ', auc_macro)
             print('Micro AUC: ', auc_micro)
-            wandb.log({'test AUC weighted' : auc_weighted})
-            wandb.log({'test AUC macro' : auc_macro})
-            wandb.log({'test AUC micro' : auc_micro})
+            wandb.log({'Test AUC weighted': auc_weighted})
+            wandb.log({'Test AUC macro': auc_macro})
+            wandb.log({'Test AUC micro': auc_micro})
 
     def _make_filename(self, thing_to_save, config_dict):
         if not os.path.exists('results/'):
-           subprocess.call(['mkdir', 'results']) 
+            subprocess.call(['mkdir', 'results'])
         return 'results/' + thing_to_save + config_dict['model'] + \
                '_' + config_dict['job_identifier'] + '.txt'
 

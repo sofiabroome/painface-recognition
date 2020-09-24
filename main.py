@@ -194,9 +194,8 @@ def get_datasets(dh, df_train, df_val, df_test):
     train_dataset = dh.get_dataset(df_train, train=True)
     val_dataset = dh.get_dataset(df_val, train=False)
     test_dataset = dh.get_dataset(df_test, train=False)
-    eval_dataset = dh.get_dataset(df_test, train=False)
 
-    return train_dataset, val_dataset, test_dataset, eval_dataset
+    return train_dataset, val_dataset, test_dataset
 
 
 def get_nb_steps(df, train_str='train'):
@@ -223,11 +222,10 @@ def run():
 
     train_dataset,\
         val_dataset,\
-        test_dataset,\
-        eval_dataset = get_datasets(dh,
-                                      df_train=df_train,
-                                      df_val=df_val,
-                                      df_test=df_test)
+        test_dataset = get_datasets(dh,
+                                    df_train=df_train,
+                                    df_val=df_val,
+                                    df_test=df_test)
 
     train_steps, _, _ = get_nb_steps(df_train, 'train')
 
@@ -272,7 +270,6 @@ def run():
 
         y_preds = ev.test(model=model,
                           test_dataset=test_dataset,
-                          eval_dataset=eval_dataset,
                           nb_steps=test_steps)
 
         y_test = np.array(y_batches)  # [nb_batches, batch_size, seq_length, nb_classes]

@@ -415,8 +415,6 @@ class MyModel:
         return model
 
     def convolutional_LSTM(self, channels=3, top_layer=True):
-        from tensorflow.keras import backend as K  # Have not confirmed that this makes a difference..
-        K.set_learning_phase(0) 
         model = Sequential()
         if self.nb_lstm_layers >= 1:
             model.add(ConvLSTM2D(filters=self.nb_lstm_units,
