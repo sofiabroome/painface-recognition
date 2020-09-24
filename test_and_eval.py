@@ -1,6 +1,8 @@
 from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score
+import tensorflow as tf
 import numpy as np
 import subprocess
+import helpers
 import wandb
 import os
 
@@ -15,20 +17,6 @@ class Evaluator:
         self.auc = auc
         self.target_names = target_names
         self.batch_size = batch_size
-        self.test_set = None
-
-    def set_test_set(self, df_test):
-        """
-        :param df_test: pd.DataFrame with all info about the test set.
-        """
-        self.test_set = df_test
-
-    def test(self, model, test_dataset, nb_steps):
-
-        y_pred = model.predict(x=test_dataset,
-                               steps=nb_steps,
-                               verbose=1)
-        return y_pred
 
     def evaluate(self, model, y_test, y_pred, softmax_predictions,
                  config_dict, y_paths):
@@ -44,7 +32,7 @@ class Evaluator:
         print('Model metrics: ', model.metrics_names)
         assert(y_test.shape == y_pred.shape)
 
-        if len(y_pred.shape) > 2: # If sequential data
+        if len(y_pred.shape) > 2:  # If sequential data
             y_pred, paths = get_majority_vote_3d(y_pred, y_paths)
             softmax_predictions, _ = get_majority_vote_3d(softmax_predictions, y_paths)
             y_test, _ = get_majority_vote_3d(y_test, y_paths)
@@ -150,6 +138,7 @@ def get_majority_vote_for_sequence(sequence, nb_classes):
     """
     Get the most common class for one sequence.
     :param sequence:
+    :param nb_classes: int
     :return:
     """
     votes_per_class = np.zeros((nb_classes, 1))
@@ -184,3 +173,71 @@ def get_majority_vote_3d(y_pred, y_paths):
         majority_votes[i, max_class] = 1
     return majority_votes, corresponding_paths
 
+
+def run_evaluation(args, config_dict, model, model_path,
+                   test_dataset, test_steps,
+                   y_batches, y_batches_paths):
+
+    model = model.model
+    model.load_weights(model_path)
+
+    ev = Evaluator(acc=True,
+                   cm=True,
+                   cr=True,
+                   auc=True,
+                   target_names=config_dict['target_names'],
+                   batch_size=config_dict['batch_size'])
+
+    y_preds = model.predict(x=test_dataset,
+                            steps=test_steps,
+                            verbose=1)
+
+    y_test = np.array(y_batches)  # [nb_batches, batch_size, seq_length, nb_classes]
+
+    if config_dict['nb_input_dims'] == 5:
+        # Get the ground truth for the test set
+        y_test_paths = np.array(y_batches_paths)
+        if args.test_run == 1:
+            nb_batches = int(y_preds.shape[0]/config_dict['batch_size'])
+            y_test_paths = helpers.flatten_batch_lists(
+                y_batches_paths, nb_batches)
+            nb_total = nb_batches * config_dict['batch_size'] * config_dict['seq_length']
+            y_test = y_test[:nb_total]
+            y_test = np.reshape(y_test, (nb_batches*config_dict['batch_size'],
+                                         config_dict['seq_length'],
+                                         config_dict['nb_labels']))
+        else:
+            nb_batches = y_test.shape[0]
+            # Make 3D
+            y_test = np.reshape(y_test, (nb_batches*config_dict['batch_size'],
+                                         config_dict['seq_length'],
+                                         config_dict['nb_labels']))
+            y_test_paths = np.reshape(y_test_paths, (nb_batches*config_dict['batch_size'],
+                                                     config_dict['seq_length']))
+
+    if config_dict['nb_input_dims'] == 4:
+        nb_batches = y_test.shape[0]
+        y_test = np.reshape(y_test, (nb_batches*config_dict['batch_size'], config_dict['nb_labels']))
+        y_test_paths = np.array(y_batches_paths)
+
+    # Put y_preds into same format as y_test, first take the max probabilities.
+    if config_dict['nb_input_dims'] == 5:
+        if config_dict['rgb_period'] > 1:
+            y_preds_argmax = y_preds  # We only have one label per sample, Simonyan case.
+            y_test = np.argmax(y_test, axis=1)
+        else:
+            y_preds_argmax = np.argmax(y_preds, axis=2)
+            y_preds_argmax = np.array([tf.keras.utils.to_categorical(x,
+                                                                     num_classes=config_dict['nb_labels']) for x in y_preds_argmax])
+
+    if config_dict['nb_input_dims'] == 4:
+        y_preds_argmax = np.argmax(y_preds, axis=1)
+        y_preds_argmax = np.array([tf.keras.utils.to_categorical(x,
+                                                                 num_classes=config_dict['nb_labels']) for x in y_preds_argmax])
+        if args.test_run == 1:
+            y_test = y_test[:len(y_preds)]
+
+    # Evaluate the model's performance
+    ev.evaluate(model=model, y_test=y_test, y_pred=y_preds_argmax,
+                softmax_predictions=y_preds,
+                config_dict=config_dict, y_paths=y_test_paths)
