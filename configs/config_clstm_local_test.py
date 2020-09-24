@@ -27,7 +27,7 @@ config_dict = {
 'early_stopping' : 15,
 'optimizer' : 'adadelta',
 'lr' : 0.001,
-'round_to_batch' : 1,
+'round_to_batch' : True,
 'seq_length' : 10,
 'seq_stride' : 10,
 'nb_workers' : 1,
