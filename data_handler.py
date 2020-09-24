@@ -50,15 +50,16 @@ class DataHandler:
             if '2stream' in self.config_dict['model']:
                 dataset = tf.data.Dataset.from_generator(
                     lambda: self.prepare_2stream_image_generator_5D(df, train),
-                    output_types=(tf.float32, tf.uint8)) # .prefetch(self.batch_size)
+                    output_types=(tf.float32, tf.uint8))
             else:
                 dataset = tf.data.Dataset.from_generator(
                     lambda: self.prepare_image_generator_5D(df, train),
                     output_types=(tf.float32, tf.uint8),
                     output_shapes=(
-                        tf.TensorShape([None, None, self.image_size[0], self.image_size[1], self.color_channels]),
+                        tf.TensorShape([None, None, self.image_size[0],
+                            self.image_size[1], self.color_channels]),
                         tf.TensorShape([None, None, 2]))
-                    ) # .prefetch(tf.data.experimental.AUTOTUNE)
+                    )
         if self.config_dict['nb_input_dims'] == 4:
             if '2stream' in self.config_dict['model']:
                 generator = self.prepare_generator_2stream(
