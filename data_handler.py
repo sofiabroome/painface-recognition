@@ -2,23 +2,24 @@ import tensorflow as tf
 import matplotlib
 matplotlib.use('agg')
 import matplotlib.pyplot as plt
+import compute_steps
 import pandas as pd
 import numpy as np
 import random
+import time
 import cv2
+import re
 import os
 
 from helpers import process_image, split_string_at_last_occurence_of_certain_char
 
 
 class DataHandler:
-    def __init__(self, data_columns, config_dict, color):
+    def __init__(self, data_columns, config_dict, color, all_subjects_df):
         """
         Constructor for the DataHandler.
-        :param path: str
         :param config_dict: dict
         :param color: bool
-        :param nb_labels: int
         """
         self.data_columns = data_columns
         self.image_size = config_dict['input_width'], config_dict['input_height']
@@ -37,6 +38,7 @@ class DataHandler:
         self.dataset_of_path_dict = {'pf': config_dict['pf_of_path'],
                                      'lps': config_dict['lps_of_path']}
         self.config_dict = config_dict
+        self.all_subjects_df = all_subjects_df
 
     def get_dataset(self, df, train):
         """
@@ -71,6 +73,175 @@ class DataHandler:
                 )
 
         return dataset
+
+    def df_val_split(self,
+                     df,
+                     val_fraction,
+                     batch_size):
+        """
+        If args.val_mode == 'fraction', split the dataframe with training data into two parts,
+        a training set and a held out validation set (the last specified fraction from the df).
+        :param df: pd.Dataframe
+        :param val_fraction: float
+        :param batch_size: int
+        :return: pd.Dataframe, pd.Dataframe
+        """
+        df = df.loc[df['train'] == 1]
+        if self.config_dict['round_to_batch']:
+            ns = len(df)
+            ns_rounded = ns - ns % batch_size
+            num_val = int(val_fraction * ns_rounded - val_fraction * ns_rounded % batch_size)
+            df = df.iloc[:ns_rounded]
+            df_val = df.iloc[-num_val:, :]
+            df_train = df.iloc[:-num_val, :]
+
+        return df_train, df_val
+
+    def read_or_create_subject_dfs(self, subject_ids):
+        """
+        Read or create the per-subject dataframes listing
+        all the frame paths and corresponding labels and metadata.
+        :param subject_ids: list of ints referring to subjects
+        :return: {str: pd.Dataframe}
+        """
+        subject_dfs = {}
+        for ind, subject_id in enumerate(subject_ids):
+            dataset = self.all_subjects_df.loc[ind]['dataset']
+            path_key = 'pf_rgb_path' if dataset == 'pf' else 'lps_rgb_path'
+            subject_csv_path = os.path.join(
+                self.config_dict[path_key], subject_id) + '.csv'
+            if os.path.isfile(subject_csv_path):
+                sdf = pd.read_csv(subject_csv_path)
+            else:
+                print('Making a DataFrame for: ', subject_id)
+                sdf = self.subject_to_df(subject_id, dataset, self.config_dict)
+                sdf.to_csv(path_or_buf=subject_csv_path)
+            subject_dfs[subject_id] = sdf
+        return subject_dfs
+
+    def read_or_create_subject_rgb_and_OF_dfs(self,
+                                              subject_ids,
+                                              subject_dfs):
+        """
+        Read or create the per-subject optical flow files listing
+        all the frame paths and labels.
+        :param subject_ids: list of ints referring to subjects
+        :param subject_dfs: [pd.DataFrame]
+        :return: {str: pd.Dataframe}
+        """
+        subject_rgb_OF_dfs = {}
+        for ind, subject_id in enumerate(subject_ids):
+            dataset = self.all_subjects_df.loc[ind]['dataset']
+            path_key = 'pf_of_path' if dataset == 'pf' else 'lps_of_path'
+            subject_of_csv_path = os.path.join(
+                self.config_dict[path_key], subject_id) + '.csv'
+            if os.path.isfile(subject_of_csv_path):
+                sdf = pd.read_csv(subject_of_csv_path)
+            else:
+                print('Making a DataFrame with optical flow for: ', subject_id)
+                sdf = self.save_OF_paths_to_df(subject_id,
+                                               subject_dfs[subject_id],
+                                               dataset=dataset)
+                sdf.to_csv(path_or_buf=subject_of_csv_path)
+            subject_rgb_OF_dfs[subject_id] = sdf
+        return subject_rgb_OF_dfs
+
+    def set_train_val_test_in_df(self,
+                                 dfs):
+        """
+        Mark in input dataframe which subjects to use for train, val or test.
+        Used when val_mode == 'subject'
+        :param val_subjects: [int]
+        :param dfs: [pd.DataFrame]
+        :return: [pd.DataFrame]
+        """
+        for trh in self.config_dict['train_subjects']:
+            dfs[trh]['train'] = 1
+
+        if self.config_dict['val_mode'] == 'subject':
+            for vh in self.config_dict['val_subjects']:
+                dfs[vh]['train'] = 2
+
+        for teh in self.config_dict['test_subjects']:
+            dfs[teh]['train'] = 0
+        return dfs
+
+    def get_data_indices(self, args):
+        subject_ids = self.all_subjects_df['subject'].values
+
+        # Read the dataframes listing all the frame paths and labels
+        subject_dfs = self.read_or_create_subject_dfs(subject_ids=subject_ids)
+
+        # If we need optical flow
+        if '2stream' in self.config_dict['model'] or self.config_dict['data_type'] == 'of':
+            subject_dfs = self.read_or_create_subject_rgb_and_OF_dfs(
+                subject_ids=subject_ids,
+                subject_dfs=subject_dfs)
+
+        # Set the train-column to 1 (train), 2 (val) or 0 (test).
+        if self.config_dict['val_mode'] == 'subject':
+            print("Using separate subject validation.")
+            self.config_dict['val_subjects'] = re.split('/', args.val_subjects)
+            print('Horses to validate on: ', self.config_dict['val_subjects'])
+            subject_dfs = self.set_train_val_test_in_df(dfs=subject_dfs)
+
+        if self.config_dict['val_mode'] == 'fraction' or \
+           self.config_dict['val_mode'] == 'no_val':
+            subject_dfs = self.set_train_val_test_in_df(dfs=subject_dfs)
+
+        # Put all the separate subject-dfs into one DataFrame.
+        df = pd.concat(list(subject_dfs.values()), sort=False)
+
+        print("Total length of dataframe:", len(df))
+
+        # Split training data so there is a held out validation set.
+        if self.config_dict['val_mode'] == 'fraction':
+            print("Val fract: ", self.config_dict['val_fraction_value'])
+            df_train, df_val = self.df_val_split(
+                df=df,
+                val_fraction=self.config_dict['val_fraction_value'],
+                batch_size=self.config_dict['batch_size'])
+        else:
+            df_train = df.loc[df['train'] == 1]
+
+        if self.config_dict['val_mode'] == 'subject':
+            df_val = df[df['train'] == 2]
+
+        df_test = df[df['train'] == 0]
+
+        # Reset all indices so they're 0->N.
+        print('\nResetting dataframe indices...')
+        df_train.reset_index(drop=True, inplace=True)
+        df_test.reset_index(drop=True, inplace=True)
+
+        if not self.config_dict['val_mode'] == 'no_val':
+            df_val.reset_index(drop=True, inplace=True)
+        else:
+            df_val = []
+
+        print("Nb. of train, val and test samples: ",
+              len(df_train), len(df_val), len(df_test), '\n')
+
+        return df_train, df_val, df_test
+
+    def get_datasets(self, df_train, df_val, df_test):
+        print('\nPreparing data generators...')
+        train_dataset = self.get_dataset(df_train, train=True)
+        val_dataset = self.get_dataset(df_val, train=False)
+        test_dataset = self.get_dataset(df_test, train=False)
+
+        return train_dataset, val_dataset, test_dataset
+
+    def get_nb_steps(self, df, train_str='train'):
+        start = time.time()
+        train_mode = True if train_str == 'train' else False
+        nb_steps, y_batches, y_batches_paths = compute_steps.compute_steps(
+            df, train=train_mode, config_dict=self.config_dict)
+        end = time.time()
+        print('\nTook {:.2f} s to compute {} {} steps'.format(
+            end - start, nb_steps, train_str))
+
+        return nb_steps, y_batches, y_batches_paths
 
     def prepare_generator_2stream(self, df, train):
         """
@@ -652,7 +823,7 @@ class DataHandler:
                         and ('.jpg' in filename or '.png' in filename):
                     total_path = os.path.join(path, filename)
                     print(total_path)
-                    vid_id = get_video_id_stem_from_path(path, dataset)
+                    vid_id = get_video_id_stem_from_path(path)
                     csv_row = df_csv.loc[df_csv['video_id'] == vid_id]
                     if csv_row.empty:
                         continue
@@ -724,8 +895,6 @@ class DataHandler:
 
         # Now extend subject_df to contain both rgb and OF paths,
         # and then return whole thing.
-        nb_of_paths = len(of_path_list)
-        nb_rgb_frames = len(subject_df)
         try:
             subject_df.loc[:, 'of_path'] = pd.Series(of_path_list)
             subject_df.loc[:, 'train'] = -1
@@ -735,22 +904,8 @@ class DataHandler:
 
         return subject_df
 
-    def _get_images_from_df(self, df):
-        """
-        Get the images as arrays from all the paths in a DataFrame.
-        :param df: pd.DataFrame
-        :return: [np.ndarray]
-        """
-        images = []
-        for path in df['path']:
-            im = process_image(path,
-                               (self.image_size[0],
-                                self.image_size[1],
-                                self.color_channels))
-            images.append(im)
-        return images
 
-def plot_augmentation(train, val, test, evaluate, rgb, X_seq_list, flipped, cropped, shaded,
+def plot_augmentation(train, val, test, rgb, X_seq_list, flipped, cropped, shaded,
                       seq_index, batch_index, window_index):
     rows = 4
     cols = 10
@@ -797,7 +952,7 @@ def plot_augmentation(train, val, test, evaluate, rgb, X_seq_list, flipped, crop
     plt.close()
 
 
-def get_video_id_stem_from_path(path, dataset):
+def get_video_id_stem_from_path(path):
     _, vid_id = split_string_at_last_occurence_of_certain_char(path, '/')
     return vid_id
 
@@ -805,6 +960,7 @@ def get_video_id_stem_from_path(path, dataset):
 def get_video_id_from_path(path):
     _, vid_id = split_string_at_last_occurence_of_certain_char(path, '/')
     return vid_id
+
 
 def get_video_id_from_frame_path(path):
     path_left, frame_id = split_string_at_last_occurence_of_certain_char(path, '/')
