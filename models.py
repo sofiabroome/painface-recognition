@@ -22,7 +22,6 @@ class MyModel:
         """
         self.name = config_dict['model']
         self.input_shape = config_dict['input_height'], config_dict['input_width']
-        self.nb_conv_filters = config_dict['nb_conv_filters']
         self.nb_lstm_units = config_dict['nb_lstm_units']
         self.kernel_size = config_dict['kernel_size']
         self.nb_labels = config_dict['nb_labels']
@@ -33,7 +32,6 @@ class MyModel:
         self.optimizer = config_dict['optimizer']
         self.batch_size = config_dict['batch_size']
         self.nb_lstm_layers = config_dict['nb_lstm_layers']
-        self.nb_dense_units = config_dict['nb_dense_units']
 
         if self.name == 'conv2d_timedist_lstm':
             print("Conv2d-lstm model timedist")
@@ -247,7 +245,7 @@ class MyModel:
         if fusion == 'concat':
             merged = concatenate([encoded_image, encoded_of], axis=-1)
 
-        merged = Dropout(.2)(merged)
+        merged = Dropout(self.dropout_1)(merged)
         dense = Dense(self.nb_labels)(merged)
 
         if self.nb_labels == 2:
@@ -275,7 +273,7 @@ class MyModel:
         if fusion == 'concat':
             merged = concatenate([encoded_image, encoded_of], axis=-1)
 
-        merged = Dropout(.2)(merged)
+        merged = Dropout(self.dropout_1)(merged)
         dense = Dense(self.nb_labels)(merged)
 
         if self.nb_labels == 2:
