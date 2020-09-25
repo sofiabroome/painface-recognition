@@ -132,12 +132,12 @@ def low_level_train(model, ckpt_path, optimizer, config_dict,
             for step, sample in enumerate(train_dataset):
                 if step > train_steps:
                     break
-                step_start_time = time.time()
+                # step_start_time = time.time()
                 pbar.update(1)
                 x_batch_train, y_batch_train = sample
                 loss_value = train_step(x_batch_train, y_batch_train)
-                step_time = time.time() - step_start_time
-                print('Step time: %.2f' % step_time)
+                # step_time = time.time() - step_start_time
+                # print('Step time: %.2f' % step_time)
                 wandb.log({'train_loss': loss_value.numpy()})
 
                 if step % config_dict['print_loss_every'] == 0:
@@ -162,11 +162,11 @@ def low_level_train(model, ckpt_path, optimizer, config_dict,
                     if step > val_steps:
                         break
                     pbar.update(1)
-                    step_start_time = time.time()
+                    # step_start_time = time.time()
                     x_batch_val, y_batch_val = sample
                     loss_value = validation_step(x_batch_val, y_batch_val)
-                    step_time = time.time() - step_start_time
-                    print('Step time: %.2f' % step_time)
+                    # step_time = time.time() - step_start_time
+                    # print('Step time: %.2f' % step_time)
                     wandb.log({'val_loss': loss_value.numpy()})
 
             val_acc = val_acc_metric.result()
