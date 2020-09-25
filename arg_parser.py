@@ -31,6 +31,20 @@ def parse_arguments():
                         help='Choose some string to identify the image of the training process')
     parser.add_argument('--test-run', nargs='?', type=int,
                         help='Whether to run as a quick test or not.')
+    parser.add_argument('--batch-size', nargs='?', type=int,
+                        help='')
+    parser.add_argument('--dropout-1', nargs='?', type=float,
+                        help='')
+    parser.add_argument('--kernel-size', nargs='?', type=int,
+                        help='')
+    parser.add_argument('--lr', nargs='?', type=float,
+                        help='')
+    parser.add_argument('--nb-lstm-layers', nargs='?', type=int,
+                        help='')
+    parser.add_argument('--nb-lstm-units', nargs='?', type=int,
+                        help='')
+    parser.add_argument('--optimizer', nargs='?', type=str,
+                        help='')
     return parser.parse_args()
 
 
