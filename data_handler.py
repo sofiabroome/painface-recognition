@@ -802,6 +802,8 @@ class DataHandler:
         """
         Create a DataFrame with all the frames with annotations from a csv-file.
         :param subject_id: int
+        :param dataset: str
+        :param config_file: dict
         :return: pd.DataFrame
         """
         clip_file = config_file['clip_list_pf']\
