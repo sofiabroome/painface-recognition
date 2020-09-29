@@ -1,9 +1,12 @@
-from tensorflow.keras.layers import Convolution2D, MaxPooling2D, MaxPooling3D, GlobalAveragePooling2D, LSTM, Dense, Flatten, Conv2D
-from tensorflow.keras.layers import Dropout, BatchNormalization, concatenate, add, average, Input, Conv3D, multiply, Activation
+from tensorflow.keras.layers import MaxPooling2D, GlobalAveragePooling2D, LSTM, Dense, Flatten, Conv2D
+from tensorflow.keras.layers import Dropout, BatchNormalization, Input, Activation
+from tensorflow.keras.layers import concatenate, add, average, multiply
 from tensorflow.keras.layers import ConvLSTM2D
 from tensorflow.keras.layers import TimeDistributed
 from tensorflow.keras.applications import InceptionV3
 from tensorflow.keras.models import Sequential, Model
+import tensorflow as tf
+import ast
 
 
 class MyModel:
@@ -110,6 +113,10 @@ class MyModel:
             print('Convolutional LSTM (not fully connected)')
             self.model = self.convolutional_LSTM(channels=3)
 
+        if self.name == 'clstm_functional':
+            print('C-LSTM, functional')
+            self.model = self.clstm()
+
         if self.name == 'rodriguez':
             print('Rodriguez Deep pain model')
             self.model = self.rodriguez()
@@ -121,7 +128,6 @@ class MyModel:
         if self.name == 'vgg16_GAP_dense':
             print('VGG-16 trained from scratch, then global avg pooling, then one FC layer.')
             self.model = self.vgg16_GAP_dense(w=None)
-
 
     def two_stream(self):
         # Functional API
@@ -452,5 +458,91 @@ class MyModel:
             else:
                 model.add(Dense(self.nb_labels))
                 model.add(Activation('softmax'))
+        return model
+
+    def clstm_block(self, input_tensor, nb_hidden, ks1, ks2, pooling,
+                    batch_normalization, return_sequences):
+        """
+        x: input tensor
+        nb_hidden: int
+        ks: int
+        pooling: str 'max'|'avg'
+        batch_normalization: bool
+        return_sequences: bool
+        """
+        # Kernel regularizer
+        reg = tf.keras.regularizers.l2(self.config_dict['kernel_regularizer'])
+        # ConvLSTM2D layer
+        clstm_output = tf.keras.layers.ConvLSTM2D(
+            filters=nb_hidden,
+            kernel_size=(ks1, ks2),
+            padding=self.config_dict['padding_clstm'],
+            strides=(self.config_dict['stride_clstm'], self.config_dict['stride_clstm']),
+            kernel_regularizer=reg,
+            dropout=self.config_dict['dropout_clstm'],
+            return_sequences=return_sequences)(input_tensor)
+        if return_sequences:
+            # Maxpooling layer per time slice
+            if pooling == 'max':
+                x = tf.keras.layers.TimeDistributed(
+                    tf.keras.layers.MaxPooling2D())(
+                    inputs=clstm_output)
+            if pooling == 'avg':
+                x = tf.keras.layers.TimeDistributed(
+                    tf.keras.layers.AveragePooling2D())(
+                    inputs=clstm_output)
+        else:
+            if pooling == 'max':
+                x = tf.keras.layers.MaxPooling2D()(inputs=clstm_output)
+            if pooling == 'avg':
+                x = tf.keras.layers.AveragePooling2D()(inputs=clstm_output)
+        print(x)
+        # Normalize according to batch statistics
+        if batch_normalization:
+            x = tf.layers.batch_normalization(inputs=x)
+            print(x)
+        return x, clstm_output
+
+    def clstm(self, bn, config_dict):
+        """x: 5D tensor, sequence of images
+           bn: bool, whether to batch normalize
+           return: x, the transformed input sequence."""
+
+        input_layer = Input(shape=(None, self.input_shape[0], self.input_shape[1], 3))
+        layers = config_dict['nb_lstm_layers'] * [config_dict['nb_lstm_units']]
+        rs = ast.literal_eval(config_dict['return_sequences'])
+        nb_clstm_layers = len(layers)
+
+        print(input)
+        x = input_layer
+        for l in range(nb_clstm_layers):
+            name_scope = 'block' + str(l + 1)
+            with tf.name_scope(name_scope):
+                x, clstm_output = self.clstm_block(
+                    x, nb_hidden=layers[l],
+                    ks1=config_dict['kernel_size_1'],
+                    ks2=config_dict['kernel_size_2'],
+                    pooling=config_dict['pooling_method'],
+                    batch_normalization=bn,
+                    return_sequences=rs[l])
+                print('x: ', x)
+                print('clstm_output: ', clstm_output)
+
+        with tf.name_scope('fully_con'):
+            if config_dict['only_last_element_for_fc'] == 'yes':
+                # Only pass on the last element of the sequence to FC.
+                # return_seq is True just to save it in the graph for gradcam.
+                x = tf.layers.flatten(x[:, -1, :, :, :])
+            else:
+                x = tf.layers.flatten(x)
+            print(x)
+            x = tf.layers.dense(x, units=self.nb_labels)
+            print(x)
+
+        if self.config_dict['return_last_clstm']:
+            model = Model(inputs=[input_layer], outputs=[x, clstm_output])
+        else:
+            model = Model(inputs=[input_layer], outputs=[x])
+
         return model
 
