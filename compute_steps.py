@@ -63,22 +63,22 @@ def compute_steps(df, train, config_dict):
         if seq_index == config_dict['seq_length']:
             # Everytime a full sequence is amassed, we reset the seq_ind,
             # and increment the batch_ind.
-            y_batch_list.append(y_seq_list)
-            y_batch_list_paths.append(y_seq_list_paths)
+            y_batch_list.append(y_seq_list[0])
+            y_batch_list_paths.append(y_seq_list_paths[0])
             
             seq_index = 0
             batch_index += 1
             if train and (config_dict['aug_flip'] == 1):
-                y_batch_list.append(y_seq_list)
-                y_batch_list_paths.append(y_seq_list_paths)
+                y_batch_list.append(y_seq_list[0])
+                y_batch_list_paths.append(y_seq_list_paths[0])
                 batch_index += 1
             if train and (config_dict['aug_crop'] == 1):
-                y_batch_list.append(y_seq_list)
-                y_batch_list_paths.append(y_seq_list_paths)
+                y_batch_list.append(y_seq_list[0])
+                y_batch_list_paths.append(y_seq_list_paths[0])
                 batch_index += 1
             if train and (config_dict['aug_light'] == 1):
-                y_batch_list.append(y_seq_list)
-                y_batch_list_paths.append(y_seq_list_paths)
+                y_batch_list.append(y_seq_list[0])
+                y_batch_list_paths.append(y_seq_list_paths[0])
                 batch_index += 1
 
         if batch_index % config_dict['batch_size'] == 0 and not batch_index == 0:
@@ -88,7 +88,6 @@ def compute_steps(df, train, config_dict):
                                                         num_classes=config_dict['nb_labels'])
                 y_array = np.reshape(y_array,
                                      (config_dict['batch_size'],
-                                      config_dict['seq_length'],
                                       config_dict['nb_labels']))
             nb_steps += 1
             batch_index = 0

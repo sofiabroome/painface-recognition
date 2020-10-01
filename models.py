@@ -230,7 +230,8 @@ class MyModel:
     def two_stream_5d(self, fusion):
 
         rgb_model = self.convolutional_LSTM(channels=3, top_layer=False)
-        input_array = Input(shape=(None, None, self.input_shape[0], self.input_shape[1], 3))
+        input_array = Input(shape=(None, self.config_dict['seq_length'],
+                            self.input_shape[0], self.input_shape[1], 3))
         encoded_image = rgb_model(input_array[0,:])
 
         of_model = self.convolutional_LSTM(channels=3, top_layer=False)
@@ -243,8 +244,12 @@ class MyModel:
         if fusion == 'concat':
             merged = concatenate([encoded_image, encoded_of], axis=-1)
 
-        merged = Dropout(self.dropout_1)(merged)
-        dense = Dense(self.nb_labels)(merged)
+        print(merged.shape)
+        merged_flat = Flatten()(merged)
+        print(merged_flat.shape)
+
+        merged_flat = Dropout(self.dropout_1)(merged_flat)
+        dense = Dense(self.nb_labels)(merged_flat)
 
         if self.nb_labels == 2:
             output = Activation('sigmoid')(dense)
@@ -442,14 +447,17 @@ class MyModel:
             model.add(ConvLSTM2D(filters=self.nb_lstm_units, kernel_size=(self.config_dict['kernel_size'], self.config_dict['kernel_size']),
                                  padding='same', return_sequences=True))
             model.add(BatchNormalization())
-        model.add(TimeDistributed(Flatten()))
+
         if top_layer:
+            model.add(Flatten())
+            model.add(Dense(self.nb_labels))
             if self.nb_labels == 2:
-                model.add(Dense(self.nb_labels))
                 model.add(Activation('sigmoid'))
             else:
-                model.add(Dense(self.nb_labels))
                 model.add(Activation('softmax'))
+        else:
+            model.add(TimeDistributed(Flatten()))
+
         return model
 
     def clstm_block(self, input_tensor, nb_hidden, ks1, ks2, pooling,

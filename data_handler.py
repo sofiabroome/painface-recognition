@@ -399,6 +399,8 @@ class DataHandler:
                     flow_batch_list = []
 
                 if seq_index == self.seq_length:
+                    # *We only have per-clip labels, so the pain levels should not differ.
+                    assert(len(set(y_seq_list)) == 1)
                     if self.config_dict['rgb_period'] > 1:
                         flow_seq_list = np.array(flow_seq_list)
                         flow_seq_list = np.reshape(np.array(flow_seq_list),
@@ -407,7 +409,7 @@ class DataHandler:
                                                (self.image_size[0], self.image_size[1], -1))
                         
                     X_batch_list.append(X_seq_list)
-                    y_batch_list.append(y_seq_list)
+                    y_batch_list.append(y_seq_list[0])  # *only need one
                     flow_batch_list.append(flow_seq_list)
                     batch_index += 1
                     seq_index = 0
@@ -418,7 +420,7 @@ class DataHandler:
                         flow_seq_list_flipped = self.flip_images(flow_seq_list)
                         # Append to the respective batch lists
                         X_batch_list.append(X_seq_list_flipped)
-                        y_batch_list.append(y_seq_list)
+                        y_batch_list.append(y_seq_list[0])
                         flow_batch_list.append(flow_seq_list_flipped)
                         batch_index += 1
 
@@ -431,7 +433,7 @@ class DataHandler:
                                                                         crop_size, crop_size)
                         # Append to the respective batch lists
                         X_batch_list.append(X_seq_list_cropped)
-                        y_batch_list.append(y_seq_list)
+                        y_batch_list.append(y_seq_list[0])
                         flow_batch_list.append(flow_seq_list_cropped)
                         batch_index += 1
 
@@ -441,7 +443,7 @@ class DataHandler:
                         flow_seq_list_shaded = self.add_gaussian_noise(flow_seq_list)
                         # Append to the respective batch lists
                         X_batch_list.append(X_seq_list_shaded)
-                        y_batch_list.append(y_seq_list)
+                        y_batch_list.append(y_seq_list[0])
                         flow_batch_list.append(flow_seq_list_shaded)
                         batch_index += 1
 
@@ -459,11 +461,7 @@ class DataHandler:
                     flow_array = np.array(flow_batch_list, dtype=np.float32)
                     if self.nb_labels == 2:
                         y_array = tf.keras.utils.to_categorical(y_array, num_classes=self.nb_labels)
-                        y_array = np.reshape(y_array, (self.batch_size, -1, self.nb_labels))
-                    else:
-                        y_array = np.reshape(y_array, (self.batch_size, -1, self.nb_labels))
-                    if self.config_dict['rgb_period'] > 1:
-                        y_array = np.reshape(y_array, (self.batch_size, self.nb_labels))
+                    y_array = np.reshape(y_array, (self.batch_size, self.nb_labels))
                     batch_index = 0
                     yield [X_array, flow_array], y_array
 
