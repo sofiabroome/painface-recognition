@@ -7,8 +7,11 @@ config_dict = {
 'lps_rgb_path' : data_path + 'lps/jpg_128_128_2fps/',
 'pf_of_path' : data_path + 'pf/jpg_128_128_16fps_OF_magnitude_cv2/',
 'lps_of_path' : data_path + 'lps/jpg_128_128_16fps_OF_magnitude_cv2_2fpsrate/',
-'clip_selection': '',
-'model' : '2stream_5d_add',
+'output_folder': '../data/lps/interpretability_results/',
+# 'checkpoint' : '../models/BEST_MODEL_2stream_5d_add_117332.h5', # 2stream
+# 'model' : '2stream_5d_add',
+'checkpoint' : '../models/BEST_MODEL_convolutional_LSTM_116306.h5',  # 1stream
+'model' : 'convolutional_LSTM',
 'rgb_period' : 1, # Set to 10 if simonyan-like model
 'flow_period' : 1,
 'input_width' : 128,
@@ -17,8 +20,7 @@ config_dict = {
 'nb_labels' : 2,
 'target_names' : ['NO_PAIN', 'PAIN'],
 'nb_lstm_units' : 32,
-'kernel_size_1' : 5,
-'kernel_size_2' : 5,
+'kernel_size' : 5,
 'dropout_1' : 0.25,
 'dropout_2' : 0.5,
 'nb_epochs' : 100,
@@ -43,11 +45,13 @@ config_dict = {
 'do_evaluate' : True,
 'train_mode' : 'keras',
 'print_loss_every' : 100,
-'padding_clstm' : 'valid',
+'padding_clstm' : 'same',
 'pooling_method' : 'max',  # avg | max
 'only_last_element_for_fc' : True,
-'stride_clstm' : 2,
+'stride_clstm' : 1,
 'dropout_clstm' : 0.0,
 'kernel_regularizer' : 0.0,
 'return_sequences' : '[True, True, True, False]',
-'return_last_clstm' : True}
+'return_last_clstm' : True,
+# Temporal mask things
+'temporal_mask_type' : 'freeze'}

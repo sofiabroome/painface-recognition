@@ -2,19 +2,16 @@ import os
 
 import cv2
 import numpy as np
-import tensorflow as tf
 from PIL import Image
 
 from interpretability import mask
 
-FLAGS = tf.app.flags.FLAGS
 
-
-def visualize_results(orig_seq, pert_seq, mask, root_dir=None,
+def visualize_results(config_dict, orig_seq, pert_seq, mask, root_dir=None,
                       case="0", mark_imgs=True, iter_test=False):
     if root_dir is None:
         root_dir = '/workspace/projects/spatiotemporal-interpretability/tensorflow/' + \
-                   FLAGS.output_folder + "/"
+                   config_dict['output_folder'] + "/"
     root_dir += "/PerturbImgs/"
 
     if not os.path.exists(root_dir):
@@ -34,7 +31,7 @@ def visualize_results(orig_seq, pert_seq, mask, root_dir=None,
     f.close()
 
 
-def visualize_results_on_gradcam(gradcam_images, mask, root_dir,
+def visualize_results_on_gradcam(config_dict, gradcam_images, mask, root_dir,
                                  image_width, image_height,
                                  case="0", round_up_mask=True):
     if not os.path.exists(root_dir):
@@ -42,7 +39,7 @@ def visualize_results_on_gradcam(gradcam_images, mask, root_dir,
 
     dots = find_temp_mask_red_dots(image_width, image_height, mask, round_up_mask)
 
-    dot_offset = FLAGS.image_width * 2
+    dot_offset = config_dict['image_width'] * 2
     for i in range(len(mask)):
         for j, dot in enumerate(dots):
 
@@ -101,7 +98,7 @@ def create_image_arrays(input_sequence, gradcams, time_mask,
                         output_folder, video_id, mask_type,
                         image_width, image_height):
     combined_images = []
-    for i in range(FLAGS.seq_length):
+    for i in range(input_sequence.shape[1]):
         input_data_img = input_sequence[0, i, :, :, :]
 
         time_mask_copy = time_mask.copy()
