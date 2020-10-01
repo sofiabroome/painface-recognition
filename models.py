@@ -420,7 +420,7 @@ class MyModel:
         if self.nb_lstm_layers >= 1:
             model.add(ConvLSTM2D(filters=self.nb_lstm_units,
                                  kernel_size=(self.config_dict['kernel_size'], self.config_dict['kernel_size']),
-                                 input_shape=(None, self.input_shape[0], self.input_shape[1], channels),
+                                 input_shape=(self.config_dict['seq_length'], self.input_shape[0], self.input_shape[1], channels),
                                  padding='same', return_sequences=True))
             model.add(TimeDistributed(MaxPooling2D()))
             model.add(BatchNormalization())
