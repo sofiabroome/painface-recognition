@@ -311,6 +311,7 @@ class DataHandler:
                     y_batch_list.append(y)
                     flow_batch_list.append(flow_shaded)
                     batch_index += 1
+
                 if batch_index % self.batch_size == 0 and not batch_index == 0:
                     X_array = np.array(X_batch_list, dtype=np.float32)
                     y_array = np.array(y_batch_list, dtype=np.uint8)
@@ -375,7 +376,7 @@ class DataHandler:
                     if vid_seq_name != old_vid_seq_name:
                         seq_index = 0
                         old_vid_seq_name = vid_seq_name
-                        break  # Skip this one and jump to next window
+                        break  # Should not have seqs with mixed video IDs
 
                     if (seq_index % self.config_dict['rgb_period']) == 0:
                         x = self.get_image(row['path'])
@@ -445,10 +446,12 @@ class DataHandler:
                         batch_index += 1
 
                     # if train:
-                    #     plot_augmentation(train, val, test, evaluate, 1, X_seq_list, X_seq_list_flipped, X_seq_list_cropped,
-                    #                       X_seq_list_shaded, seq_index, batch_index, window_index)
-                    #     plot_augmentation(train, val, test, evaluate, 0, flow_seq_list, flow_seq_list_flipped, flow_seq_list_cropped,
-                    #                       flow_seq_list_shaded, seq_index, batch_index, window_index)
+                    #     plot_augmentation(train, val, test, evaluate, 1, X_seq_list,
+                    #         X_seq_list_flipped, X_seq_list_cropped, X_seq_list_shaded,
+                    #         seq_index, batch_index, window_index)
+                    #     plot_augmentation(train, val, test, evaluate, 0, flow_seq_list,
+                    #         flow_seq_list_flipped, flow_seq_list_cropped, flow_seq_list_shaded,
+                    #         seq_index, batch_index, window_index)
 
                 if batch_index % self.batch_size == 0 and not batch_index == 0:
                     X_array = np.array(X_batch_list, dtype=np.float32)
@@ -476,11 +479,14 @@ class DataHandler:
         nb_frames = len(df)
         print("LEN DF, in prep_5d(): ", nb_frames)
 
-        ws = self.seq_length  # "Window size" in a sliding window.
-        ss = self.seq_stride  # Stride for the extracted windows
-        valid = nb_frames - (ws - 1)
-        nw = valid//ss  # Number of windows
-        print('Number of windows', nw)
+        window_size = self.config_dict['seq_length']
+        window_stride = self.config_dict['seq_stride']
+        last_valid_start_index = nb_frames - (window_size - 1)
+        last_valid_end_index = last_valid_start_index + (window_size-1)
+        number_of_windows = last_valid_end_index // window_stride
+
+        assert (number_of_windows >= self.config_dict['batch_size'])
+        print('Number of windows', number_of_windows)
 
         this_index = 0
         seq_index = 0
@@ -497,9 +503,9 @@ class DataHandler:
             if train:
                 df = shuffle_blocks(df, 'video_id')
             batch_index = 0
-            for window_index in range(nw):
-                start = window_index * ss
-                stop = start + ws
+            for window_index in range(number_of_windows):
+                start = window_index * window_stride
+                stop = start + window_size
                 rows = df.iloc[start:stop]  # A new dataframe for the window in question.
 
                 X_seq_list = []
@@ -560,8 +566,9 @@ class DataHandler:
                         batch_index += 1
 
                     # if train:
-                    #     plot_augmentation(train, val, test, evaluate, 1, X_seq_list, X_seq_list_flipped, X_seq_list_cropped,
-                    #                       X_seq_list_shaded, seq_index, batch_index, window_index)
+                    #     plot_augmentation(train, val, test, evaluate, 1, X_seq_list,
+                    #         X_seq_list_flipped, X_seq_list_cropped, X_seq_list_shaded,
+                    #         seq_index, batch_index, window_index)
 
                 if batch_index % self.batch_size == 0 and not batch_index == 0:
                     X_array = np.array(X_batch_list, dtype=np.float32)
