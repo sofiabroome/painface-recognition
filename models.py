@@ -13,20 +13,12 @@ class MyModel:
     def __init__(self, config_dict):
         """
         A class to build the preferred model.
-        :param name: str | The name of the model
-        :param input_shape: (int, int, int) | The shape of the data fed into the model.
-        :param nb_conv_filters: int | The number of filters of the convolution, aka
-                                      the output dimension from the convolution.
-        :param nb_lstm_units: int | The number of LSTM cells.
-        :param kernel_size: (int, int) | The size of the convolutional kernel.
-        :param nb_labels: int | The number of possible classes to predict.
-        :param lr: float | The learning rate during training.
-        :param optimizer: str | The name of the optimizer (Adam or Adagrad, here).
+        :param config_dict: dict
         """
         self.name = config_dict['model']
+        self.config_dict = config_dict
         self.input_shape = config_dict['input_height'], config_dict['input_width']
         self.nb_lstm_units = config_dict['nb_lstm_units']
-        self.kernel_size = config_dict['kernel_size']
         self.nb_labels = config_dict['nb_labels']
         self.dropout_2 = config_dict['dropout_2']
         self.dropout_1 = config_dict['dropout_1']
@@ -115,7 +107,7 @@ class MyModel:
 
         if self.name == 'clstm_functional':
             print('C-LSTM, functional')
-            self.model = self.clstm()
+            self.model = self.clstm(bn=True)
 
         if self.name == 'rodriguez':
             print('Rodriguez Deep pain model')
@@ -422,32 +414,32 @@ class MyModel:
         model = Sequential()
         if self.nb_lstm_layers >= 1:
             model.add(ConvLSTM2D(filters=self.nb_lstm_units,
-                                 kernel_size=(self.kernel_size, self.kernel_size),
+                                 kernel_size=(self.config_dict['kernel_size'], self.config_dict['kernel_size']),
                                  input_shape=(None, self.input_shape[0], self.input_shape[1], channels),
                                  padding='same', return_sequences=True))
             model.add(TimeDistributed(MaxPooling2D()))
             model.add(BatchNormalization())
         
         if self.nb_lstm_layers >= 2:
-            model.add(ConvLSTM2D(filters=self.nb_lstm_units, kernel_size=(self.kernel_size, self.kernel_size),
+            model.add(ConvLSTM2D(filters=self.nb_lstm_units, kernel_size=(self.config_dict['kernel_size'], self.config_dict['kernel_size']),
                                  padding='same', return_sequences=True))
             model.add(TimeDistributed(MaxPooling2D()))
             model.add(BatchNormalization())
 
         if self.nb_lstm_layers >= 3:
-            model.add(ConvLSTM2D(filters=self.nb_lstm_units, kernel_size=(self.kernel_size, self.kernel_size),
+            model.add(ConvLSTM2D(filters=self.nb_lstm_units, kernel_size=(self.config_dict['kernel_size'], self.config_dict['kernel_size']),
                                  padding='same', return_sequences=True))
             model.add(TimeDistributed(MaxPooling2D()))
             model.add(BatchNormalization())
         
         if self.nb_lstm_layers >= 4:
-            model.add(ConvLSTM2D(filters=self.nb_lstm_units, kernel_size=(self.kernel_size, self.kernel_size),
+            model.add(ConvLSTM2D(filters=self.nb_lstm_units, kernel_size=(self.config_dict['kernel_size'], self.config_dict['kernel_size']),
                                  padding='same', return_sequences=True))
             model.add(TimeDistributed(MaxPooling2D()))
             model.add(BatchNormalization())
 
         if self.nb_lstm_layers >= 5:
-            model.add(ConvLSTM2D(filters=self.nb_lstm_units, kernel_size=(self.kernel_size, self.kernel_size),
+            model.add(ConvLSTM2D(filters=self.nb_lstm_units, kernel_size=(self.config_dict['kernel_size'], self.config_dict['kernel_size']),
                                  padding='same', return_sequences=True))
             model.add(BatchNormalization())
         model.add(TimeDistributed(Flatten()))
@@ -499,18 +491,18 @@ class MyModel:
         print(x)
         # Normalize according to batch statistics
         if batch_normalization:
-            x = tf.layers.batch_normalization(inputs=x)
+            x = tf.keras.layers.BatchNormalization()(x)
             print(x)
         return x, clstm_output
 
-    def clstm(self, bn, config_dict):
+    def clstm(self, bn):
         """x: 5D tensor, sequence of images
            bn: bool, whether to batch normalize
            return: x, the transformed input sequence."""
 
         input_layer = Input(shape=(None, self.input_shape[0], self.input_shape[1], 3))
-        layers = config_dict['nb_lstm_layers'] * [config_dict['nb_lstm_units']]
-        rs = ast.literal_eval(config_dict['return_sequences'])
+        layers = self.config_dict['nb_lstm_layers'] * [self.config_dict['nb_lstm_units']]
+        rs = ast.literal_eval(self.config_dict['return_sequences'])
         nb_clstm_layers = len(layers)
 
         print(input)
@@ -520,23 +512,23 @@ class MyModel:
             with tf.name_scope(name_scope):
                 x, clstm_output = self.clstm_block(
                     x, nb_hidden=layers[l],
-                    ks1=config_dict['kernel_size_1'],
-                    ks2=config_dict['kernel_size_2'],
-                    pooling=config_dict['pooling_method'],
+                    ks1=self.config_dict['kernel_size'],
+                    ks2=self.config_dict['kernel_size'],
+                    pooling=self.config_dict['pooling_method'],
                     batch_normalization=bn,
                     return_sequences=rs[l])
                 print('x: ', x)
                 print('clstm_output: ', clstm_output)
 
         with tf.name_scope('fully_con'):
-            if config_dict['only_last_element_for_fc'] == 'yes':
+            if self.config_dict['only_last_element_for_fc'] == 'yes':
                 # Only pass on the last element of the sequence to FC.
                 # return_seq is True just to save it in the graph for gradcam.
-                x = tf.layers.flatten(x[:, -1, :, :, :])
+                x = tf.keras.layers.Flatten()(x[:, -1, :, :, :])
             else:
-                x = tf.layers.flatten(x)
+                x = tf.keras.layers.Flatten()(x)
             print(x)
-            x = tf.layers.dense(x, units=self.nb_labels)
+            x = tf.keras.layers.Dense(units=self.config_dict['nb_labels'])(x)
             print(x)
 
         if self.config_dict['return_last_clstm']:
