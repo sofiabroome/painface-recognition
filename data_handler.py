@@ -59,7 +59,7 @@ class DataHandler:
                     output_shapes=(
                         tf.TensorShape([None, None, self.image_size[0],
                             self.image_size[1], self.color_channels]),
-                        tf.TensorShape([None, None, 2]))
+                        tf.TensorShape([None, 2]))
                     )
         if self.config_dict['nb_input_dims'] == 4:
             if '2stream' in self.config_dict['model']:
@@ -539,14 +539,14 @@ class DataHandler:
 
                 if seq_index == self.seq_length:
                     X_batch_list.append(X_seq_list)
-                    y_batch_list.append(y_seq_list)
+                    y_batch_list.append(y_seq_list[0])
                     seq_index = 0
                     batch_index += 1
 
                     if train and (self.aug_flip == 1):
                         X_seq_list_flipped = self.flip_images(X_seq_list)
                         X_batch_list.append(X_seq_list_flipped)
-                        y_batch_list.append(y_seq_list)
+                        y_batch_list.append(y_seq_list[0])
                         batch_index += 1
 
                     if train and (self.aug_crop == 1):
@@ -554,13 +554,13 @@ class DataHandler:
                         X_seq_list_cropped = self.random_crop_resize(X_seq_list,
                                                                      crop_size, crop_size)
                         X_batch_list.append(X_seq_list_cropped)
-                        y_batch_list.append(y_seq_list)
+                        y_batch_list.append(y_seq_list[0])
                         batch_index += 1
 
                     if train and (self.aug_light == 1):
                         X_seq_list_shaded = self.add_gaussian_noise(X_seq_list)
                         X_batch_list.append(X_seq_list_shaded)
-                        y_batch_list.append(y_seq_list)
+                        y_batch_list.append(y_seq_list[0])
                         batch_index += 1
 
                     # if train:
@@ -573,7 +573,7 @@ class DataHandler:
                     y_array = np.array(y_batch_list, dtype=np.uint8)
                     if self.nb_labels == 2:
                         y_array = tf.keras.utils.to_categorical(y_array, num_classes=self.nb_labels)
-                        y_array = np.reshape(y_array, (self.batch_size, -1, self.nb_labels))
+                    y_array = np.reshape(y_array, (self.batch_size, self.nb_labels))
                     batch_index = 0
                     yield X_array, y_array
 

@@ -193,7 +193,6 @@ def run_evaluation(args, config_dict, model, model_path,
                             verbose=1)
 
     y_test = np.array(y_batches)  # [nb_batches, batch_size, nb_classes]
-    import ipdb; ipdb.set_trace()
     y_test_paths = np.array(y_batches_paths)
     nb_batches = y_test.shape[0]
 
