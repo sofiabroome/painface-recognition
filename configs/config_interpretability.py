@@ -9,8 +9,10 @@ config_dict = {
 'lps_of_path' : data_path + 'lps/jpg_128_128_16fps_OF_magnitude_cv2_2fpsrate/',
 'output_folder': '../data/lps/interpretability_results/',
 # 'checkpoint' : '../models/BEST_MODEL_2stream_5d_add_117332.h5', # 2stream
+# 'checkpoint' : '../models/best_model_2stream_5d_add_testhej.ckpt',  # 1stream
 # 'model' : '2stream_5d_add',
-'checkpoint' : '../models/BEST_MODEL_convolutional_LSTM_116306.h5',  # 1stream
+# 'checkpoint' : '../models/BEST_MODEL_convolutional_LSTM_116306.h5',  # 1stream
+'checkpoint' : '../models/best_model_convolutional_LSTM_testhej.ckpt',  # 1stream
 'model' : 'convolutional_LSTM',
 'rgb_period' : 1, # Set to 10 if simonyan-like model
 'flow_period' : 1,
@@ -19,7 +21,7 @@ config_dict = {
 'color' : True,
 'nb_labels' : 2,
 'target_names' : ['NO_PAIN', 'PAIN'],
-'nb_lstm_units' : 32,
+'nb_lstm_units' : 4,
 'kernel_size' : 5,
 'dropout_1' : 0.25,
 'dropout_2' : 0.5,
@@ -38,7 +40,7 @@ config_dict = {
 'monitor' : 'val_binary_accuracy',
 'monitor_mode' : 'max',
 'data_type' : 'rgb',
-'nb_lstm_layers' : 4,
+'nb_lstm_layers' : 2,
 'aug_flip' : 0,
 'aug_crop' : 0,
 'aug_light' : 0,
@@ -54,4 +56,10 @@ config_dict = {
 'return_sequences' : '[True, True, True, False]',
 'return_last_clstm' : True,
 # Temporal mask things
-'temporal_mask_type' : 'freeze'}
+'temporal_mask_type' : 'freeze',
+'nb_iterations_graddescent' : 3,
+'focus_type' : 'guessed',
+'lambda_1' : 0.01,
+'lambda_2' : 0.02,
+'tv_norm_p' : 3,
+'tv_norm_q' : 3}

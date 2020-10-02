@@ -44,24 +44,22 @@ def perturbSequence(seq, mask, perbType='freeze', snapValues=False):
         # TODO: also double check that the mask here is not a copy but by ref so the grad holds
         for u in range(len(mask)):
 
-            if (u == 0):
+            if u == 0:
                 perbInput = slice_assign(perbInput,
                                          tf.expand_dims(seq[:, u, :, :, :], axis=0),
                                          ':', slice(u, u+1, 1), ':', ':', ':')
-                print('pi shape:', perbInput.shape)
-                # perbInput[:, :, u, :, :] = seq[:, :, u, :, :]
-            if (u != 0):
-                to_assign = (1 - mask[u]) * seq[:, u, :, :, :] + mask[u] * perbInput.numpy()[:, u-1, :, :, :]
+            if u != 0:
+                to_assign = (1 - mask[u]) * seq[:, u, :, :, :] + mask[u] * perbInput[:, u-1, :, :, :]
                 perbInput = slice_assign(perbInput, tf.expand_dims(to_assign, axis=0),
                                          ':', slice(u, u + 1, 1), ':', ':', ':')
 
-    if (perbType == 'reverse'):
+    if  perbType == 'reverse':
         # pytorch expects Batch,Channel, T, H, W
         perbInput = tf.zeros(seq.shape)
 
         # threshold for finding out which indexes are on
         maskOnInds = (mask > 0.1).nonzero()
-        if (len(maskOnInds) > 0):
+        if len(maskOnInds) > 0:
             # non-zero gives unfortunate dimensions like [[0], [1]] so squeeze it
             maskOnInds = maskOnInds.squeeze(dim=1)
         maskOnInds = maskOnInds.tolist()
@@ -138,7 +136,7 @@ def perturb_sequence(seq, mask, perb_type='freeze', snap_values=False):
     return perb_input
 
 
-def init_mask(seq, target, model, forward_fn, thresh=0.9, mode="central"):
+def init_mask(seq, target, model, thresh=0.9, mode="central"):
     """
     Initiaizes the first value of the mask where the gradient descent
     methods for finding the masks starts. Central finds the smallest
@@ -150,19 +148,11 @@ def init_mask(seq, target, model, forward_fn, thresh=0.9, mode="central"):
     if mode == 'central':
 
         # get the class score for the fully perturbed sequence
-        print('types ', seq.dtype, np.ones(seq.shape[1]).dtype)
-        # full_pert_score = forward_fn(seq, np.ones(seq.shape[1], dtype='float32'))
         full_pert_score = model(perturbSequence(seq, np.ones(seq.shape[1], dtype='float32')))
-        print(full_pert_score.shape)
-
         full_pert_score = full_pert_score[:, np.argmax(target)]
-        print(full_pert_score.shape)
 
-        # orig_score = forward_fn(seq, np.zeros((seq.shape[0])))
         orig_score = model(perturbSequence(seq, np.zeros((seq.shape[0]))))
-        print(orig_score.shape)
         orig_score = orig_score[:, np.argmax(target)]
-        print(orig_score.shape)
 
         # reduce mask size while the loss ratio remains above 90%
         for i in range(1, seq.shape[1] // 2):
@@ -170,11 +160,8 @@ def init_mask(seq, target, model, forward_fn, thresh=0.9, mode="central"):
             new_mask[:i] = 0
             new_mask[-i:] = 0
 
-            # central_score = forward_fn(seq, new_mask)
             central_score = model(perturbSequence(seq, new_mask))
-            print(central_score.shape)
             central_score = central_score[:, np.argmax(target)]
-            print(central_score.shape)
 
             score_ratio = (orig_score - central_score) / (orig_score - full_pert_score)
 
@@ -194,17 +181,17 @@ def init_mask(seq, target, model, forward_fn, thresh=0.9, mode="central"):
     return mask
 
 
-def calc_TV_norm(mask, p=3, q=3):
+def calc_TV_norm(mask, config_dict):
     """"
     Calculates the Total Variational Norm by summing the differences of the values
     in between the different positions in the mask.
     p=3 and q=3 are defaults from the paper.
     """
     val = 0
-    for u in range(1, FLAGS.seq_length - 1):
-        val += tf.abs(mask[u - 1] - mask[u]) ** p
-        val += tf.abs(mask[u + 1] - mask[u]) ** p
-    val = val ** (1 / p)
-    val = val ** q
+    for u in range(1, config_dict['seq_length'] - 1):
+        val += tf.abs(mask[u - 1] - mask[u]) ** config_dict['tv_norm_p']
+        val += tf.abs(mask[u + 1] - mask[u]) ** config_dict['tv_norm_p']
+    val = val ** (1 / config_dict['tv_norm_p'])
+    val = val ** config_dict['tv_norm_q']
 
     return val

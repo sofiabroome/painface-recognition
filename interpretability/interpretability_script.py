@@ -11,27 +11,13 @@ from interpretability import mask, gradcam as gc, interpretability_viz as viz
 from data_scripts import make_df_for_testclips
 
 
-def get_variables_to_restore():
-    variables_to_restore = {}
-    for variable in tf.global_variables():
-        if variable.name.startswith('mask'):
-            continue
-        elif variable.name.startswith('original_input'):
-            continue
-        else:
-            # Variables need to be renamed to match with the checkpoint.
-            variables_to_restore[variable.name.replace(':0', '')] = variable
-
-    return variables_to_restore
-
-
 def run(verbose=True, do_gradcam=True):
 
     if not os.path.exists(config_dict['output_folder']):
         os.makedirs(config_dict['output_folder'])
 
     model = models.MyModel(config_dict=config_dict).model
-    model.load_weights(config_dict['checkpoint'])
+    model.load_weights(config_dict['checkpoint']).expect_partial()
 
     optimizer = tf.keras.optimizers.Adam(
         learning_rate=config_dict['lr'])
@@ -63,7 +49,15 @@ def run(verbose=True, do_gradcam=True):
     @tf.function
     def train_step(x, y):
         with tf.GradientTape() as tape:
-            after_softmax = mask.perturbSequence(x, mask_var)
+            # tape.watch(mask_var)
+            # # The mask should always be "clipped" here.
+            # mask_clip = tf.sigmoid(mask_var)
+            # tape.watch(mask_clip)
+            # print("mask_clip is: ", mask_clip)
+            print('\nmask_var after sigmoid', mask_var)
+            after_softmax = model(mask.perturbSequence(x, mask_var))
+            print(after_softmax)
+            print('\nmask_var after perturbseq', mask_var)
             if config_dict['focus_type'] == 'correct':
                 label_index = tf.reshape(
                     tf.argmax(y, axis=1), [])
@@ -73,29 +67,32 @@ def run(verbose=True, do_gradcam=True):
             class_loss = after_softmax[:, label_index]
             # Cast as same type as l1 and TV.
             class_loss = tf.cast(class_loss, tf.float32)
-            l1 = config_dict['lambda_1'] * tf.reduce_sum(tf.abs(mask_clip))
-            tv = config_dict['lambda_2'] * mask.calc_TV_norm(mask_clip, p=3, q=3)
+            l1 = config_dict['lambda_1'] * tf.reduce_sum(
+                tf.abs(mask_var))
+            tv = config_dict['lambda_2'] * mask.calc_TV_norm(
+                mask_var, config_dict)
             loss = l1 + tv + class_loss
-        grads = tape.gradient(loss, time_mask.trainable_weights)
-        optimizer.apply_gradients(zip(grads, mask_var.trainable_weights))
+        print('\nmask_var after loss comp', mask_var)
+        grads = tape.gradient(loss, mask_var)
+        print('\nmask_var after gradient', mask_var)
+        print('grads', grads)
+        optimizer.apply_gradients(zip([grads], [mask_var]))
         return [loss, l1, tv, class_loss]
 
-    for ind, sample in enumerate(dataset):
+    for sample_ind, sample in enumerate(dataset):
 
-        video_id = 'clip_' + str(ind)
+        video_id = 'clip_' + str(sample_ind)
 
         input_var, label = sample
         input_var = tf.cast(input_var, tf.float32)
         print('\n Input var shape: {}, label shape: {}'.format(
             input_var.shape, label.shape))
         preds = model(input_var)
+        print(preds)
         print('preds[:, 0] shape', preds[:, 0].shape)
-        after_softmax_value = np.max(preds[:, 0], axis=1)
-        # after_softmax_value = apply_mask_to_sequence(
-        #     x=input_var,
-        #     mask=np.zeros((config_dict['seq_length'])))
+        guessed_score = np.max(preds, axis=1)
 
-        print('np.argmax preds', after_softmax_value)
+        print('np.max preds', guessed_score)
 
         # eta is for breaking out of the grad desc early if it hasn't improved
         eta = 0.00001
@@ -103,17 +100,17 @@ def run(verbose=True, do_gradcam=True):
         time_mask = mask.init_mask(input_var,
                                    label,
                                    model,
-                                   forward_fn=apply_mask_to_sequence,
                                    thresh=0.9,
                                    mode="central")
         mask_var.assign(time_mask)
 
-        old_loss = 999999
-        for nidx in range(config_dict['nb_iterations_graddescent']):
+        print('\nmask_var', mask_var)
 
-            if (nidx % 10) == 0:
-                print("on nidx: ", nidx)
-                print("mask_clipped is: ", mask_clip)
+        old_loss = 999999
+        for step in range(config_dict['nb_iterations_graddescent']):
+
+            if (step % 10) == 0:
+                print("on step: ", step)
 
             losses = train_step(input_var, label)
             loss_value, l1value, tvvalue, classlossvalue = losses
@@ -123,15 +120,17 @@ def run(verbose=True, do_gradcam=True):
 
             if abs(old_loss - loss_value) < eta:
                 break
-
-        mask_clip = tf.nn.sigmoid(time_mask)
-        save_path = os.path.join("cam_saved_images",
+        time_mask = tf.sigmoid(mask_var)
+        true_class = np.argmax(label)
+        true_class_score = preds[:, true_class]
+        print('preds before save', preds)
+        save_path = os.path.join('cam_saved_images',
                                  config_dict['output_folder'],
-                                 str(np.argmax(label)),
+                                 str(true_class),
                                  video_id + 'g_' +
-                                 str(np.argmax(after_softmax_value.numpy())) +
-                                 '_cs%5.4f' % after_softmax_value.numpy()[:, np.argmax(label)] +
-                                 'gs%5.4f' % after_softmax_value.numpy()[:, np.argmax(after_softmax_value.numpy())],
+                                 str(np.argmax(preds)) +
+                                 '_cs%5.4f' % true_class_score +
+                                 'gs%5.4f' % guessed_score,
                                  'combined')
 
         if not os.path.exists(save_path):
@@ -145,15 +144,15 @@ def run(verbose=True, do_gradcam=True):
             perturbed_sequence = mask.perturb_sequence(
                 input_var, time_mask, perb_type='reverse')
 
-            after_softmax_rev = apply_mask_to_sequence(perturbed_sequence, mask_var)
-            class_loss_rev = after_softmax_rev.numpy()[:, np.argmax(label)]
+            after_softmax_rev = model(perturbed_sequence)
+            class_loss_rev = after_softmax_rev[np.argmax(label)]
 
             f = open(save_path + '/class_score_reverse_case' + video_id + '.txt', 'w+')
             f.write(str(class_loss_rev))
             f.close()
 
             if verbose:
-                print("Resulting mask: ", mask_clip)
+                print("Resulting mask: ", time_mask)
 
             if do_gradcam:
 
