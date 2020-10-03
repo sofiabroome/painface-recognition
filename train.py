@@ -126,6 +126,7 @@ def low_level_train(model, ckpt_path, optimizer, config_dict,
 
     for epoch in range(config_dict['nb_epochs']):
         print('\nStart of epoch %d' % (epoch,))
+        wandb.log({'epoch': epoch})
         start_time = time.time()
 
         with tqdm(total=train_steps) as pbar:
