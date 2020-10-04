@@ -6,72 +6,83 @@ from tf_slice_assign import slice_assign
 MASK_THRESHOLD = 0.1
 
 
-def find_submasks_from_mask(mask, thresh=MASK_THRESHOLD):
+def find_submasks_from_mask(mask, threshold=MASK_THRESHOLD):
+    """
+    :param mask:
+    :param threshold: float
+    :return: [[int]], list of list of mask elements
+    """
+    print(type(mask))
     submasks = []
     current_submask = []
     currently_in_mask = False
     for j in range(len(mask)):
         # if we find a value above threshold but is first occurence, start appending to current submask
-        if mask[j] > thresh and not currently_in_mask:
+        if mask[j] > threshold and not currently_in_mask:
             current_submask = []
             currently_in_mask = True
             current_submask.append(j)
         # if it's not current occurence, just keep appending
-        elif mask[j] > thresh and currently_in_mask:
+        elif mask[j] > threshold and currently_in_mask:
             current_submask.append(j)
             # if below thresh, stop appending
-        elif mask[j] <= thresh and currently_in_mask:
+        elif mask[j] <= threshold and currently_in_mask:
             submasks.append(current_submask)
             currently_in_mask = False
         # if at the end of clip, create last submask
         if j == len(mask) - 1 and currently_in_mask:
             submasks.append(current_submask)
             currently_in_mask = False
-    # print("submasks found: ", submasks)
+    print("submasks found: ", submasks)
     return submasks
 
 
-def perturbSequence(seq, mask, perbType='freeze', snapValues=False):
-    if (snapValues):
+def perturb_sequence(seq, mask, perturbation_type='freeze', snap_values=False):
+    if snap_values:
         for j in range(len(mask)):
-            if (mask[j] > 0.5):
+            if mask[j] > 0.5:
                 mask[j] = 1
             else:
                 mask[j] = 0
-    if (perbType == 'freeze'):
-        # pytorch expects Batch,Channel, T, H, W
-        perbInput = tf.zeros(seq.shape)  # seq.clone().detach()
-        # TODO: also double check that the mask here is not a copy but by ref so the grad holds
+    if perturbation_type == 'freeze':
+        perturbed_seq = tf.zeros(seq.shape)
         for u in range(len(mask)):
 
             if u == 0:
-                perbInput = slice_assign(perbInput,
-                                         tf.expand_dims(seq[:, u, :, :, :], axis=0),
-                                         ':', slice(u, u+1, 1), ':', ':', ':')
+                # tf does not support slice assign of tensors.
+                # the below is eq. to perturbed_seq[:, u, ...] = seq[:, u, ...]
+                perturbed_seq = slice_assign(
+                    perturbed_seq,
+                    tf.expand_dims(seq[:, u, :, :, :], axis=0),
+                    ':', slice(u, u + 1, 1), ':', ':', ':')
             if u != 0:
-                to_assign = (1 - mask[u]) * seq[:, u, :, :, :] + mask[u] * perbInput[:, u-1, :, :, :]
-                perbInput = slice_assign(perbInput, tf.expand_dims(to_assign, axis=0),
-                                         ':', slice(u, u + 1, 1), ':', ':', ':')
+                to_assign = (1 - mask[u]) * seq[:, u, :, :, :] + mask[u] * perturbed_seq[:, u - 1, :, :, :]
+                perturbed_seq = slice_assign(
+                    perturbed_seq,
+                    tf.expand_dims(to_assign, axis=0),
+                    ':', slice(u, u + 1, 1), ':', ':', ':')
 
-    if  perbType == 'reverse':
-        # pytorch expects Batch,Channel, T, H, W
-        perbInput = tf.zeros(seq.shape)
+    if perturbation_type == 'reverse':
+        perturbed_seq = tf.zeros(seq.shape)
 
-        # threshold for finding out which indexes are on
-        maskOnInds = (mask > 0.1).nonzero()
-        if len(maskOnInds) > 0:
-            # non-zero gives unfortunate dimensions like [[0], [1]] so squeeze it
-            maskOnInds = maskOnInds.squeeze(dim=1)
-        maskOnInds = maskOnInds.tolist()
+        # # threshold for finding out which indexes are on
+        # maskOnInds = (mask > 0.1).nonzero()
+        # if len(maskOnInds) > 0:
+        #     # non-zero gives unfortunate dimensions like [[0], [1]] so squeeze it
+        #     maskOnInds = maskOnInds.squeeze(dim=1)
+        # maskOnInds = maskOnInds.tolist()
 
-        # subMasks = findSubMasksFromMask(mask, 0.1)
-        subMasks = find_submasks_from_mask(mask, 0.1)
+        # submasks = findSubMasksFromMask(mask, 0.1)
+        submasks = find_submasks_from_mask(mask, 0.1)
 
         for y in range(len(mask)):
-            # start with original
-            perbInput[:, :, y, :, :] = seq[:, :, y, :, :]
+            # Start from the original sequence
+            perturbed_seq = slice_assign(
+                ':', slice(y, y + 1, 1), ':', ':', ':',
+                sliced_tensor=perturbed_seq,
+                assigned_tensor=tf.expand_dims(seq[:, y, :, :, :], axis=0))
 
-        for maskOnInds in subMasks:
+        for maskOnInds in submasks:
             '''if the submask is on at 3,4,5,6,7. the point is to go to the almost halfway point
             as in 3,4 (so that's why it's len()//2) and swap it with the u:th last element instead (like 7,6)
             '''
@@ -79,61 +90,15 @@ def perturbSequence(seq, mask, perbType='freeze', snapValues=False):
                 # temp storage when doing swap
                 temp = seq[:, :, maskOnInds[u], :, :].clone()
                 # first move u:th LAST frame to u:th frame
-                perbInput[:, :, maskOnInds[u], :, :] = (1 - mask[maskOnInds[u]]) * seq[:, :, maskOnInds[u], :, :] + \
+                perturbed_seq[:, :, maskOnInds[u], :, :] = (1 - mask[maskOnInds[u]]) * seq[:, :, maskOnInds[u], :, :] + \
                                                        mask[maskOnInds[u]] * seq[:, :, maskOnInds[-(u + 1)], :, :]
 
                 # then use temp storage to move u:th frame to u:th last frame
-                perbInput[:, :, maskOnInds[-(u + 1)], :, :] = (1 - mask[maskOnInds[u]]) * seq[:, :,
+                perturbed_seq[:, :, maskOnInds[-(u + 1)], :, :] = (1 - mask[maskOnInds[u]]) * seq[:, :,
                                                                                           maskOnInds[-(u + 1)], :, :] + \
                                                               mask[maskOnInds[u]] * temp
-                # print("return type of pertb: ", perbInput.type())
-    return perbInput
-
-
-def perturb_sequence(seq, mask, perb_type='freeze', snap_values=False):
-    if snap_values:
-        for j in range(len(mask)):
-            if mask[j] > 0.5:
-                mask[j] = 1
-            else:
-                mask[j] = 0
-
-    if perb_type == 'freeze':
-        perb_input = np.zeros(seq.shape)
-        for u in range(len(mask)):
-
-            if u == 0:  # Set first frame to same as seq.
-                perb_input[:, u, :, :, :] = seq[:, u, :, :, :]
-
-            if u != 0:  # mask[u]>=0.5 and u!=0
-                perb_input[:, u, :, :, :] = (1 - mask[u]) * seq[:, u, :, :, :] + \
-                                           mask[u] * np.copy(perb_input)[:, u - 1, :, :, :]
-
-    if perb_type == 'reverse':
-        perb_input = np.zeros(seq.shape)
-        mask_on_inds = np.where(mask > MASK_THRESHOLD)[0]  # np.where returns a tuple for some reason
-        mask_on_inds = mask_on_inds.tolist()
-
-        sub_masks = find_submasks_from_mask(mask)
-
-        for y in range(len(mask)):
-            perb_input[:, y, :, :, :] = seq[:, y, :, :, :]
-
-        for mask_on_inds in sub_masks:
-            # leave unmasked parts alone (as well as reverse middle point)
-            if (len(mask_on_inds) // 2 < len(mask_on_inds) / 2) and y == mask_on_inds[(len(mask_on_inds) // 2)]:
-                # print("hit center at ", y)
-                perb_input[:, y, :, :, :] = seq[:, y, :, :, :]
-            for u in range(int(len(mask_on_inds) // 2)):
-                temp = seq[:, mask_on_inds[u], :, :, :]
-                perb_input[:, mask_on_inds[u], :, :, :] = (1 - mask[mask_on_inds[u]]) *\
-                    seq[:, mask_on_inds[u], :, :, :] + \
-                    mask[mask_on_inds[u]] *\
-                    seq[:, mask_on_inds[-(u + 1)], :, :, :]
-                perb_input[:, mask_on_inds[-(u + 1)], :, :, :] = (1 - mask[mask_on_inds[u]]) *\
-                    seq[:, mask_on_inds[-(u + 1)], :, :, :] +\
-                    mask[mask_on_inds[ u]] * temp
-    return perb_input
+                # print("return type of pertb: ", perturbed_seq.type())
+    return perturbed_seq
 
 
 def init_mask(seq, target, model, thresh=0.9, mode="central"):
@@ -148,10 +113,10 @@ def init_mask(seq, target, model, thresh=0.9, mode="central"):
     if mode == 'central':
 
         # get the class score for the fully perturbed sequence
-        full_pert_score = model(perturbSequence(seq, np.ones(seq.shape[1], dtype='float32')))
+        full_pert_score = model(perturb_sequence(seq, np.ones(seq.shape[1], dtype='float32')))
         full_pert_score = full_pert_score[:, np.argmax(target)]
 
-        orig_score = model(perturbSequence(seq, np.zeros((seq.shape[0]))))
+        orig_score = model(perturb_sequence(seq, np.zeros((seq.shape[0]))))
         orig_score = orig_score[:, np.argmax(target)]
 
         # reduce mask size while the loss ratio remains above 90%
@@ -160,7 +125,7 @@ def init_mask(seq, target, model, thresh=0.9, mode="central"):
             new_mask[:i] = 0
             new_mask[-i:] = 0
 
-            central_score = model(perturbSequence(seq, new_mask))
+            central_score = model(perturb_sequence(seq, new_mask))
             central_score = central_score[:, np.argmax(target)]
 
             score_ratio = (orig_score - central_score) / (orig_score - full_pert_score)

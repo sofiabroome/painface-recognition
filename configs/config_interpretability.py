@@ -56,10 +56,12 @@ config_dict = {
 'return_sequences' : '[True, True, True, False]',
 'return_last_clstm' : True,
 # Temporal mask things
-'temporal_mask_type' : 'freeze',
+'temporal_mask_type' : 'reverse',
 'nb_iterations_graddescent' : 3,
 'focus_type' : 'guessed',
 'lambda_1' : 0.01,
 'lambda_2' : 0.02,
 'tv_norm_p' : 3,
-'tv_norm_q' : 3}
+'tv_norm_q' : 3,
+'verbose' : True,
+'do_gradcam' : True}
