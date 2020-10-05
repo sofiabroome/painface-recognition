@@ -6,14 +6,13 @@ import helpers
 import os
 
 
-def all_frames_in_folder_to_df(frames_path, clip_csv, data_columns):
+def all_frames_in_folder_to_df(frames_path, df_csv, data_columns):
     """
     Create a DataFrame with all the frames with annotations from a csv-file.
     :param frames_path: str
     :param clip_csv: str
     :return: pd.DataFrame
     """
-    df_csv = pd.read_csv(clip_csv)
     column_headers = ['video_id', 'path', 'train']
     for dc in data_columns:
         column_headers.append(dc)
@@ -47,20 +46,122 @@ def all_frames_in_folder_to_df(frames_path, clip_csv, data_columns):
     return df
 
 
+def add_flow_to_frames_df(flow_path, frames_df):
+    """
+    Create a DataFrame with all the optical flow paths with annotations
+    from a csv-file, then join it with the existing df with rgb paths,
+    at simultaneous frames.
+    :param flow_path:
+    :param frames_df:
+    :return: pd.DataFrame
+    """
+    c = 0  # Per subject frame counter.
+    per_clip_frame_counter = 0
+    old_path = 'NoPath'
+    of_path_list = []
+    list_of_video_ids = list(set(frames_df['video_id'].values))
+
+    # Walk through all the files in the of-folders and put them in a
+    # list, in order (the same order they were extracted in.)
+
+    for path, dirs, files in sorted(os.walk(flow_path)):
+        print(path)
+        if 'test_clip_' not in path:
+            continue
+        _, test_clip_x = path.rsplit(sep='/', maxsplit=1)
+        print('test_clip_x: ', test_clip_x)
+        _, clip_index = test_clip_x.rsplit(sep='_', maxsplit=1)
+        csv_row = df_clip_csv.loc[df_clip_csv['ind'] == int(clip_index)]
+        video_id = csv_row.iloc[0]['video_id']
+        if video_id not in list_of_video_ids:
+            print(video_id, ' was excluded')
+            continue
+        print(video_id)
+        nb_frames_in_clip = len(
+            frames_df.loc[frames_df['video_id'] == video_id])
+        if old_path != path and c != 0:  # If entering a new folder (but not first time)
+            per_clip_frame_counter = 0
+            if '1fps' in flow_path:
+                print('Dropping first optical flow to match with rgb.')
+                frames_df.drop(c, inplace=True)  # Delete first element
+                frames_df.reset_index(drop=True, inplace=True)  # And adjust the index
+        old_path = path
+        for filename in sorted(files):
+            total_path = os.path.join(path, filename)
+            if filename.startswith('flow_')\
+                    and ('.npy' in filename or '.jpg' in filename):
+                print(total_path)
+                of_path_list.append(total_path)
+                c += 1
+                per_clip_frame_counter += 1
+        if per_clip_frame_counter < nb_frames_in_clip:
+            diff = nb_frames_in_clip - per_clip_frame_counter
+            if diff > 1:
+                print('Warning: flow/rgb diff is larger than 1')
+            else:
+                print('Counted {} flow-frames for {} rgb frames \n'.format(
+                        per_clip_frame_counter, nb_frames_in_clip))
+                frames_df.drop(c, inplace=True)
+                frames_df.reset_index(drop=True, inplace=True)
+                print('Dropped the last rgb frame of the clip. \n')
+
+    # Now extend subject_df to contain both rgb and OF paths,
+    # and then return whole thing.
+    try:
+        frames_df.loc[:, 'of_path'] = pd.Series(of_path_list)
+        frames_df.loc[:, 'train'] = -1
+    except AssertionError:
+        print('RGB and flow columns were not the same length'
+              'and the data could not be merged.')
+
+    return frames_df
+
+
 def get_dataset_from_df(df, data_columns, config_dict, all_subjects_df):
     dh = data_handler.DataHandler(data_columns, config_dict, all_subjects_df)
     return dh.get_dataset(df, train=False)
-    
+
+
+def make_df_frames_rgb():
+    if os.path.isfile(frames_csv_path):
+        df_frames = pd.read_csv(frames_csv_path)
+    else:
+        print('Making a DataFrame with RGB frames for: ', frames_path)
+        df_frames = all_frames_in_folder_to_df(frames_path,
+                                               df_csv=df_clip_csv,
+                                               data_columns=data_columns)
+        df_frames.to_csv(frames_path + 'test_clip_frames.csv')
+    return df_frames
+
+
+def make_df_frames_optical_flow():
+    if os.path.isfile(flow_frames_csv_path):
+        df_flow_and_frames = pd.read_csv(frames_csv_path)
+    else:
+        print('Making a DataFrame with optical flow frames for: ', frames_path)
+        frames_df = make_df_frames_rgb()
+        df_flow_and_frames = add_flow_to_frames_df(flow_path=flow_frames_path,
+                                                   frames_df=frames_df)
+        df_flow_and_frames.to_csv(flow_frames_path + 'test_clip_frames.csv')
+    return df_flow_and_frames
 
 if __name__ == '__main__':
+    all_subjects_df = pd.read_csv('../metadata/horse_subjects.csv')
+    data_columns = ['pain', 'observer']
+
+    clip_csv_path = '../data/lps/random_clips_lps/ground_truth_randomclips_lps.csv'
+    df_clip_csv = pd.read_csv(clip_csv_path)
+
     print('just tests')
-    # frames_path = '../data/lps/random_clips_lps/jpg_128_128_2fps/'
-    # data_columns = ['pain', 'observer']
-    # config_dict_module = helpers.load_module('../configs/config_interpretability.py')
-    # config_dict = config_dict_module.config_dict
-    # all_subjects_df = pd.read_csv('../metadata/horse_subjects.csv')
-    # df = all_frames_in_folder_to_df(
-    #         frames_path=frames_path,
-    #         clip_csv='../data/lps/random_clips_lps/ground_truth_randomclips_lps.csv',
-    #         data_columns=data_columns)
-    # # df.to_csv(frames_path + 'test_clip_frames.csv')
+    fps = 2
+    frames_path = '../data/lps/random_clips_lps/jpg_128_128_{}fps/'.format(fps)
+    flow_frames_path = '../data/lps/random_clips_lps/jpg_128_128_16fps_OF_magnitude_{}fpsrate/'.format(fps)
+
+    frames_csv_path = frames_path + 'test_clip_frames.csv'
+    flow_frames_csv_path = flow_frames_path + 'test_clip_frames.csv'
+
+    config_dict_module = helpers.load_module('../configs/config_interpretability.py')
+    config_dict = config_dict_module.config_dict
+
+    # df_frames = make_df_frames_rgb()
+    df_frames_flow = make_df_frames_optical_flow()

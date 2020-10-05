@@ -1,12 +1,9 @@
 import sys
 sys.path.append('../') # Adds higher directory to python modules path.
 from helpers import process_image, find_between
-from scipy.misc import imsave
 import pandas as pd
-import numpy as np
 import subprocess
 import argparse
-import cv2
 import os
 
 from lps_subjects import lps_subjects
@@ -74,21 +71,16 @@ def iterate_over_frames(frequency):
                     print(vid_seq_name)
                     per_video_counter = 0
                     old_vid_seq_name = vid_seq_name
-                counter_format = ("%06d" % (per_video_counter-1))  # -1 if I want to start at 1, otherwise 2.
+                # -1 if I want to start at 1, otherwise 2.
+                counter_format = ("%06d" % (per_video_counter-1))
                 if (per_video_counter % frequency) == 2:
                     flow_output_path_stem = output_root_dir + subject_id +  '/'\
                                             + vid_seq_name + '/flow_' + counter_format
                     # print(flow_output_path_stem)
                     optical_flow.compute_optical_flow(ims, flow_output_path_stem, magnitude=True)
-                # flow_output_path_stem = output_root_dir + subject_id +  '/'\
-                #                         + vid_seq_name + '/flow_' + counter_format
-                # print(flow_output_path_stem)
-                # compute_optical_flow(ims, flow_output_path_stem, magnitude=False)
                 ims[0] = ims[1]
                 ims.pop()
             frame_path = row[1]['path']
-            # Shoulder pain
-            # vid_seq_name = find_between(frame_path, subject_id + '/', '/')
             # Equine data
             vid_seq_name = find_between(frame_path, subject_id + '/', '/frame')
             im = process_image('../' + frame_path, (width, height, channels))

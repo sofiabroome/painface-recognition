@@ -3,11 +3,10 @@ sys.path.append('../') # Adds higher directory to python modules path.
 
 from extract_frames_into_folders import check_if_unique_in_df
 from helpers import process_image, find_between
-from scipy.misc import imsave
-
 import pandas as pd
 import numpy as np
 import subprocess
+import imageio
 import time
 import argparse
 import cv2
@@ -132,7 +131,7 @@ def compute_optical_flow(ims, output_path_stem, magnitude=True):
         extra_channel = np.zeros((rows, cols, 1))
     flow = np.concatenate((flow, extra_channel), axis=2)
     flow = cv2.normalize(flow, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
-    imsave(output_path_stem + '.jpg', flow)
+    imageio.imwrite(output_path_stem + '.jpg', flow)
 
     if args.viz:
         hsv = np.zeros(im1.shape, dtype=np.uint8)

@@ -4,10 +4,11 @@ import os
 
 
 if __name__ == '__main__':
+    fps_to_extract = 16
     overview_df = pd.read_csv('../metadata/lps_videos_overview.csv', sep=',')
     df = pd.read_csv('../data/lps/random_clips_lps/ground_truth_randomclips_lps.csv', sep=',')
     root_dir = '../data/lps/random_clips_lps/'
-    frames_dir = '../data/lps/random_clips_lps/jpg_128_128_2fps/'
+    frames_dir = '../data/lps/random_clips_lps/jpg_128_128_{}fps/'.format(fps_to_extract)
 
     if not os.path.exists(frames_dir):
         subprocess.call(['mkdir', frames_dir])
@@ -56,10 +57,10 @@ if __name__ == '__main__':
 
         print(os.environ['PATH'])
 
-        # JPG 2FPS 128x128
-        #
+        # JPG {}FPS 128x128
+
         ffmpeg_command = ['ffmpeg', '-ss', start, '-i', video_path, '-qscale:v', str(4), '-t', length, '-vf',
-                          'scale=128:128', '-r', str(2), '-an', complete_output_path]
+                          'scale=128:128', '-r', str(fps_to_extract), '-an', complete_output_path]
 
         print(ffmpeg_command)
         subprocess.call(ffmpeg_command)
