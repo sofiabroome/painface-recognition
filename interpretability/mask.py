@@ -12,29 +12,45 @@ def find_submasks_from_mask(mask, threshold=MASK_THRESHOLD):
     :param threshold: float
     :return: [[int]], list of list of mask elements
     """
-    print(type(mask))
-    submasks = []
-    current_submask = []
+    # submasks = []
+    # current_submask = []
+    # Any Python side-effects (appending to a list, printing with print, etc)
+    # will only happen once, when func is traced. To have side-effects
+    # executed into your tf.function they need to be written as TF ops:
+    submasks = tf.TensorArray(dtype=tf.int32, size=0, dynamic_size=True)
+    current_submask = tf.TensorArray(dtype=tf.int32, size=0, dynamic_size=True)
     currently_in_mask = False
+    submasks_append_counter = 0
     for j in range(len(mask)):
         # if we find a value above threshold but is first occurence, start appending to current submask
         if mask[j] > threshold and not currently_in_mask:
-            current_submask = []
+            # current_submask = []
+            current_submask = tf.TensorArray(dtype=tf.int32, size=0, dynamic_size=True)
             currently_in_mask = True
-            current_submask.append(j)
+            # current_submask.append(j)
+            current_submask.write(j, j)
+            # current_submask.stack()
         # if it's not current occurence, just keep appending
         elif mask[j] > threshold and currently_in_mask:
-            current_submask.append(j)
+            # current_submask.append(j)
+            current_submask.write(j, j)
+            # current_submask.stack()
             # if below thresh, stop appending
         elif mask[j] <= threshold and currently_in_mask:
-            submasks.append(current_submask)
+            submasks.write(submasks_append_counter, current_submask.stack())
+            submasks_append_counter += 1
+            # submasks.append(current_submask)
             currently_in_mask = False
         # if at the end of clip, create last submask
         if j == len(mask) - 1 and currently_in_mask:
-            submasks.append(current_submask)
+            submasks.write(submasks_append_counter, current_submask.stack())
+            submasks_append_counter += 1
+            # submasks.append(current_submask)
             currently_in_mask = False
-    print("submasks found: ", submasks)
-    return submasks
+
+    # submasks.stack()
+    # print("submasks found: ", submasks)
+    return submasks.stack()
 
 
 def perturb_sequence(seq, mask, perturbation_type='freeze', snap_values=False):
@@ -63,45 +79,60 @@ def perturb_sequence(seq, mask, perturbation_type='freeze', snap_values=False):
                     ':', slice(u, u + 1, 1), ':', ':', ':')
 
     if perturbation_type == 'reverse':
+        print('Reverse mask perturbation not supported in tf2.')
+        raise NotImplementedError
         perturbed_seq = tf.zeros(seq.shape)
 
-        # # threshold for finding out which indexes are on
-        # maskOnInds = (mask > 0.1).nonzero()
-        # if len(maskOnInds) > 0:
-        #     # non-zero gives unfortunate dimensions like [[0], [1]] so squeeze it
-        #     maskOnInds = maskOnInds.squeeze(dim=1)
-        # maskOnInds = maskOnInds.tolist()
+        # sub_masks_ta = tf.TensorArray(tf.int32, size=0, dynamic_size=True)
 
-        # submasks = findSubMasksFromMask(mask, 0.1)
+        # def get_submasks():
+        #     submasks = sub_masks_ta.write(0, find_submasks_from_mask(mask, 0.1))
+        #     return submasks.stack()
+
+        # submasks = get_submasks()
         submasks = find_submasks_from_mask(mask, 0.1)
 
         for y in range(len(mask)):
             # Start from the original sequence
             perturbed_seq = slice_assign(
-                ':', slice(y, y + 1, 1), ':', ':', ':',
-                sliced_tensor=perturbed_seq,
-                assigned_tensor=tf.expand_dims(seq[:, y, :, :, :], axis=0))
+                perturbed_seq,
+                tf.expand_dims(seq[:, y, :, :, :], axis=0),
+                ':', slice(y, y + 1, 1), ':', ':', ':')
 
-        for maskOnInds in submasks:
+        moi_ta = tf.TensorArray(tf.int32, size=0, dynamic_size=0)
+        for moi in submasks:
             '''if the submask is on at 3,4,5,6,7. the point is to go to the almost halfway point
             as in 3,4 (so that's why it's len()//2) and swap it with the u:th last element instead (like 7,6)
             '''
-            for u in range(int(len(maskOnInds) // 2)):
-                # temp storage when doing swap
-                temp = seq[:, :, maskOnInds[u], :, :].clone()
-                # first move u:th LAST frame to u:th frame
-                perturbed_seq[:, :, maskOnInds[u], :, :] = (1 - mask[maskOnInds[u]]) * seq[:, :, maskOnInds[u], :, :] + \
-                                                       mask[maskOnInds[u]] * seq[:, :, maskOnInds[-(u + 1)], :, :]
+            moi_ta.write(0, moi)
+            mask_on_inds = moi_ta.stack()
+            for u in range(int(len(mask_on_inds) // 2)):
+                submask_index = mask_on_inds[u]
+                mirror_submask_index = mask_on_inds[-(u+1)]
+                # Temp storage when doing swap
+                temp = seq[:, submask_index, :, :, :]
+                # First move u:th LAST frame to u:th frame
+                terms_to_assign = (1 - mask[submask_index]) * seq[:, submask_index, :, :, :] +\
+                    mask[submask_index] * seq[:, mirror_submask_index, :, :, :]
+                perturbed_seq = slice_assign(
+                    perturbed_seq,
+                    tf.expand_dims(terms_to_assign, axis=0),
+                    ':', slice(submask_index, submask_index + 1, 1), ':', ':', ':'
+                )
 
                 # then use temp storage to move u:th frame to u:th last frame
-                perturbed_seq[:, :, maskOnInds[-(u + 1)], :, :] = (1 - mask[maskOnInds[u]]) * seq[:, :,
-                                                                                          maskOnInds[-(u + 1)], :, :] + \
-                                                              mask[maskOnInds[u]] * temp
+                terms_to_assign = (1 - mask[submask_index]) * seq[:, mirror_submask_index, :, :, :] +\
+                    mask[submask_index] * temp
+                perturbed_seq = slice_assign(
+                    perturbed_seq,
+                    tf.expand_dims(terms_to_assign, axis=0),
+                    ':', slice(mirror_submask_index, mirror_submask_index + 1, 1), ':', ':', ':'
+                )
                 # print("return type of pertb: ", perturbed_seq.type())
     return perturbed_seq
 
 
-def init_mask(seq, target, model, thresh=0.9, mode="central"):
+def init_mask(seq, target, model, config_dict, thresh=0.9, mode="central"):
     """
     Initiaizes the first value of the mask where the gradient descent
     methods for finding the masks starts. Central finds the smallest
@@ -112,21 +143,37 @@ def init_mask(seq, target, model, thresh=0.9, mode="central"):
     """
     if mode == 'central':
 
+        def perturb_one_or_two_streams(x, mask):
+            if config_dict['model'] == '2stream_5d_add':
+                perturbed_rgb = perturb_sequence(x[0, :], mask)
+                perturbed_flow = perturb_sequence(x[1, :], mask)
+                concat_streams = tf.concat([perturbed_rgb, perturbed_flow], axis=0)
+                concat_streams_6d = tf.expand_dims(concat_streams, axis=1)
+                print('concat streams shape: ', concat_streams.shape)
+                score = model(concat_streams_6d)
+            else:
+                score = model(perturb_sequence(x, mask))
+            return score
+
         # get the class score for the fully perturbed sequence
-        full_pert_score = model(perturb_sequence(seq, np.ones(seq.shape[1], dtype='float32')))
+        full_pert_score = perturb_one_or_two_streams(seq, np.ones(config_dict['seq_length'], dtype='float32'))
         full_pert_score = full_pert_score[:, np.argmax(target)]
 
-        orig_score = model(perturb_sequence(seq, np.zeros((seq.shape[0]))))
+        orig_score = model(seq)
         orig_score = orig_score[:, np.argmax(target)]
 
         # reduce mask size while the loss ratio remains above 90%
-        for i in range(1, seq.shape[1] // 2):
-            new_mask = np.ones(seq.shape[1])
+        for i in range(1, config_dict['seq_length'] // 2):
+            new_mask = np.ones(config_dict['seq_length'])
             new_mask[:i] = 0
             new_mask[-i:] = 0
 
-            central_score = model(perturb_sequence(seq, new_mask))
+            central_score = perturb_one_or_two_streams(seq, new_mask)
             central_score = central_score[:, np.argmax(target)]
+            print('\nReducing mask size, index: ', i)
+            print('full pert score: ', full_pert_score)
+            print('original score: ', orig_score)
+            print('central score: ', central_score)
 
             score_ratio = (orig_score - central_score) / (orig_score - full_pert_score)
 

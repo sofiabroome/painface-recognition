@@ -7,6 +7,7 @@ import tensorflow as tf
 import arg_parser
 import helpers
 import models
+import wandb
 from interpretability import mask, gradcam as gc, interpretability_viz as viz
 from data_scripts import make_df_for_testclips
 
@@ -22,11 +23,6 @@ def run():
     optimizer = tf.keras.optimizers.Adam(
         learning_rate=config_dict['lr'])
 
-    # The mask is what we optimize over
-    mask_var = tf.Variable(tf.ones(shape=([config_dict['seq_length']])),
-                           name='mask',
-                           trainable=True,
-                           dtype=tf.float32)
     frame_inds = tf.range(config_dict['seq_length'], dtype=tf.int32)
 
     @tf.function
@@ -34,12 +30,17 @@ def run():
         with tf.GradientTape() as tape:
             # The mask should always be "clipped" here.
             mask_clip = tf.sigmoid(mask_var)
-            print("mask_clip is: ", mask_clip)
-            print('\nmask_var after sigmoid', mask_var)
-            after_softmax = model(mask.perturb_sequence(
-                x, mask_clip, perturbation_type=config_dict['temporal_mask_type']))
-            print(after_softmax)
-            print('\nmask_var after perturbseq', mask_var)
+            # tape.watch(mask_clip)
+            if config_dict['model'] == '2stream_5d_add':
+                perturbed_rgb = mask.perturb_sequence(x[0,:], mask_clip)
+                perturbed_flow = mask.perturb_sequence(x[1,:], mask_clip)
+                concat_streams = tf.concat([perturbed_rgb, perturbed_flow], axis=0)
+                concat_streams_6d = tf.expand_dims(concat_streams, axis=1)
+                after_softmax = model(concat_streams_6d)
+            else:
+                after_softmax = model(mask.perturb_sequence(
+                    x, mask_clip))
+            # print(after_softmax)
             if config_dict['focus_type'] == 'correct':
                 label_index = tf.reshape(
                     tf.argmax(y, axis=1), [])
@@ -52,10 +53,11 @@ def run():
             tv = config_dict['lambda_2'] * mask.calc_TV_norm(
                 mask_clip, config_dict)
             loss = l1 + tv + class_loss
+            # loss = class_loss
         gradients = tape.gradient(loss, mask_var)
-        print('grads', gradients)
         optimizer.apply_gradients(zip([gradients], [mask_var]))
-        return gradients, [loss, l1, tv, class_loss]
+        return gradients, [loss, l1, tv, class_loss], mask_var
+        # return gradients, [loss, class_loss], mask_var
 
     for sample_ind, sample in enumerate(dataset):
         print(sample_ind)
@@ -74,32 +76,42 @@ def run():
         print('preds[:, 0] shape', preds[:, 0].shape)
         guessed_score = np.max(preds, axis=1)
 
-        print('np.max preds', guessed_score)
+        print('np.max preds (confidence for guessed class)', guessed_score)
 
         # eta is for breaking out of the grad desc early if it hasn't improved
         eta = 0.00001
 
-        time_mask = mask.init_mask(input_var,
-                                   label,
-                                   model,
-                                   thresh=0.9,
-                                   mode="central")
-        mask_var.assign(time_mask)
+        # The mask is what we optimize over
+        mask_var = tf.Variable(
+            mask.init_mask(input_var, label, model, config_dict, thresh=0.9, mode="central"),
+            name='mask',
+            trainable=True,
+            dtype=tf.float32)
 
         print('\nmask_var', mask_var)
 
         old_loss = 999999
         for step in range(config_dict['nb_iterations_graddescent']):
+            wandb.log({'step': step})
 
             if (step % 10) == 0:
                 print("on step: ", step)
 
-            grads, losses = train_step(input_var, label)
+            grads, losses, mask_update = train_step(input_var, label)
             print('grads numpy', grads.numpy())
+            print('\n mask after update: ', mask_update.numpy())
             loss_value, l1value, tvvalue, classlossvalue = losses
+            wandb.log({'total_loss': loss_value.numpy()})
+            wandb.log({'l1_loss': l1value.numpy()})
+            wandb.log({'tv_loss': tvvalue.numpy()})
+            wandb.log({'class_loss': classlossvalue.numpy()})
 
-            print("Total loss: {}, L1 loss: {}, TV: {}, class score: {}".format(
-                loss_value, l1value, tvvalue, classlossvalue))
+            # loss_value, classlossvalue = losses
+            # wandb.log({'total_loss': loss_value.numpy()})
+            # wandb.log({'class_loss': classlossvalue.numpy()})
+
+            print("Total loss: {}, class score: {}, l1: {}, TV-norm: {}".format(
+                loss_value, classlossvalue, l1value, tvvalue))
 
             if abs(old_loss - loss_value) < eta:
                 break
@@ -118,12 +130,12 @@ def run():
 
         print(save_path)
 
-        # if not os.path.exists(save_path):
-        #     os.makedirs(save_path)
+        if not os.path.exists(save_path):
+            os.makedirs(save_path)
 
-        # f = open(save_path + '/class_score_freeze_case' + video_id + '.txt', 'w+')
-        # f.write(str(classlossvalue))
-        # f.close()
+        f = open(save_path + '/class_score_freeze_case' + video_id + '.txt', 'w+')
+        f.write(str(classlossvalue))
+        f.close()
 
         if config_dict['temporal_mask_type'] == 'reverse':
             perturbed_sequence = mask.perturb_sequence(
@@ -142,7 +154,7 @@ def run():
             if config_dict['do_gradcam']:
 
                 if config_dict['focus_type'] == 'guessed':
-                    target_index = np.argmax(after_softmax_rev.numpy())
+                    target_index = np.argmax(after_softmax_rev)
                 if config_dict['focus_type'] == 'correct':
                     target_index = np.argmax(label)
 
@@ -183,12 +195,16 @@ if __name__ == '__main__':
     config_dict_module = helpers.load_module(args.config_file)
     config_dict = config_dict_module.config_dict
     config_dict['job_identifier'] = args.job_identifier
+    wandb.init(project='pfr-interpretabiliity', config=config_dict)
 
     all_subjects_df = pd.read_csv(args.subjects_overview)
 
-    data_df = pd.read_csv('../data/lps/random_clips_lps/'
-                          'jpg_128_128_2fps/test_clip_frames.csv')
+    # data_df = pd.read_csv('../data/lps/random_clips_lps/'
+    #                       'jpg_128_128_2fps/test_clip_frames.csv')
 
+    data_df = pd.read_csv('../data/lps/random_clips_lps/'
+                          'jpg_128_128_16fps_OF_magnitude_2fpsrate/'
+                          'test_clip_frames.csv')
     dataset = make_df_for_testclips.get_dataset_from_df(
         df=data_df,
         data_columns=['pain'],
