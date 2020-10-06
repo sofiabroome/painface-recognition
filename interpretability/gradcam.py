@@ -4,8 +4,6 @@ from PIL import Image
 import tensorflow as tf
 from skimage.transform import resize
 
-FLAGS = tf.app.flags.FLAGS
-
 
 def get_gradcam_blend(img, image_height, image_width, cam, cam_max):
     """
@@ -25,16 +23,13 @@ def get_gradcam_blend(img, image_height, image_width, cam, cam_max):
     return blend
 
 
-def get_gradcam(sess, prediction, last_clstm_output,
+def get_gradcam(config_dict, sess, prediction, last_clstm_output,
                 y, original_input_var, mask_var, frame_inds,
                 sequence, label, target_index,
                 image_height, image_width):
     
     prob = tf.keras.layers.Activation('softmax')(prediction)
 
-    # Things needed for gradcam
-    cost = (-1) * tf.reduce_sum(tf.multiply(y, tf.log(prob)), axis=1)
-    
     # Elementwise multiplication between y and prediction, then reduce to scalar
     if target_index == np.argmax(label):
         y_c = tf.reduce_sum(tf.multiply(prediction, y), axis=1)
@@ -54,15 +49,15 @@ def get_gradcam(sess, prediction, last_clstm_output,
                                              target_conv_layer_grad],
                                              feed_dict={original_input_var: sequence,
                                                         y: label,
-                                                        mask_var: np.zeros((FLAGS.seq_length)),
-                                                        frame_inds: range(FLAGS.seq_length)})
-    assert (target_conv_layer_grad_value.shape[1] == FLAGS.seq_length)
+                                                        mask_var: np.zeros((config_dict['seq_length'])),
+                                                        frame_inds: range(config_dict['seq_length'])})
+    assert (target_conv_layer_grad_value.shape[1] == config_dict['seq_length'])
 
     # Get CAMs (class activation mappings) for all clips
     # and save max for normalization across clip.
     cam_max = 0
     gradcams = []
-    for i in range(FLAGS.seq_length):
+    for i in range(config_dict['seq_length']):
         frame = sequence[0,i,:]
         grad = target_conv_layer_grad_value[0,i,:]
         conv_output = target_conv_layer_value[0,i,:]
@@ -77,7 +72,7 @@ def get_gradcam(sess, prediction, last_clstm_output,
             cam_max = np.max(cam)
     gradcam_masks = [] 
     # Loop over frames again to blend them with the gradcams and save.
-    for i in range(FLAGS.seq_length):
+    for i in range(config_dict['seq_length']):
         frame = sequence[0, i, :]
         # Prepare frame for gradcam
         img = frame.astype(float)
@@ -85,11 +80,11 @@ def get_gradcam(sess, prediction, last_clstm_output,
         img /= img.max()
     
         # NORMALIZE PER FRAME
-        if FLAGS.normalization_mode == 'frame':
+        if config_dict['normalization_mode'] == 'frame':
             gradcam_blend = get_gradcam_blend(img, image_height,
                     image_width, gradcams[i], np.max(gradcams[i]))
         # NORMALIZE PER SEQUENCE 
-        elif FLAGS.normalization_mode == 'sequence':
+        elif config_dict['normalization_mode'] == 'sequence':
             gradcam_blend = get_gradcam_blend(img, image_height,
                     image_width, gradcams[i], cam_max)
         else:

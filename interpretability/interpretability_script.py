@@ -1,121 +1,46 @@
-import os
 import sys
-
+sys.path.append('..')
+import os
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-import wandb
-
 import arg_parser
 import helpers
 import models
+import wandb
 from interpretability import mask, gradcam as gc, interpretability_viz as viz
+from data_scripts import make_df_for_testclips
 
 
-def build_graph():
-    # First we need to recreate the same variables as in the model.
-    tf.reset_default_graph()
-    seq_shape = (config_dict['batch_size'],
-                 config_dict['seq_length'],
-                 config_dict['image_size'],
-                 config_dict['image_size'], 3)
-
-    # Build graph
-    graph = tf.Graph()
-
-    # Graph for perturb_sequence(seq, mask, perb_type) method
-    # Create variable to save original input sequence
-    with tf.variable_scope('original_input'):
-        original_input_plhdr = tf.placeholder(tf.float32, seq_shape)
-        original_input_var = tf.get_variable('original_input',
-                                             seq_shape,
-                                             dtype=tf.float32,
-                                             trainable=False)
-        original_input_assign = original_input_var.assign(original_input_plhdr)
-
-    with tf.variable_scope('mask'):
-        # Create variable for the temporal mask
-        mask_plhdr = tf.placeholder(tf.float32, [config_dict['seq_length']])
-        mask_var = tf.get_variable('input_mask',
-                                   [config_dict['seq_length']],
-                                   dtype=tf.float32,
-                                   trainable=True)
-        mask_assign = tf.assign(mask_var, mask_plhdr)
-        mask_clip = tf.nn.sigmoid(mask_var)
-
-    with tf.variable_scope('perturb'):
-
-        frame_inds = tf.placeholder(tf.int32, shape=(None,), name='frame_inds')
-
-        def recurrence(last_value, current_elem):
-            update_tensor = (1 - mask_clip[current_elem]) * original_input_var[:, current_elem, :, :, :] + \
-                            mask_clip[current_elem] * last_value
-            return update_tensor
-
-        perturb_op = tf.scan(fn=recurrence,
-                             elems=frame_inds,
-                             initializer=original_input_var[:, 0, :, :, :])
-        perturb_op = tf.reshape(perturb_op, seq_shape)
-
-    y = tf.placeholder(tf.float32, [config_dict['batch_size'], config_dict['nb_labels']])
-    logits, clstm_3 = model(perturb_op)
-    after_softmax = tf.nn.softmax(logits)
-
-    return original_input_assign, mask_assign, mask_var,\
-        mask_clip, y, logits, after_softmax
-
-
-def get_variables_to_restore():
-    variables_to_restore = {}
-    for variable in tf.global_variables():
-        if variable.name.startswith('mask'):
-            continue
-        elif variable.name.startswith('original_input'):
-            continue
-        else:
-            # Variables need to be renamed to match with the checkpoint.
-            variables_to_restore[variable.name.replace(':0', '')] = variable
-
-    return variables_to_restore
-
-
-def run(dataset, verbose=True, do_gradcam=True):
+def run():
 
     if not os.path.exists(config_dict['output_folder']):
         os.makedirs(config_dict['output_folder'])
 
-    model = models.MyModel(config_dict=config_dict)
-    model.load_weights(config_dict['checkpoint'])
+    model = models.MyModel(config_dict=config_dict).model
+    model.load_weights(config_dict['checkpoint']).expect_partial()
 
-    optimizer = tf.train.AdamOptimizer(
-        learning_rate=config_dict['learning_rate_start'])
+    optimizer = tf.keras.optimizers.Adam(
+        learning_rate=config_dict['lr'])
 
-    # The mask is what we optimize over
-    mask_var = tf.Variable(tf.ones(shape=(config_dict['seq_length'])),
-                           name='mask',
-                           trainable=True,
-                           dtype=tf.float32)
-    frame_inds = range(config_dict['seq_length'])
-
-    @tf.function
-    def forward(x):
-
-        def recurrence(last_value, current_elem):
-            update_tensor = (1 - mask_clip[current_elem]) * x[:, current_elem, :, :, :] + \
-                            mask_clip[current_elem] * last_value
-            return update_tensor
-
-        masked_input = tf.scan(
-            fn=recurrence, elems=frame_inds,
-            initializer=x[:, 0, :, :, :])
-
-        logits, last_clstm_output = model(masked_input)
-        return tf.nn.softmax(logits)
+    frame_inds = tf.range(config_dict['seq_length'], dtype=tf.int32)
 
     @tf.function
     def train_step(x, y):
         with tf.GradientTape() as tape:
-            after_softmax = forward(x, mask_var)
+            # The mask should always be "clipped" here.
+            mask_clip = tf.sigmoid(mask_var)
+            # tape.watch(mask_clip)
+            if config_dict['model'] == '2stream_5d_add':
+                perturbed_rgb = mask.perturb_sequence(x[0,:], mask_clip)
+                perturbed_flow = mask.perturb_sequence(x[1,:], mask_clip)
+                concat_streams = tf.concat([perturbed_rgb, perturbed_flow], axis=0)
+                concat_streams_6d = tf.expand_dims(concat_streams, axis=1)
+                after_softmax = model(concat_streams_6d)
+            else:
+                after_softmax = model(mask.perturb_sequence(
+                    x, mask_clip))
+            # print(after_softmax)
             if config_dict['focus_type'] == 'correct':
                 label_index = tf.reshape(
                     tf.argmax(y, axis=1), [])
@@ -123,62 +48,87 @@ def run(dataset, verbose=True, do_gradcam=True):
                 label_index = tf.reshape(
                     tf.argmax(after_softmax, axis=1), [])
             class_loss = after_softmax[:, label_index]
-            # Cast as same type as l1 and TV.
-            class_loss = tf.cast(class_loss, tf.float32)
-            l1 = config_dict['lambda_1'] * tf.reduce_sum(tf.abs(mask_clip))
-            tv = config_dict['lambda_2'] * mask.calc_TV_norm(mask_clip, p=3, q=3)
+            l1 = config_dict['lambda_1'] * tf.reduce_sum(
+                tf.abs(mask_clip))
+            tv = config_dict['lambda_2'] * mask.calc_TV_norm(
+                mask_clip, config_dict)
             loss = l1 + tv + class_loss
-        grads = tape.gradient(loss, time_mask.trainable_weights)
-        optimizer.apply_gradients(zip(grads, time_mask.trainable_weights))
-        return [loss, l1, tv, class_loss]
+            # loss = class_loss
+        gradients = tape.gradient(loss, mask_var)
+        optimizer.apply_gradients(zip([gradients], [mask_var]))
+        return gradients, [loss, l1, tv, class_loss], mask_var
+        # return gradients, [loss, class_loss], mask_var
 
-    for input_var, label, video_id in dataset:
+    for sample_ind, sample in enumerate(dataset):
+        print(sample_ind)
 
-        print("Found clip of interest ", video_id)
+        if sample_ind > 0:
+            break
 
-        after_softmax_value = forward(
-            mask_var=np.zeros((config_dict['seq_length'])),
-            original_input=input_var,
-            frame_inds=frame_inds)
+        video_id = 'clip_' + str(sample_ind)
 
-        print('np.argmax preds', np.argmax(after_softmax_value.numpy()))
+        input_var, label = sample
+        input_var = tf.cast(input_var, tf.float32)
+        print('\n Input var shape: {}, label shape: {}'.format(
+            input_var.shape, label.shape))
+        preds = model(input_var)
+        print(preds)
+        print('preds[:, 0] shape', preds[:, 0].shape)
+        guessed_score = np.max(preds, axis=1)
+
+        print('np.max preds (confidence for guessed class)', guessed_score)
 
         # eta is for breaking out of the grad desc early if it hasn't improved
         eta = 0.00001
 
-        time_mask = mask.init_mask(input_var,
-                                   frame_inds,
-                                   label, thresh=0.9,
-                                   mode="central",
-                                   forward_fn=forward(input_var),
-                                   mask_pert_type=config_dict['temporal_mask_type'])
-        mask_var.assign(time_mask)
+        # The mask is what we optimize over
+        mask_var = tf.Variable(
+            mask.init_mask(input_var, label, model, config_dict, thresh=0.9, mode="central"),
+            name='mask',
+            trainable=True,
+            dtype=tf.float32)
+
+        print('\nmask_var', mask_var)
 
         old_loss = 999999
-        for nidx in range(config_dict['nb_iterations_graddescent']):
+        for step in range(config_dict['nb_iterations_graddescent']):
+            wandb.log({'step': step})
 
-            if (nidx % 10) == 0:
-                print("on nidx: ", nidx)
-                print("mask_clipped is: ", mask_clip)
+            if (step % 10) == 0:
+                print("on step: ", step)
 
-            losses = train_step(input_var, label)
+            grads, losses, mask_update = train_step(input_var, label)
+            print('grads numpy', grads.numpy())
+            print('\n mask after update: ', mask_update.numpy())
             loss_value, l1value, tvvalue, classlossvalue = losses
+            wandb.log({'total_loss': loss_value.numpy()})
+            wandb.log({'l1_loss': l1value.numpy()})
+            wandb.log({'tv_loss': tvvalue.numpy()})
+            wandb.log({'class_loss': classlossvalue.numpy()})
 
-            print("Total loss: {}, L1 loss: {}, TV: {}, class score: {}".format(
-                loss_value, l1value, tvvalue, classlossvalue))
+            # loss_value, classlossvalue = losses
+            # wandb.log({'total_loss': loss_value.numpy()})
+            # wandb.log({'class_loss': classlossvalue.numpy()})
+
+            print("Total loss: {}, class score: {}, l1: {}, TV-norm: {}".format(
+                loss_value, classlossvalue, l1value, tvvalue))
 
             if abs(old_loss - loss_value) < eta:
                 break
+        time_mask = tf.sigmoid(mask_var)
+        true_class = np.argmax(label)
+        true_class_score = preds[:, true_class]
+        print('preds before save', preds)
+        save_path = os.path.join(
+            config_dict['output_folder'],
+            str(config_dict['job_identifier']),
+            str(true_class) + video_id + 'g_' +
+            str(np.argmax(preds)) +
+            '_cs%5.4f' % true_class_score +
+            'gs%5.4f' % guessed_score,
+            'combined')
 
-        mask_clip = tf.nn.sigmoid(time_mask)
-        save_path = os.path.join("cam_saved_images",
-                                 config_dict['output_folder'],
-                                 str(np.argmax(label)),
-                                 video_id + 'g_' +
-                                 str(np.argmax(after_softmax_value.numpy())) +
-                                 '_cs%5.4f' % after_softmax_value.numpy()[:, np.argmax(label)] +
-                                 'gs%5.4f' % after_softmax_value.numpy()[:, np.argmax(after_softmax_value.numpy())],
-                                 'combined')
+        print(save_path)
 
         if not os.path.exists(save_path):
             os.makedirs(save_path)
@@ -189,26 +139,26 @@ def run(dataset, verbose=True, do_gradcam=True):
 
         if config_dict['temporal_mask_type'] == 'reverse':
             perturbed_sequence = mask.perturb_sequence(
-                input_var, time_mask, perb_type='reverse')
+                input_var, time_mask, perturbation_type='reverse')
 
-            after_softmax_rev = forward(perturbed_sequence, label, config_dict['seq_length'])
-            class_loss_rev = after_softmax_rev.numpy()[:, np.argmax(label)]
+            after_softmax_rev = model(perturbed_sequence)
+            class_loss_rev = after_softmax_rev[np.argmax(label)]
 
             f = open(save_path + '/class_score_reverse_case' + video_id + '.txt', 'w+')
             f.write(str(class_loss_rev))
             f.close()
 
-            if verbose:
-                print("Resulting mask: ", mask_clip)
+            if config_dict['verbose']:
+                print("Resulting mask: ", time_mask)
 
-            if do_gradcam:
+            if config_dict['do_gradcam']:
 
                 if config_dict['focus_type'] == 'guessed':
-                    target_index = np.argmax(after_softmax_rev.numpy())
+                    target_index = np.argmax(after_softmax_rev)
                 if config_dict['focus_type'] == 'correct':
                     target_index = np.argmax(label)
 
-                # gradcam = gc.get_gradcam(logits, last_clstm_output, label,
+                # gradcam = gc.get_gradcam(config_dict, logits, last_clstm_output, label,
                 #                          input_var, mask_clip, frame_inds,
                 #                          input_var, label, target_index,
                 #                          config_dict['image_size'],
@@ -229,11 +179,14 @@ def run(dataset, verbose=True, do_gradcam=True):
                 #         input_var, gradcam, time_mask,
                 #         save_path, video_id, 'reverse',
                 #         config_dict['image_size'], config_dict['image_size'])
-
-            viz.visualize_results(
-                input_var,
-                mask.perturb_sequence(input_var, time_mask, perb_type='reverse'),
-                time_mask, root_dir=save_path, case=video_id, mark_imgs=True, iter_test=False)
+        else:
+            break
+            # print('Visualizing...')
+            # viz.visualize_results(
+            #     config_dict,
+            #     input_var,
+            #     mask.perturb_sequence(input_var, time_mask, perb_type='reverse'),
+            #     time_mask, root_dir=save_path, case=video_id, mark_imgs=True, iter_test=False)
 
 
 if __name__ == '__main__':
@@ -241,17 +194,22 @@ if __name__ == '__main__':
     args = arg_parser.parse()
     config_dict_module = helpers.load_module(args.config_file)
     config_dict = config_dict_module.config_dict
-    if config_dict['val_mode'] == 'no_val':
-        assert (config_dict['train_mode'] == 'low_level'), \
-            'no_val requires low level train mode'
-
     config_dict['job_identifier'] = args.job_identifier
-    print('Job identifier: ', args.job_identifier)
-    wandb.init(project='pfr', config=config_dict)
+    wandb.init(project='pfr-interpretabiliity', config=config_dict)
 
     all_subjects_df = pd.read_csv(args.subjects_overview)
 
-    # Run the whole program, from preparing the data to evaluating
-    # the model's test performance
+    # data_df = pd.read_csv('../data/lps/random_clips_lps/'
+    #                       'jpg_128_128_2fps/test_clip_frames.csv')
+
+    data_df = pd.read_csv('../data/lps/random_clips_lps/'
+                          'jpg_128_128_16fps_OF_magnitude_2fpsrate/'
+                          'test_clip_frames.csv')
+    dataset = make_df_for_testclips.get_dataset_from_df(
+        df=data_df,
+        data_columns=['pain'],
+        config_dict=config_dict,
+        all_subjects_df=all_subjects_df)
+
     run()
 
