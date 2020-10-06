@@ -38,6 +38,8 @@ class DataHandler:
                                      'lps': config_dict['lps_of_path']}
         self.config_dict = config_dict
         self.all_subjects_df = all_subjects_df
+        self.pixel_mean = config_dict['pixel_mean']
+        self.pixel_std = config_dict['pixel_std']
 
     def get_dataset(self, df, train):
         """
@@ -619,7 +621,8 @@ class DataHandler:
                     yield (X_array, y_array)
 
     def get_image(self, path):
-        im = process_image(path, (self.image_size[0], self.image_size[1], self.color_channels))
+        im = process_image(path, (self.image_size[0], self.image_size[1], self.color_channels),
+                           mean=self.pixel_mean, std=self.pixel_std)
         return im
 
     def flip_images(self, images):
