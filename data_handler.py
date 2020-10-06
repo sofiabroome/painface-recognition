@@ -40,6 +40,8 @@ class DataHandler:
         self.all_subjects_df = all_subjects_df
         self.pixel_mean = config_dict['pixel_mean']
         self.pixel_std = config_dict['pixel_std']
+        self.flow_mean = config_dict['flow_mean']
+        self.flow_std = config_dict['flow_std']
 
     def get_dataset(self, df, train):
         """
@@ -274,11 +276,11 @@ class DataHandler:
                     y_batch_list = []
                     flow_batch_list = []
 
-                x = self.get_image(row['path'])
+                x = self.get_image(row['path'], mean=self.pixel_mean, std=self.pixel_std)
                 X_batch_list.append(x)
                 y = row['pain']
                 y_batch_list.append(y)
-                flow = self.get_image(row['of_path'])
+                flow = self.get_image(row['of_path'], mean=self.flow_mean, std=self.flow_std)
                 flow_batch_list.append(flow)
 
                 batch_index += 1
@@ -381,13 +383,13 @@ class DataHandler:
                         break  # Should not have seqs with mixed video IDs
 
                     if (seq_index % self.config_dict['rgb_period']) == 0:
-                        x = self.get_image(row['path'])
+                        x = self.get_image(row['path'], mean=self.pixel_mean, std=self.pixel_std)
                         X_seq_list.append(x)
                         y = row['pain']
                         y_seq_list.append(y)
 
                     if (seq_index % self.config_dict['flow_period']) == 0:
-                        flow = self.get_image(row['of_path'])
+                        flow = self.get_image(row['of_path'], mean=self.flow_mean, std=self.flow_std)
                         if self.config_dict['rgb_period'] > 1:
                             # We only want the first two channels of the flow.
                             flow = np.take(flow, [0,1], axis=2)
@@ -524,9 +526,9 @@ class DataHandler:
                         break  # In that case want to jump to the next window.
 
                     if self.config_dict['data_type'] == 'rgb':
-                        x = self.get_image(row['path'])
+                        x = self.get_image(row['path'], mean=self.pixel_mean, std=self.pixel_std)
                     if self.config_dict['data_type'] == 'of':
-                        x = self.get_image(row['of_path'])
+                        x = self.get_image(row['of_path'], mean=self.flow_mean, std=self.flow_std)
                         # If no magnitude:
                         # extra_channel = np.zeros((x.shape[0], x.shape[1], 1))
                         # x = np.concatenate((x, extra_channel), axis=2)
@@ -603,10 +605,10 @@ class DataHandler:
                     X_list = []
                     y_list = []
                 if self.config_dict['data_type'] == 'rgb':
-                    x = self.get_image(row['path'])
+                    x = self.get_image(row['path'], mean=self.pixel_mean, std=self.pixel_std)
                     x /= 255
                 if self.config_dict['data_type'] == 'of':
-                    x = self.get_image(row['of_path'])
+                    x = self.get_image(row['of_path'], mean=self.flow_mean, std=self.flow_std)
                 y = row['pain']
                 X_list.append(x)
                 y_list.append(y)
@@ -620,9 +622,9 @@ class DataHandler:
                     batch_index = 0
                     yield (X_array, y_array)
 
-    def get_image(self, path):
+    def get_image(self, path, mean, std):
         im = process_image(path, (self.image_size[0], self.image_size[1], self.color_channels),
-                           mean=self.pixel_mean, std=self.pixel_std)
+                           mean=mean, std=std)
         return im
 
     def flip_images(self, images):
