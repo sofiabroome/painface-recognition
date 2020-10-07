@@ -244,8 +244,8 @@ class DataHandler:
 
     def prepare_generator_2stream(self, df, train):
         """
-        Prepare the frames into labeled train and test sets, with help from the
-        DataFrame with .jpg-paths and labels for train and pain.
+        Prepare batches of frames, optical flow, and labels,
+        with help from the DataFrame with frame paths and labels.
         :param df: pd.DataFrame
         :param train: Boolean
         :return: np.ndarray, np.ndarray, np.ndarray, np.ndarray
@@ -324,8 +324,8 @@ class DataHandler:
 
     def prepare_2stream_image_generator_5D(self, df, train):
         """
-        Prepare the frames into labeled train and test sets, with help from the
-        DataFrame with .jpg-paths and labels for train and pain.
+        Prepare batches of frame sequences, optical flow sequences,
+        and labels, with help from the DataFrame with frame paths and labels.
         :param df: pd.DataFrame
         :param train: Boolean
         :return: np.ndarray, np.ndarray, np.ndarray, np.ndarray
@@ -467,8 +467,8 @@ class DataHandler:
 
     def prepare_image_generator_5D(self, df, train):
         """
-        Prepare the frames into labeled train and test sets, with help from the
-        DataFrame with .jpg-paths and labels for train and pain.
+        Prepare batches of frame sequences and labels,
+        with help from the DataFrame with frame paths and labels.
         :param df: pd.DataFrame
         :param train: Boolean
         :return: np.ndarray, np.ndarray, np.ndarray, np.ndarray
@@ -577,8 +577,8 @@ class DataHandler:
 
     def prepare_image_generator(self, df, train):
         """
-        Prepare the frames into labeled train and test sets, with help from the
-        DataFrame with .jpg-paths and labels for train and pain.
+        Prepare batches of frames and labels, with help from
+        the DataFrame containing frame paths and labels.
         :param df: pd.DataFrame
         :param train: Boolean
         :return: np.ndarray, np.ndarray, np.ndarray, np.ndarray
