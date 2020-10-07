@@ -244,9 +244,7 @@ class MyModel:
         if fusion == 'concat':
             merged = concatenate([encoded_image, encoded_of], axis=-1)
 
-        print(merged.shape)
         merged_flat = Flatten()(merged)
-        print(merged_flat.shape)
 
         merged_flat = Dropout(self.dropout_1)(merged_flat)
         dense = Dense(self.nb_labels)(merged_flat)
