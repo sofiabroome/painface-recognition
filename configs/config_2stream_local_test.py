@@ -20,11 +20,11 @@ config_dict = {
     'color': True,
     'nb_labels': 2,
     'target_names': ['NO_PAIN', 'PAIN'],
-    'nb_lstm_units': 4,
+    'nb_lstm_units': 2,
     'kernel_size': 3,
-    'dropout_1': 0.25,
+    'dropout_1': 0.5,
     'dropout_2': 0.5,
-    'nb_epochs': 1,
+    'nb_epochs': 2,
     'early_stopping': 15,
     'optimizer': 'adadelta',
     'lr': 0.001,
@@ -43,4 +43,4 @@ config_dict = {
     'aug_light': 0,
     'do_evaluate': True,
     'train_mode': 'low_level',
-    'print_loss_every': 1}
+    'print_loss_every': 100}
