@@ -11,8 +11,7 @@ import os
 import matplotlib
 matplotlib.use('agg')
 import matplotlib.pyplot as plt
-from helpers import process_image, split_string_at_last_occurence_of_certain_char
-
+import helpers
 
 class DataHandler:
     def __init__(self, data_columns, config_dict, all_subjects_df):
@@ -278,7 +277,7 @@ class DataHandler:
                 X_batch_list.append(x)
                 y = row['pain']
                 y_batch_list.append(y)
-                flow = self.get_image(row['of_path'])
+                flow = self.get_flow(row['of_path'])
                 flow_batch_list.append(flow)
 
                 batch_index += 1
@@ -387,7 +386,7 @@ class DataHandler:
                         y_seq_list.append(y)
 
                     if (seq_index % self.config_dict['flow_period']) == 0:
-                        flow = self.get_image(row['of_path'])
+                        flow = self.get_flow(row['of_path'])
                         if self.config_dict['rgb_period'] > 1:
                             # We only want the first two channels of the flow.
                             flow = np.take(flow, [0,1], axis=2)
@@ -526,7 +525,7 @@ class DataHandler:
                     if self.config_dict['data_type'] == 'rgb':
                         x = self.get_image(row['path'])
                     if self.config_dict['data_type'] == 'of':
-                        x = self.get_image(row['of_path'])
+                        x = self.get_flow(row['of_path'])
                         # If no magnitude:
                         # extra_channel = np.zeros((x.shape[0], x.shape[1], 1))
                         # x = np.concatenate((x, extra_channel), axis=2)
@@ -606,7 +605,7 @@ class DataHandler:
                     x = self.get_image(row['path'])
                     x /= 255
                 if self.config_dict['data_type'] == 'of':
-                    x = self.get_image(row['of_path'])
+                    x = self.get_flow(row['of_path'])
                 y = row['pain']
                 X_list.append(x)
                 y_list.append(y)
@@ -621,9 +620,16 @@ class DataHandler:
                     yield (X_array, y_array)
 
     def get_image(self, path):
-        im = process_image(path, (self.image_size[0], self.image_size[1], self.color_channels),
-                           mean=self.pixel_mean, std=self.pixel_std)
+        im = helpers.process_image(
+            path, (self.image_size[0], self.image_size[1], self.color_channels),
+            standardize=True, mean=self.pixel_mean, std=self.pixel_std)
         return im
+
+    def get_flow(self, path):
+        flow = helpers.process_image(
+            path, (self.image_size[0], self.image_size[1], self.color_channels),
+            standardize=False)
+        return flow
 
     def flip_images(self, images):
         X_flip = []
@@ -924,7 +930,6 @@ def plot_augmentation(train, val, test, rgb, X_seq_list, flipped, cropped, shade
         for j in range(0, cols):
             axarr[i, j].set_xticks([])
             axarr[i, j].set_yticks([])
-            # axarr[i, j].set_aspect('equal')
             if i == 0:
                 im = X_seq_list[j]
                 im /= 255
@@ -944,8 +949,6 @@ def plot_augmentation(train, val, test, rgb, X_seq_list, flipped, cropped, shade
     plt.tick_params(axis='both', which='both', bottom='off', left='off')
     f.subplots_adjust(wspace=0, hspace=0)
     plt.subplots_adjust(wspace=0, hspace=0)
-    # plt.axis('off')
-    # plt.tight_layout()
     if train:
         partition = 1
     elif val:
@@ -964,18 +967,18 @@ def plot_augmentation(train, val, test, rgb, X_seq_list, flipped, cropped, shade
 
 
 def get_video_id_stem_from_path(path):
-    _, vid_id = split_string_at_last_occurence_of_certain_char(path, '/')
+    _, vid_id = helpers.split_string_at_last_occurence_of_certain_char(path, '/')
     return vid_id
 
 
 def get_video_id_from_path(path):
-    _, vid_id = split_string_at_last_occurence_of_certain_char(path, '/')
+    _, vid_id = helpers.split_string_at_last_occurence_of_certain_char(path, '/')
     return vid_id
 
 
 def get_video_id_from_frame_path(path):
-    path_left, frame_id = split_string_at_last_occurence_of_certain_char(path, '/')
-    _, vid_id = split_string_at_last_occurence_of_certain_char(path_left, '/')
+    path_left, frame_id = helpers.split_string_at_last_occurence_of_certain_char(path, '/')
+    _, vid_id = helpers.split_string_at_last_occurence_of_certain_char(path_left, '/')
     return vid_id
 
 

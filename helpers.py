@@ -4,11 +4,12 @@ import importlib
 import os
 
 
-def process_image(image_path, target_shape, mean, std):
+def process_image(image_path, target_shape, standardize=True, mean=None, std=None):
     """
     Process and image and return the corresponding numerical array.
     :param image_path: str
     :param target_shape: (int, int, int)
+    :param standardize: bool
     :param mean: [float, float, float] dataset pixel mean
     :param std: [float, float, float] dataset pixel std
     :return: np.ndarray
@@ -17,7 +18,8 @@ def process_image(image_path, target_shape, mean, std):
     target_shape = (h, w, c)
     img = load_img(image_path, target_size=target_shape)
     img = img_to_array(img)/255
-    img = (img-mean)/std
+    if standardize:
+        img = (img-mean)/std
 
     return img.astype(np.float32)
 

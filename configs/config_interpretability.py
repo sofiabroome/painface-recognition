@@ -1,3 +1,5 @@
+import configs.pixel_means as pixel_means
+
 data_path = '/local_storage/users/sbroome/painface-recognition/'
 
 config_dict = {
@@ -7,6 +9,8 @@ config_dict = {
     'lps_rgb_path': data_path + 'lps/jpg_128_128_2fps/',
     'pf_of_path': data_path + 'pf/jpg_128_128_16fps_OF_magnitude_cv2/',
     'lps_of_path': data_path + 'lps/jpg_128_128_16fps_OF_magnitude_cv2_2fpsrate/',
+    'pixel_mean': pixel_means.pf_rgb['mean'],
+    'pixel_std': pixel_means.pf_rgb['std'],
     'output_folder': '../data/lps/interpretability_results/',
     # 'checkpoint' : '../models/BEST_MODEL_2stream_5d_add_117332.h5', # 2stream
     # 'checkpoint' : '../models/best_model_2stream_5d_add_testhej.ckpt',

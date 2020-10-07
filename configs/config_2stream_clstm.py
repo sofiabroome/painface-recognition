@@ -1,3 +1,4 @@
+import configs.pixel_means as pixel_means
 data_path = '/local_storage/users/sbroome/painface-recognition/'
 
 config_dict = {
@@ -7,8 +8,8 @@ config_dict = {
     'lps_rgb_path': data_path + 'lps/jpg_128_128_2fps/',
     'pf_of_path': data_path + 'pf/jpg_128_128_16fps_OF_magnitude_cv2/',
     'lps_of_path': data_path + 'lps/jpg_128_128_16fps_OF_magnitude_cv2_2fpsrate/',
-    'pixel_mean': [0.478, 0.412, 0.409],
-    'pixel_std': [0.221, 0.219, 0.228],
+    'pixel_mean': pixel_means.pf_rgb['mean'],
+    'pixel_std': pixel_means.pf_rgb['std'],
     'model': '2stream_5d_add',
     'rgb_period': 1,  # Set to 10 if simonyan-like model
     'flow_period': 1,
