@@ -2,6 +2,7 @@ import tensorflow as tf
 import compute_steps
 import pandas as pd
 import numpy as np
+import helpers
 import random
 import time
 import cv2
@@ -11,7 +12,7 @@ import os
 import matplotlib
 matplotlib.use('agg')
 import matplotlib.pyplot as plt
-import helpers
+
 
 class DataHandler:
     def __init__(self, data_columns, config_dict, all_subjects_df):
@@ -59,9 +60,9 @@ class DataHandler:
                     output_types=(tf.float32, tf.uint8),
                     output_shapes=(
                         tf.TensorShape([None, None, self.image_size[0],
-                            self.image_size[1], self.color_channels]),
+                                        self.image_size[1], self.color_channels]),
                         tf.TensorShape([None, 2]))
-                    )
+                )
         if self.config_dict['nb_input_dims'] == 4:
             if '2stream' in self.config_dict['model']:
                 generator = self.prepare_generator_2stream(
@@ -146,12 +147,10 @@ class DataHandler:
             subject_rgb_OF_dfs[subject_id] = sdf
         return subject_rgb_OF_dfs
 
-    def set_train_val_test_in_df(self,
-                                 dfs):
+    def set_train_val_test_in_df(self, dfs):
         """
         Mark in input dataframe which subjects to use for train, val or test.
         Used when val_mode == 'subject'
-        :param val_subjects: [int]
         :param dfs: [pd.DataFrame]
         :return: [pd.DataFrame]
         """
@@ -186,7 +185,7 @@ class DataHandler:
             subject_dfs = self.set_train_val_test_in_df(dfs=subject_dfs)
 
         if self.config_dict['val_mode'] == 'fraction' or \
-           self.config_dict['val_mode'] == 'no_val':
+                self.config_dict['val_mode'] == 'no_val':
             subject_dfs = self.set_train_val_test_in_df(dfs=subject_dfs)
 
         # Put all the separate subject-dfs into one DataFrame.
@@ -330,7 +329,6 @@ class DataHandler:
         DataFrame with .jpg-paths and labels for train and pain.
         :param df: pd.DataFrame
         :param train: Boolean
-        :param config_dict: dict
         :return: np.ndarray, np.ndarray, np.ndarray, np.ndarray
         """
 
@@ -340,7 +338,7 @@ class DataHandler:
         ws = self.seq_length  # "Window size" in a sliding window.
         ss = self.seq_stride  # Provide argument for slinding w. stride.
         valid = nb_frames - (ws - 1)
-        nw = valid//ss  # Number of windows
+        nw = valid // ss  # Number of windows
         print('Number of windows', nw)
 
         this_index = 0
@@ -373,7 +371,7 @@ class DataHandler:
                     if this_index == 0:
                         old_vid_seq_name = vid_seq_name  # This variable is set once
                         this_index += 1
-                    
+
                     if vid_seq_name != old_vid_seq_name:
                         seq_index = 0
                         old_vid_seq_name = vid_seq_name
@@ -389,7 +387,7 @@ class DataHandler:
                         flow = self.get_flow(row['of_path'])
                         if self.config_dict['rgb_period'] > 1:
                             # We only want the first two channels of the flow.
-                            flow = np.take(flow, [0,1], axis=2)
+                            flow = np.take(flow, [0, 1], axis=2)
                         flow_seq_list.append(flow)
 
                     seq_index += 1
@@ -401,20 +399,20 @@ class DataHandler:
 
                 if seq_index == self.seq_length:
                     # *We only have per-clip labels, so the pain levels should not differ.
-                    assert(len(set(y_seq_list)) == 1)
+                    assert (len(set(y_seq_list)) == 1)
                     if self.config_dict['rgb_period'] > 1:
                         flow_seq_list = np.array(flow_seq_list)
                         flow_seq_list = np.reshape(np.array(flow_seq_list),
-                                                  (-1, self.image_size[0], self.image_size[1]))
+                                                   (-1, self.image_size[0], self.image_size[1]))
                         X_seq_list = np.reshape(np.array(X_seq_list),
-                                               (self.image_size[0], self.image_size[1], -1))
-                        
+                                                (self.image_size[0], self.image_size[1], -1))
+
                     X_batch_list.append(X_seq_list)
                     y_batch_list.append(y_seq_list[0])  # *only need one
                     flow_batch_list.append(flow_seq_list)
                     batch_index += 1
                     seq_index = 0
-                    
+
                     if train and (self.aug_flip == 1):
                         # Flip both RGB and flow arrays
                         X_seq_list_flipped = self.flip_images(X_seq_list)
@@ -448,13 +446,13 @@ class DataHandler:
                         flow_batch_list.append(flow_seq_list_shaded)
                         batch_index += 1
 
-                    # if train:
-                    #     plot_augmentation(train, val, test, evaluate, 1, X_seq_list,
-                    #         X_seq_list_flipped, X_seq_list_cropped, X_seq_list_shaded,
-                    #         seq_index, batch_index, window_index)
-                    #     plot_augmentation(train, val, test, evaluate, 0, flow_seq_list,
-                    #         flow_seq_list_flipped, flow_seq_list_cropped, flow_seq_list_shaded,
-                    #         seq_index, batch_index, window_index)
+                        # if train:
+                        #     plot_augmentation(train, val, test, evaluate, 1, X_seq_list,
+                        #         X_seq_list_flipped, X_seq_list_cropped, X_seq_list_shaded,
+                        #         seq_index, batch_index, window_index)
+                        #     plot_augmentation(train, val, test, evaluate, 0, flow_seq_list,
+                        #         flow_seq_list_flipped, flow_seq_list_cropped, flow_seq_list_shaded,
+                        #         seq_index, batch_index, window_index)
 
                 if batch_index % self.batch_size == 0 and not batch_index == 0:
                     X_array = np.array(X_batch_list, dtype=np.float32)
@@ -472,7 +470,6 @@ class DataHandler:
         DataFrame with .jpg-paths and labels for train and pain.
         :param df: pd.DataFrame
         :param train: Boolean
-        :param config_dict: dict
         :return: np.ndarray, np.ndarray, np.ndarray, np.ndarray
         """
         nb_frames = len(df)
@@ -481,7 +478,7 @@ class DataHandler:
         window_size = self.config_dict['seq_length']
         window_stride = self.config_dict['seq_stride']
         last_valid_start_index = nb_frames - (window_size - 1)
-        last_valid_end_index = last_valid_start_index + (window_size-1)
+        last_valid_end_index = last_valid_start_index + (window_size - 1)
         number_of_windows = last_valid_end_index // window_stride
 
         assert (number_of_windows >= self.config_dict['batch_size'])
@@ -489,7 +486,7 @@ class DataHandler:
 
         this_index = 0
         seq_index = 0
-        
+
         # Make sure that no augmented sequences are thrown away,
         # because we really want to augment the dataset.
 
@@ -514,7 +511,7 @@ class DataHandler:
                     vid_seq_name = row['video_id']
 
                     if this_index == 0:
-                        old_vid_seq_name = vid_seq_name # Set this variable (only once).
+                        old_vid_seq_name = vid_seq_name  # Set this variable (only once).
                         this_index += 1
 
                     if vid_seq_name != old_vid_seq_name:
@@ -564,10 +561,10 @@ class DataHandler:
                         y_batch_list.append(y_seq_list[0])
                         batch_index += 1
 
-                    # if train:
-                    #     plot_augmentation(train, val, test, evaluate, 1, X_seq_list,
-                    #         X_seq_list_flipped, X_seq_list_cropped, X_seq_list_shaded,
-                    #         seq_index, batch_index, window_index)
+                        # if train:
+                        #     plot_augmentation(train, val, test, evaluate, 1, X_seq_list,
+                        #         X_seq_list_flipped, X_seq_list_cropped, X_seq_list_shaded,
+                        #         seq_index, batch_index, window_index)
 
                 if batch_index % self.batch_size == 0 and not batch_index == 0:
                     X_array = np.array(X_batch_list, dtype=np.float32)
@@ -584,7 +581,6 @@ class DataHandler:
         DataFrame with .jpg-paths and labels for train and pain.
         :param df: pd.DataFrame
         :param train: Boolean
-        :param config_dict: dict
         :return: np.ndarray, np.ndarray, np.ndarray, np.ndarray
         """
         print("LEN DF:")
@@ -615,7 +611,7 @@ class DataHandler:
                     X_array = np.array(X_list, dtype=np.float32)
                     y_array = np.array(y_list, dtype=np.uint8)
                     y_array = tf.keras.utils.to_categorical(y_array,
-                                                      num_classes=self.nb_labels)
+                                                            num_classes=self.nb_labels)
                     batch_index = 0
                     yield (X_array, y_array)
 
@@ -652,7 +648,7 @@ class DataHandler:
         tf_img1 = tf.image.flip_left_right(X)
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
-            X_flip = sess.run([tf_img1], feed_dict={X:image})
+            X_flip = sess.run([tf_img1], feed_dict={X: image})
         X_flip = np.array(X_flip, dtype=np.float32)
         X_flip = np.reshape(X_flip, (self.image_size[1], self.image_size[0], 3))
         return X_flip
@@ -664,7 +660,7 @@ class DataHandler:
         gaussian_noise_imgs = []
 
         row, col = self.image_size
-    
+
         mean = 0
         sigma = 0.5
 
@@ -685,7 +681,7 @@ class DataHandler:
         if self.nb_input_dims == 4:
             gaussian_noise_imgs = cv2.addWeighted(images, im_weight, gaussian, noise_weight, 0)
             # gaussian_noise_imgs.append(gaussian_img)
-    
+
         gaussian_noise_imgs = np.array(gaussian_noise_imgs, dtype=np.float32)
         return gaussian_noise_imgs
 
@@ -694,7 +690,7 @@ class DataHandler:
         This methods shadens the images with Gaussian noise.
         """
         row, col = self.image_size
-    
+
         mean = 0
         sigma = 0.5
 
@@ -709,7 +705,7 @@ class DataHandler:
         gaussian = np.random.normal(mean, sigma, (col, row, self.color_channels)).astype(np.float32)
 
         gaussian_noise_img = cv2.addWeighted(image, im_weight, gaussian, noise_weight, 0)
-    
+
         gaussian_noise_img = np.array(gaussian_noise_img, dtype=np.float32)
         return gaussian_noise_img
 
@@ -735,16 +731,16 @@ class DataHandler:
 
         # y1 x1 are relative starting heights and widths in the crop box.
         # [[0, 0, 1, 1]] would mean no crop and just resize.
-    
-        y1 = offset_height/(height-1)
-        x1 = offset_width/(width-1)
-        y2 = (offset_height + target_height)/(height-1)
-        x2 = (offset_width + target_width)/(width-1)
-    
+
+        y1 = offset_height / (height - 1)
+        x1 = offset_width / (width - 1)
+        y2 = (offset_height + target_height) / (height - 1)
+        x2 = (offset_width + target_width) / (width - 1)
+
         boxes = np.array([[y1, x1, y2, x2]], dtype=np.float32)
         box_ind = np.array([0], dtype=np.int32)
         crop_size = np.array([width, height], dtype=np.int32)
-    
+
         X_crops = []
         tf.reset_default_graph()
         X = tf.placeholder(tf.float32, shape=(1, height, width, 3))
@@ -754,11 +750,11 @@ class DataHandler:
             sess.run(tf.global_variables_initializer())
             if self.nb_input_dims == 5:
                 for img in images:
-                    batch_img = np.expand_dims(img, axis = 0)
+                    batch_img = np.expand_dims(img, axis=0)
                     cropped_imgs = sess.run([tf_img1], feed_dict={X: batch_img})
                     X_crops.extend(cropped_imgs)
             if self.nb_input_dims == 4:
-                batch_img = np.expand_dims(images, axis = 0)
+                batch_img = np.expand_dims(images, axis=0)
                 cropped_imgs = sess.run([tf_img1], feed_dict={X: batch_img})
                 X_crops.extend(cropped_imgs)
         X_crops = np.array(X_crops, dtype=np.float32)
@@ -771,9 +767,9 @@ class DataHandler:
     def random_crop_resize_single_image(self, image, target_height, target_width):
         """
         Random crop but consistent across sequence.
-        :param images:
-        :param target_height:
-        :param target_width:
+        :param image: np.array
+        :param target_height: int
+        :param target_width: int
         :return:
         """
         random_scale_for_crop_w = np.random.rand()
@@ -790,23 +786,23 @@ class DataHandler:
 
         # y1 x1 are relative starting heights and widths in the crop box.
         # [[0, 0, 1, 1]] would mean no crop and just resize.
-    
-        y1 = offset_height/(height-1)
-        x1 = offset_width/(width-1)
-        y2 = (offset_height + target_height)/(height-1)
-        x2 = (offset_width + target_width)/(width-1)
-    
+
+        y1 = offset_height / (height - 1)
+        x1 = offset_width / (width - 1)
+        y2 = (offset_height + target_height) / (height - 1)
+        x2 = (offset_width + target_width) / (width - 1)
+
         boxes = np.array([[y1, x1, y2, x2]], dtype=np.float32)
         box_ind = np.array([0], dtype=np.int32)
         crop_size = np.array([width, height], dtype=np.int32)
-    
+
         tf.reset_default_graph()
         X = tf.placeholder(tf.float32, shape=(1, height, width, 3))
         tf_img1 = tf.image.crop_and_resize(X, boxes, box_ind, crop_size)
 
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
-            batch_img = np.expand_dims(image, axis = 0)
+            batch_img = np.expand_dims(image, axis=0)
             cropped_img = sess.run([tf_img1], feed_dict={X: batch_img})
         X_crops = np.array(cropped_img, dtype=np.float32)
         X_crops = np.reshape(X_crops, (height, width, 3))
@@ -820,7 +816,7 @@ class DataHandler:
         :param config_file: dict
         :return: pd.DataFrame
         """
-        clip_file = config_file['clip_list_pf']\
+        clip_file = config_file['clip_list_pf'] \
             if dataset == 'pf' else config_file['clip_list_lps']
         df_csv = pd.read_csv(clip_file)
         column_headers = ['video_id', 'path', 'train']
@@ -834,7 +830,7 @@ class DataHandler:
             print(path)
             for filename in sorted(files):
                 # if '.jpg' in filename or '.png' in filename:
-                if filename.startswith('frame_')\
+                if filename.startswith('frame_') \
                         and ('.jpg' in filename or '.png' in filename):
                     total_path = os.path.join(path, filename)
                     print(total_path)
@@ -893,8 +889,8 @@ class DataHandler:
             old_path = path
             for filename in sorted(files):
                 total_path = os.path.join(path, filename)
-                if filename.startswith('flow_')\
-                        and ('.npy' in filename or '.jpg' in filename): 
+                if filename.startswith('flow_') \
+                        and ('.npy' in filename or '.jpg' in filename):
                     of_path_list.append(total_path)
                     c += 1
                     per_clip_frame_counter += 1
@@ -904,7 +900,7 @@ class DataHandler:
                     print('Warning: flow/rgb diff is larger than 1')
                 else:
                     print('Counted {} flow-frames for {} rgb frames \n'.format(
-                            per_clip_frame_counter, nb_frames_in_clip))
+                        per_clip_frame_counter, nb_frames_in_clip))
                     subject_df.drop(c, inplace=True)
                     subject_df.reset_index(drop=True, inplace=True)
                     print('Dropped the last rgb frame of the clip. \n')
@@ -925,7 +921,7 @@ def plot_augmentation(train, val, test, rgb, X_seq_list, flipped, cropped, shade
                       seq_index, batch_index, window_index):
     rows = 4
     cols = 10
-    f, axarr = plt.subplots(rows, cols, figsize=(20,10))
+    f, axarr = plt.subplots(rows, cols, figsize=(20, 10))
     for i in range(0, rows):
         for j in range(0, cols):
             axarr[i, j].set_xticks([])
@@ -992,7 +988,7 @@ def make_even_sequences(x, seq_length):
 def round_to_batch_size(data_array, batch_size):
     num_rows = data_array.shape[0]
     surplus = num_rows % batch_size
-    data_array_rounded = data_array[:num_rows-surplus]
+    data_array_rounded = data_array[:num_rows - surplus]
     return data_array_rounded
 
 
@@ -1032,4 +1028,3 @@ def get_flow_magnitude(flow):
             mag = np.sqrt(np.power(xflow, 2) + np.power(yflow, 2))
             magnitude[i, j] = mag
     return magnitude
-
