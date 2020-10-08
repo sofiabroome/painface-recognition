@@ -17,9 +17,11 @@ import matplotlib.pyplot as plt
 class DataHandler:
     def __init__(self, data_columns, config_dict, all_subjects_df):
         """
-        Constructor for the DataHandler.
+        :param data_columns: [str]
         :param config_dict: dict
+        :param all_subjects_df: pd.DataFrame
         """
+
         self.data_columns = data_columns
         self.image_size = config_dict['input_width'], config_dict['input_height']
         self.batch_size = config_dict['batch_size']
@@ -329,123 +331,91 @@ class DataHandler:
         :param train: Boolean
         :return: np.ndarray, np.ndarray, np.ndarray, np.ndarray
         """
-
-        nb_frames = len(df)
-        print("LEN DF (nb. of frames): ", nb_frames)
-
-        ws = self.seq_length  # "Window size" in a sliding window.
-        ss = self.seq_stride  # Provide argument for slinding w. stride.
-        valid = nb_frames - (ws - 1)
-        nw = valid // ss  # Number of windows
-        print('Number of windows', nw)
-
-        this_index = 0
-        seq_index = 0
-
-        # Make sure that no augmented sequences are thrown away,
-        # because we really want to augment the dataset.
-
         nb_aug = self.aug_flip + self.aug_crop + self.aug_light
         batch_requirement = 1 + nb_aug  # Normal sequence plus augmented sequences.
         assert (self.batch_size % batch_requirement) == 0
 
         while True:
-            # Shuffle videos between epochs.
-            if train:
-                df = shuffle_blocks(df, 'video_id')
+            list_of_sequence_dfs = self.get_sequences_from_frame_df(df)
+            if train:  # Shuffle videos between epochs.
+                random.shuffle(list_of_sequence_dfs)
+
             batch_index = 0
-            for window_index in range(nw):
-                start = window_index * ss
-                stop = start + ws
-                rows = df.iloc[start:stop]  # A new dataframe for the window in question.
+            for sequence_df in list_of_sequence_dfs:
 
                 X_seq_list = []
                 y_seq_list = []
                 flow_seq_list = []
 
-                for index, row in rows.iterrows():
-                    vid_seq_name = row['video_id']
-
-                    if this_index == 0:
-                        old_vid_seq_name = vid_seq_name  # This variable is set once
-                        this_index += 1
-
-                    if vid_seq_name != old_vid_seq_name:
-                        seq_index = 0
-                        old_vid_seq_name = vid_seq_name
-                        break  # Should not have seqs with mixed video IDs
+                for seq_index, row in sequence_df.iterrows():
 
                     if (seq_index % self.config_dict['rgb_period']) == 0:
                         x = self.get_image(row['path'])
-                        X_seq_list.append(x)
                         y = row['pain']
+                        X_seq_list.append(x)
                         y_seq_list.append(y)
 
                     if (seq_index % self.config_dict['flow_period']) == 0:
                         flow = self.get_flow(row['of_path'])
                         if self.config_dict['rgb_period'] > 1:
-                            # We only want the first two channels of the flow.
-                            flow = np.take(flow, [0, 1], axis=2)
+                            # We only want the first two channels of the flow
+                            flow = np.take(flow, [0, 1], axis=2)  # Simonyan type input
                         flow_seq_list.append(flow)
-
-                    seq_index += 1
 
                 if batch_index == 0:
                     X_batch_list = []
                     y_batch_list = []
                     flow_batch_list = []
 
-                if seq_index == self.seq_length:
-                    # *We only have per-clip labels, so the pain levels should not differ.
-                    assert (len(set(y_seq_list)) == 1)
-                    if self.config_dict['rgb_period'] > 1:
-                        flow_seq_list = np.array(flow_seq_list)
-                        flow_seq_list = np.reshape(np.array(flow_seq_list),
-                                                   (-1, self.image_size[0], self.image_size[1]))
-                        X_seq_list = np.reshape(np.array(X_seq_list),
-                                                (self.image_size[0], self.image_size[1], -1))
+                # *We only have per-clip labels, so the pain levels should not differ.
+                assert (len(set(y_seq_list)) == 1)
+                if self.config_dict['rgb_period'] > 1:
+                    flow_seq_list = np.array(flow_seq_list)
+                    flow_seq_list = np.reshape(np.array(flow_seq_list),
+                                               (-1, self.image_size[0], self.image_size[1]))
+                    X_seq_list = np.reshape(np.array(X_seq_list),
+                                            (self.image_size[0], self.image_size[1], -1))
 
-                    X_batch_list.append(X_seq_list)
-                    y_batch_list.append(y_seq_list[0])  # *only need one
-                    flow_batch_list.append(flow_seq_list)
+                X_batch_list.append(X_seq_list)
+                flow_batch_list.append(flow_seq_list)
+                y_batch_list.append(y_seq_list[0])  # *only need one
+                batch_index += 1
+
+                if train and (self.aug_flip == 1):
+                    # Flip both RGB and flow arrays
+                    X_seq_list_flipped = self.flip_images(X_seq_list)
+                    flow_seq_list_flipped = self.flip_images(flow_seq_list)
+                    # Append to the respective batch lists
+                    X_batch_list.append(X_seq_list_flipped)
+                    y_batch_list.append(y_seq_list[0])
+                    flow_batch_list.append(flow_seq_list_flipped)
                     batch_index += 1
-                    seq_index = 0
 
-                    if train and (self.aug_flip == 1):
-                        # Flip both RGB and flow arrays
-                        X_seq_list_flipped = self.flip_images(X_seq_list)
-                        flow_seq_list_flipped = self.flip_images(flow_seq_list)
-                        # Append to the respective batch lists
-                        X_batch_list.append(X_seq_list_flipped)
-                        y_batch_list.append(y_seq_list[0])
-                        flow_batch_list.append(flow_seq_list_flipped)
-                        batch_index += 1
+                if train and (self.aug_crop == 1):
+                    crop_size = 99
+                    # Flip both RGB and flow arrays
+                    X_seq_list_cropped = self.random_crop_resize(X_seq_list,
+                                                                 crop_size, crop_size)
+                    flow_seq_list_cropped = self.random_crop_resize(flow_seq_list,
+                                                                    crop_size, crop_size)
+                    # Append to the respective batch lists
+                    X_batch_list.append(X_seq_list_cropped)
+                    y_batch_list.append(y_seq_list[0])
+                    flow_batch_list.append(flow_seq_list_cropped)
+                    batch_index += 1
 
-                    if train and (self.aug_crop == 1):
-                        crop_size = 99
-                        # Flip both RGB and flow arrays
-                        X_seq_list_cropped = self.random_crop_resize(X_seq_list,
-                                                                     crop_size, crop_size)
-                        flow_seq_list_cropped = self.random_crop_resize(flow_seq_list,
-                                                                        crop_size, crop_size)
-                        # Append to the respective batch lists
-                        X_batch_list.append(X_seq_list_cropped)
-                        y_batch_list.append(y_seq_list[0])
-                        flow_batch_list.append(flow_seq_list_cropped)
-                        batch_index += 1
+                if train and (self.aug_light == 1):
+                    # Flip both RGB and flow arrays
+                    X_seq_list_shaded = self.add_gaussian_noise(X_seq_list)
+                    flow_seq_list_shaded = self.add_gaussian_noise(flow_seq_list)
+                    # Append to the respective batch lists
+                    X_batch_list.append(X_seq_list_shaded)
+                    y_batch_list.append(y_seq_list[0])
+                    flow_batch_list.append(flow_seq_list_shaded)
+                    batch_index += 1
 
-                    if train and (self.aug_light == 1):
-                        # Flip both RGB and flow arrays
-                        X_seq_list_shaded = self.add_gaussian_noise(X_seq_list)
-                        flow_seq_list_shaded = self.add_gaussian_noise(flow_seq_list)
-                        # Append to the respective batch lists
-                        X_batch_list.append(X_seq_list_shaded)
-                        y_batch_list.append(y_seq_list[0])
-                        flow_batch_list.append(flow_seq_list_shaded)
-                        batch_index += 1
-
-                        # if train:
-                        #     plot_augmentation(train, val, test, evaluate, 1, X_seq_list,
+                    # if train:
+                    #     plot_augmentation(train, val, test, evaluate, 1, X_seq_list,
                     #         X_seq_list_flipped, X_seq_list_cropped, X_seq_list_shaded,
                     #         seq_index, batch_index, window_index)
                     #     plot_augmentation(train, val, test, evaluate, 0, flow_seq_list,
@@ -454,16 +424,290 @@ class DataHandler:
 
                 if batch_index % self.batch_size == 0 and not batch_index == 0:
                     X_array = np.array(X_batch_list, dtype=np.float32)
+                    print(X_array.shape)
                     y_array = np.array(y_batch_list, dtype=np.uint8)
+                    print(y_array.shape)
                     flow_array = np.array(flow_batch_list, dtype=np.float32)
+                    print(flow_array.shape)
                     if self.nb_labels == 2:
                         y_array = tf.keras.utils.to_categorical(y_array, num_classes=self.nb_labels)
                     y_array = np.reshape(y_array, (self.batch_size, self.nb_labels))
                     batch_index = 0
+                    print(X_array.shape, flow_array.shape, y_array.shape)
                     yield [X_array, flow_array], y_array
 
+    # def prepare_2stream_image_generator_5D(self, df, train):
+    #     """
+    #     Prepare the frames into labeled train and test sets, with help from the
+    #     DataFrame with .jpg-paths and labels for train and pain.
+    #     :param df: pd.DataFrame
+    #     :param train: Boolean
+    #     :param config_dict: dict
+    #     :return: np.ndarray, np.ndarray, np.ndarray, np.ndarray
+    #     """
+    #
+    #     nb_frames = len(df)
+    #     print("LEN DF (nb. of frames): ", nb_frames)
+    #
+    #     ws = self.seq_length  # "Window size" in a sliding window.
+    #     ss = self.seq_stride  # Provide argument for slinding w. stride.
+    #     valid = nb_frames - (ws - 1)
+    #     nw = valid // ss  # Number of windows
+    #     print('Number of windows', nw)
+    #
+    #     this_index = 0
+    #     seq_index = 0
+    #
+    #     # Make sure that no augmented sequences are thrown away,
+    #     # because we really want to augment the dataset.
+    #
+    #     nb_aug = self.aug_flip + self.aug_crop + self.aug_light
+    #     batch_requirement = 1 + nb_aug  # Normal sequence plus augmented sequences.
+    #     assert (self.batch_size % batch_requirement) == 0
+    #
+    #     while True:
+    #         # Shuffle blocks between epochs.
+    #         if train:
+    #             df = shuffle_blocks(df, 'video_id')
+    #         batch_index = 0
+    #         for window_index in range(nw):
+    #             start = window_index * ss
+    #             stop = start + ws
+    #             rows = df.iloc[start:stop]  # A new dataframe for the window in question.
+    #
+    #             X_seq_list = []
+    #             y_seq_list = []
+    #             flow_seq_list = []
+    #
+    #             for index, row in rows.iterrows():
+    #                 vid_seq_name = row['video_id']
+    #
+    #                 if this_index == 0:
+    #                     old_vid_seq_name = vid_seq_name  # This variable is set once
+    #                     this_index += 1
+    #
+    #                 if vid_seq_name != old_vid_seq_name:
+    #                     seq_index = 0
+    #                     old_vid_seq_name = vid_seq_name
+    #                     break  # Should not have seqs with mixed video IDs
+    #
+    #                 if (seq_index % self.config_dict['rgb_period']) == 0:
+    #                     x = self.get_image(row['path'])
+    #                     X_seq_list.append(x)
+    #                     y = row['pain']
+    #                     y_seq_list.append(y)
+    #
+    #                 if (seq_index % self.config_dict['flow_period']) == 0:
+    #                     flow = self.get_flow(row['of_path'])
+    #                     if self.config_dict['rgb_period'] > 1:
+    #                         # We only want the first two channels of the flow.
+    #                         flow = np.take(flow, [0, 1], axis=2)
+    #                     flow_seq_list.append(flow)
+    #
+    #                 seq_index += 1
+    #
+    #             if batch_index == 0:
+    #                 X_batch_list = []
+    #                 y_batch_list = []
+    #                 flow_batch_list = []
+    #
+    #             if seq_index == self.seq_length:
+    #                 # *We only have per-clip labels, so the pain levels should not differ.
+    #                 assert (len(set(y_seq_list)) == 1)
+    #                 if self.config_dict['rgb_period'] > 1:
+    #                     flow_seq_list = np.array(flow_seq_list)
+    #                     flow_seq_list = np.reshape(np.array(flow_seq_list),
+    #                                                (-1, self.image_size[0], self.image_size[1]))
+    #                     X_seq_list = np.reshape(np.array(X_seq_list),
+    #                                             (self.image_size[0], self.image_size[1], -1))
+    #
+    #                 X_batch_list.append(X_seq_list)
+    #                 y_batch_list.append(y_seq_list[0])  # *only need one
+    #                 flow_batch_list.append(flow_seq_list)
+    #                 batch_index += 1
+    #                 seq_index = 0
+    #
+    #                 if train and (self.aug_flip == 1):
+    #                     # Flip both RGB and flow arrays
+    #                     X_seq_list_flipped = self.flip_images(X_seq_list)
+    #                     flow_seq_list_flipped = self.flip_images(flow_seq_list)
+    #                     # Append to the respective batch lists
+    #                     X_batch_list.append(X_seq_list_flipped)
+    #                     y_batch_list.append(y_seq_list[0])
+    #                     flow_batch_list.append(flow_seq_list_flipped)
+    #                     batch_index += 1
+    #
+    #                 if train and (self.aug_crop == 1):
+    #                     crop_size = 99
+    #                     # Flip both RGB and flow arrays
+    #                     X_seq_list_cropped = self.random_crop_resize(X_seq_list,
+    #                                                                  crop_size, crop_size)
+    #                     flow_seq_list_cropped = self.random_crop_resize(flow_seq_list,
+    #                                                                     crop_size, crop_size)
+    #                     # Append to the respective batch lists
+    #                     X_batch_list.append(X_seq_list_cropped)
+    #                     y_batch_list.append(y_seq_list[0])
+    #                     flow_batch_list.append(flow_seq_list_cropped)
+    #                     batch_index += 1
+    #
+    #                 if train and (self.aug_light == 1):
+    #                     # Flip both RGB and flow arrays
+    #                     X_seq_list_shaded = self.add_gaussian_noise(X_seq_list)
+    #                     flow_seq_list_shaded = self.add_gaussian_noise(flow_seq_list)
+    #                     # Append to the respective batch lists
+    #                     X_batch_list.append(X_seq_list_shaded)
+    #                     y_batch_list.append(y_seq_list[0])
+    #                     flow_batch_list.append(flow_seq_list_shaded)
+    #                     batch_index += 1
+    #
+    #                     # if train:
+    #                     #     plot_augmentation(train, val, test, evaluate, 1, X_seq_list,
+    #                     #         X_seq_list_flipped, X_seq_list_cropped, X_seq_list_shaded,
+    #                     #         seq_index, batch_index, window_index)
+    #                     #     plot_augmentation(train, val, test, evaluate, 0, flow_seq_list,
+    #                     #         flow_seq_list_flipped, flow_seq_list_cropped, flow_seq_list_shaded,
+    #                     #         seq_index, batch_index, window_index)
+    #
+    #             if batch_index % self.batch_size == 0 and not batch_index == 0:
+    #                 X_array = np.array(X_batch_list, dtype=np.float32)
+    #                 y_array = np.array(y_batch_list, dtype=np.uint8)
+    #                 flow_array = np.array(flow_batch_list, dtype=np.float32)
+    #                 if self.nb_labels == 2:
+    #                     y_array = tf.keras.utils.to_categorical(y_array, num_classes=self.nb_labels)
+    #                 y_array = np.reshape(y_array, (self.batch_size, self.nb_labels))
+    #                 batch_index = 0
+    #                 yield [X_array, flow_array], y_array
+
     def get_sequences_from_frame_df(self, df):
-        pass
+        """
+        Given a dataframe of all frame paths, video IDs and labels,
+        and some sequence length and stride, return a list of
+        [sequence length]-long dataframes to use for reading in data.
+        :param df: pd.DataFrame
+        :return: [pd.DataFrame]
+        """
+        nb_frames = len(df)
+        print("LEN DF (nb. of frames): ", nb_frames)
+
+        def build_sequences_from_frames(start_ind, video_frame_df,
+                                        video_id, nb_per_video=None):
+            nb_frames_in_video = len(video_frame_df)
+            list_of_sequence_dfs_from_one_video = []
+
+            window_size = self.config_dict['seq_length']
+            window_stride = self.config_dict['seq_stride']
+            last_valid_start_index = nb_frames_in_video - (window_size - 1)
+            last_valid_end_index = last_valid_start_index + (window_size - 1)
+
+            if nb_per_video is None:
+                number_of_windows = last_valid_end_index // window_stride
+                start_indices = [(start_ind + window_index * window_stride)
+                                 for window_index in range(number_of_windows)]
+            else:
+                print('Computing start indices for resampling...')
+                number_of_windows = nb_per_video
+                step_length = int((last_valid_start_index - start_ind)/nb_per_video)
+                approx_start_indices = [*range(start_ind, last_valid_start_index, step_length)]
+                start_indices = []
+                old_start_index = -1
+                for asi in approx_start_indices:
+                    # Aim for nearest number X (to asi)
+                    # where X % window_stride == start_ind
+                    # but not X % window_length == 0
+                    current_modulo = asi % window_size
+
+                    if current_modulo == start_ind:
+                        new_start_index = asi
+                    elif current_modulo <= start_ind:
+                        new_start_index = asi + (start_ind-current_modulo)
+                    else:
+                        new_start_index = asi - (current_modulo-start_ind)
+
+                    assert(new_start_index % start_ind == 0)
+                    assert(new_start_index % window_size == start_ind)
+
+                    if new_start_index == old_start_index:  # If there is too little data to resample.
+                        continue
+                    if new_start_index > last_valid_end_index:
+                        break
+                    start_indices.append(new_start_index)
+                    old_start_index = new_start_index
+                print(approx_start_indices)
+                print(start_indices)
+                print('\n')
+
+            print('Number of windows in video {}: {}'.format(video_id, number_of_windows))
+
+            for start in start_indices:
+                stop = start + window_size
+                sequence_df = video_frame_df.iloc[start:stop]
+                print('start stop: ', start, stop)
+                assert(len(sequence_df) == self.config_dict['seq_length'])
+                list_of_sequence_dfs_from_one_video.append(sequence_df)
+
+            return list_of_sequence_dfs_from_one_video
+
+        def get_sequence_dfs_per_class(pain, start_ind):
+            sequence_dfs_per_class = []
+            class_df = df.loc[df['pain'] == pain]
+            video_ids = set(class_df['video_id'])
+            for video_id in video_ids:
+                video_frame_df = class_df.loc[class_df['video_id'] == video_id]
+                sequence_dfs_from_video = build_sequences_from_frames(
+                    start_ind=start_ind,
+                    video_frame_df=video_frame_df,
+                    video_id=video_id)
+                sequence_dfs_per_class += sequence_dfs_from_video
+            return sequence_dfs_per_class
+
+        def get_extra_sequences(class_to_resample, start_ind, nb_extra):
+            sequence_dfs_per_class = []
+            class_df = df.loc[df['pain'] == class_to_resample]
+            video_ids = set(class_df['video_id'])
+            nb_per_video_to_sample = int(nb_extra/len(video_ids))
+            nb_sequences_collected = 0
+            print('Resampling sequences from minor class...')
+            for video_id in video_ids:
+                video_frame_df = class_df.loc[class_df['video_id'] == video_id]
+                sequence_dfs_from_video = build_sequences_from_frames(
+                    start_ind=start_ind,
+                    video_frame_df=video_frame_df,
+                    video_id=video_id,
+                    nb_per_video=nb_per_video_to_sample)
+                nb_seqs_in_video = len(sequence_dfs_from_video)
+                if nb_seqs_in_video < nb_per_video_to_sample:
+                    break
+                for seq_df in sequence_dfs_from_video:
+                    assert(len(seq_df) == self.config_dict['seq_length'])
+                    sequence_dfs_per_class.append(seq_df)
+                    nb_sequences_collected += 1
+                    if nb_sequences_collected == nb_extra:
+                        break
+            return sequence_dfs_per_class
+
+        no_pain_sequence_dfs = get_sequence_dfs_per_class(
+            pain=0, start_ind=0)
+        pain_sequence_dfs = get_sequence_dfs_per_class(
+            pain=1, start_ind=0)
+
+        diff = len(no_pain_sequence_dfs) - len(pain_sequence_dfs)
+
+        minor_class = 1 if diff > 0 else 0  # minor class is pain=1 if diff > 0
+        resample_start_ind = int(
+            self.config_dict['resample_start_fraction_of_seq_length']
+            * self.config_dict['seq_length'])
+        print('Resampling from the {}th index within a window...'.format(resample_start_ind))
+        if abs(diff) > 0:
+            extra_seqs_for_minor_class = get_extra_sequences(
+                class_to_resample=minor_class,
+                start_ind=resample_start_ind,
+                nb_extra=abs(diff))
+        else:
+            extra_seqs_for_minor_class = []
+
+        all_seqs = no_pain_sequence_dfs + pain_sequence_dfs + extra_seqs_for_minor_class
+
+        return all_seqs
 
     def prepare_image_generator_5D(self, df, train):
         """
