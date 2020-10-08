@@ -424,16 +424,12 @@ class DataHandler:
 
                 if batch_index % self.batch_size == 0 and not batch_index == 0:
                     X_array = np.array(X_batch_list, dtype=np.float32)
-                    print(X_array.shape)
                     y_array = np.array(y_batch_list, dtype=np.uint8)
-                    print(y_array.shape)
                     flow_array = np.array(flow_batch_list, dtype=np.float32)
-                    print(flow_array.shape)
                     if self.nb_labels == 2:
                         y_array = tf.keras.utils.to_categorical(y_array, num_classes=self.nb_labels)
                     y_array = np.reshape(y_array, (self.batch_size, self.nb_labels))
                     batch_index = 0
-                    print(X_array.shape, flow_array.shape, y_array.shape)
                     yield [X_array, flow_array], y_array
 
     # def prepare_2stream_image_generator_5D(self, df, train):
@@ -605,6 +601,8 @@ class DataHandler:
                                  for window_index in range(number_of_windows)]
             else:
                 print('Computing start indices for resampling...')
+                print('Frames in video: {}, nb per video: {}, last valid start {}'.format(
+                    nb_frames_in_video, nb_per_video, last_valid_start_index))
                 number_of_windows = nb_per_video
                 step_length = int((last_valid_start_index - start_ind)/nb_per_video)
                 approx_start_indices = [*range(start_ind, last_valid_start_index, step_length)]
@@ -628,7 +626,7 @@ class DataHandler:
 
                     if new_start_index == old_start_index:  # If there is too little data to resample.
                         continue
-                    if new_start_index > last_valid_end_index:
+                    if new_start_index > last_valid_start_index:
                         break
                     start_indices.append(new_start_index)
                     old_start_index = new_start_index
@@ -641,7 +639,6 @@ class DataHandler:
             for start in start_indices:
                 stop = start + window_size
                 sequence_df = video_frame_df.iloc[start:stop]
-                print('start stop: ', start, stop)
                 assert(len(sequence_df) == self.config_dict['seq_length'])
                 list_of_sequence_dfs_from_one_video.append(sequence_df)
 
