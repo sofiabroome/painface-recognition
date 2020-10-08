@@ -44,5 +44,13 @@ config_dict = {
     'aug_crop': 0,
     'aug_light': 0,
     'do_evaluate': True,
-    'train_mode': 'keras',
-    'print_loss_every': 100}
+    'train_mode': 'low_level',
+    'print_loss_every': 100,
+    'resample_start_fraction_of_seq_length': 0.5,
+    'kernel_regularizer' : None,
+    'padding_clstm' : 'valid',
+    'strides_clstm' : (1,1),
+    'dropout_clstm' : 0.0,
+    'pooling_method' : 'max',
+    'return_sequences' : [True, True],
+    'return_last_clstm' : False}
