@@ -1,5 +1,6 @@
 import configs.pixel_means as pixel_means
-data_path = 'data/'
+# data_path = 'data/'
+data_path = '/local_storage/users/sbroome/painface-recognition/'
 
 config_dict = {
     'train_dataset': 'pf',
