@@ -1005,6 +1005,23 @@ class DataHandler:
 
         return subject_df
 
+    def get_y_batches_paths_from_dfs(self, sequence_dfs):
+
+        assert(len(sequence_dfs) % self.config_dict['batch_size'] == 0)
+
+        pain_label_list = [sdf.iloc[0]['pain'] for sdf in sequence_dfs]
+        path_list = [sdf.iloc[0]['path'] for sdf in sequence_dfs]
+
+        pain_array = np.array(pain_label_list)
+        pain_array_one_hot = tf.keras.utils.to_categorical(
+            pain_array, num_classes=self.config_dict['nb_labels'])
+        pain_array = np.reshape(pain_array_one_hot,
+                                (-1,
+                                 self.config_dict['batch_size'],
+                                 self.config_dict['nb_labels']))
+        path_array = np.array(path_list)
+        return pain_array, path_array
+
 
 def plot_augmentation(train, val, test, rgb, X_seq_list, flipped, cropped, shaded,
                       seq_index, batch_index, window_index):
@@ -1067,18 +1084,12 @@ def get_video_id_from_frame_path(path):
     return vid_id
 
 
-def make_even_sequences(x, seq_length):
-    x = round_to_batch_size(np.asarray(x, dtype=np.float32), seq_length)
-    num_splits = int(float(len(x)) / seq_length)
-    x = np.split(np.asarray(x, dtype=np.float32), num_splits)
-    return np.asarray(x)
-
-
-def round_to_batch_size(data_array, batch_size):
+def round_to_batch_size(data_list, batch_size):
+    data_array = np.array(data_list)
     num_rows = data_array.shape[0]
     surplus = num_rows % batch_size
     data_array_rounded = data_array[:num_rows - surplus]
-    return data_array_rounded
+    return list(data_array_rounded)
 
 
 def shuffle_blocks(df, key):
@@ -1119,15 +1130,3 @@ def get_flow_magnitude(flow):
     return magnitude
 
 
-def get_y_batches_paths_from_dfs(sequence_dfs, config_dict):
-    pain_label_list = [sdf.iloc[0]['pain'] for sdf in sequence_dfs]
-    path_list = [sdf.iloc[0]['path'] for sdf in sequence_dfs]
-    pain_array = np.array(pain_label_list)
-    pain_array_one_hot = tf.keras.utils.to_categorical(
-        pain_array, num_classes=config_dict['nb_labels'])
-    pain_array = np.reshape(pain_array_one_hot,
-                            (-1,
-                             config_dict['batch_size'],
-                             config_dict['nb_labels']))
-    path_array = np.array(path_list)
-    return pain_array, path_array
