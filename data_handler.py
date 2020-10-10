@@ -1022,6 +1022,12 @@ class DataHandler:
         path_array = np.array(path_list)
         return pain_array, path_array
 
+    def round_to_batch_size(self, data_list):
+        surplus = len(data_list) % self.config_dict['batch_size']
+        if surplus != 0:
+            data_list = data_list[:-surplus]
+        return data_list
+
 
 def plot_augmentation(train, val, test, rgb, X_seq_list, flipped, cropped, shaded,
                       seq_index, batch_index, window_index):
@@ -1082,14 +1088,6 @@ def get_video_id_from_frame_path(path):
     path_left, frame_id = helpers.split_string_at_last_occurence_of_certain_char(path, '/')
     _, vid_id = helpers.split_string_at_last_occurence_of_certain_char(path_left, '/')
     return vid_id
-
-
-def round_to_batch_size(data_list, batch_size):
-    data_array = np.array(data_list)
-    num_rows = data_array.shape[0]
-    surplus = num_rows % batch_size
-    data_array_rounded = data_array[:num_rows - surplus]
-    return list(data_array_rounded)
 
 
 def shuffle_blocks(df, key):

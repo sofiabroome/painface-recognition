@@ -33,8 +33,7 @@ def run():
     train_steps = int(len(train_sequence_dfs)/config_dict['batch_size'])
 
     test_steps = int(len(test_sequence_dfs)/config_dict['batch_size'])
-    test_labels, test_paths = dh.get_y_batches_paths_from_dfs(
-        test_sequence_dfs, config_dict)
+    test_labels, test_paths = dh.get_y_batches_paths_from_dfs(test_sequence_dfs)
 
     if config_dict['val_mode'] == 'no_val':
         val_steps = 0
