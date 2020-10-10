@@ -4,7 +4,7 @@ import sys
 import re
 
 from test_and_eval import run_evaluation
-from data_handler import DataHandler, get_y_batches_paths_from_dfs
+import data_handler
 import arg_parser
 import helpers
 import models
@@ -17,11 +17,13 @@ pd.set_option('max_colwidth', 800)
 
 def run():
 
-    dh = DataHandler(data_columns=['pain'],  # or e.g., 'observer',
-                     config_dict=config_dict,
-                     all_subjects_df=all_subjects_df)
+    dh = data_handler.DataHandler(data_columns=['pain'],  # or e.g., 'observer',
+                                  config_dict=config_dict,
+                                  all_subjects_df=all_subjects_df)
 
     train_sequence_dfs, val_sequence_dfs, test_sequence_dfs = dh.get_data_indices(args)
+
+    test_sequence_dfs = dh.round_to_batch_size(test_sequence_dfs)
 
     train_dataset, val_dataset, test_dataset = dh.get_datasets(
         df_train=train_sequence_dfs,
@@ -31,7 +33,7 @@ def run():
     train_steps = int(len(train_sequence_dfs)/config_dict['batch_size'])
 
     test_steps = int(len(test_sequence_dfs)/config_dict['batch_size'])
-    test_labels, test_paths = get_y_batches_paths_from_dfs(
+    test_labels, test_paths = dh.get_y_batches_paths_from_dfs(
         test_sequence_dfs, config_dict)
 
     if config_dict['val_mode'] == 'no_val':
