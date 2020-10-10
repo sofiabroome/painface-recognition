@@ -447,8 +447,8 @@ class DataHandler:
 
             window_size = self.config_dict['seq_length']
             window_stride = self.config_dict['seq_stride']
-            last_valid_start_index = nb_frames_in_video - (window_size - 1)
-            last_valid_end_index = last_valid_start_index + (window_size - 1)
+            last_valid_start_index = nb_frames_in_video - window_size
+            last_valid_end_index = nb_frames_in_video - 1
 
             if nb_per_video is None:
                 number_of_windows = last_valid_end_index // window_stride
@@ -1127,7 +1127,7 @@ def get_y_batches_paths_from_dfs(sequence_dfs, config_dict):
         pain_array, num_classes=config_dict['nb_labels'])
     pain_array = np.reshape(pain_array_one_hot,
                             (-1,
-                             config_dict['batch_size'],
-                             config_dict['nb_labels']))
+                            config_dict['batch_size'],
+                            config_dict['nb_labels']))
     path_array = np.array(path_list)
     return pain_array, path_array
