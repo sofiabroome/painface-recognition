@@ -335,6 +335,7 @@ class DataHandler:
 
         while True:
             if train:  # Shuffle videos between epochs.
+                print('Shuffling the order of sequences.')
                 random.shuffle(sequence_dfs)
 
             batch_index = 0
@@ -604,6 +605,7 @@ class DataHandler:
 
         while True:
             if train:  # Shuffle videos between epochs.
+                print('Shuffling the order of sequences.')
                 random.shuffle(sequence_dfs)
 
             batch_index = 0
