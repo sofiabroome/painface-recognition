@@ -176,7 +176,7 @@ def get_majority_vote_3d(y_pred, y_paths):
 
 def run_evaluation(args, config_dict, model, model_path,
                    test_dataset, test_steps,
-                   y_batches, y_batches_paths):
+                   y_batches, y_paths):
 
     model = model.model
     model.load_weights(model_path)
@@ -192,13 +192,10 @@ def run_evaluation(args, config_dict, model, model_path,
                             steps=test_steps,
                             verbose=1)
 
-    y_test = np.array(y_batches)  # [nb_batches, batch_size, nb_classes]
-    y_test_paths = np.array(y_batches_paths)
-    nb_batches = y_test.shape[0]
+    nb_batches = y_batches.shape[0]
 
-    y_test = np.reshape(y_test, (nb_batches*config_dict['batch_size'],
+    y_test = np.reshape(y_batches, (nb_batches*config_dict['batch_size'],
                                  config_dict['nb_labels']))
-    y_test_paths = np.reshape(y_test_paths, (nb_batches*config_dict['batch_size']))
     # Take argmax of the probabilities.
     y_preds_argmax = np.argmax(y_preds, axis=1)
     y_preds_onehot = tf.keras.utils.to_categorical(y_preds_argmax,
@@ -207,4 +204,4 @@ def run_evaluation(args, config_dict, model, model_path,
     # Evaluate the model's performance
     ev.evaluate(model=model, y_test=y_test, y_pred=y_preds_onehot,
                 softmax_predictions=y_preds,
-                config_dict=config_dict, y_paths=y_test_paths)
+                config_dict=config_dict, y_paths=y_paths)
