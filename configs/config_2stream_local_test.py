@@ -12,7 +12,9 @@ config_dict = {
     'lps_of_path': data_path + 'lps/jpg_128_128_16fps_OF_magnitude_cv2_2fpsrate/',
     'pixel_mean': pixel_means.pf_rgb['mean'],
     'pixel_std': pixel_means.pf_rgb['std'],
-    'model': '2stream_5d_add',
+    # 'model': '2stream_5d_add',
+    # 'model': 'convolutional_LSTM',
+    'model': 'clstm_functional',
     'rgb_period': 1,  # Set to 10 if simonyan-like model
     'flow_period': 1,
     'input_width': 128,
@@ -35,7 +37,7 @@ config_dict = {
     'batch_size': 8,
     'nb_input_dims': 5,
     'val_mode': 'fraction',  # subject | fraction | no_val
-    'val_fraction_value': 0.5,
+    'val_fraction_value': 0.6,
     'monitor': 'val_binary_accuracy',
     'monitor_mode': 'max',
     'data_type': 'rgb',
@@ -44,13 +46,15 @@ config_dict = {
     'aug_crop': 0,
     'aug_light': 0,
     'do_evaluate': True,
-    'train_mode': 'low_level',
+    'train_mode': 'keras',
     'print_loss_every': 100,
     'resample_start_fraction_of_seq_length': 0.5,
+    # Parameters for functional API C-LSTM
     'kernel_regularizer' : None,
     'padding_clstm' : 'valid',
     'strides_clstm' : (1,1),
     'dropout_clstm' : 0.0,
     'pooling_method' : 'max',
-    'return_sequences' : [True, True],
+    'return_sequences' : [True, False],
+    'only_last_element_for_fc' : 'no',
     'return_last_clstm' : False}
