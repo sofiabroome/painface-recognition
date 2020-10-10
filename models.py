@@ -230,11 +230,13 @@ class MyModel:
     def two_stream_5d(self, fusion):
 
         rgb_model = self.convolutional_LSTM(channels=3, top_layer=False)
+        # rgb_model = self.clstm(channels=3, top_layer=False, bn=True)
         input_array = Input(shape=(None, self.config_dict['seq_length'],
                             self.input_shape[0], self.input_shape[1], 3))
         encoded_image = rgb_model(input_array[0,:])
 
         of_model = self.convolutional_LSTM(channels=3, top_layer=False)
+        # of_model = self.clstm(channels=3, top_layer=False, bn=True)
         encoded_of = of_model(input_array[1,:])
 
         if fusion == 'add':
@@ -244,9 +246,7 @@ class MyModel:
         if fusion == 'concat':
             merged = concatenate([encoded_image, encoded_of], axis=-1)
 
-        print(merged.shape)
         merged_flat = Flatten()(merged)
-        print(merged_flat.shape)
 
         merged_flat = Dropout(self.dropout_1)(merged_flat)
         dense = Dense(self.nb_labels)(merged_flat)
@@ -471,13 +471,16 @@ class MyModel:
         return_sequences: bool
         """
         # Kernel regularizer
-        reg = tf.keras.regularizers.l2(self.config_dict['kernel_regularizer'])
+        if self.config_dict['kernel_regularizer'] is None:
+            reg = None
+        else:
+            reg = tf.keras.regularizers.l2(self.config_dict['kernel_regularizer'])
         # ConvLSTM2D layer
         clstm_output = tf.keras.layers.ConvLSTM2D(
             filters=nb_hidden,
             kernel_size=(ks1, ks2),
             padding=self.config_dict['padding_clstm'],
-            strides=(self.config_dict['stride_clstm'], self.config_dict['stride_clstm']),
+            strides=self.config_dict['strides_clstm'],
             kernel_regularizer=reg,
             dropout=self.config_dict['dropout_clstm'],
             return_sequences=return_sequences)(input_tensor)
@@ -503,14 +506,14 @@ class MyModel:
             print(x)
         return x, clstm_output
 
-    def clstm(self, bn):
+    def clstm(self, channels=3, top_layer=True, bn=True):
         """x: 5D tensor, sequence of images
            bn: bool, whether to batch normalize
            return: x, the transformed input sequence."""
 
-        input_layer = Input(shape=(None, self.input_shape[0], self.input_shape[1], 3))
+        input_layer = Input(shape=(None, self.input_shape[0], self.input_shape[1], channels))
         layers = self.config_dict['nb_lstm_layers'] * [self.config_dict['nb_lstm_units']]
-        rs = ast.literal_eval(self.config_dict['return_sequences'])
+        rs = self.config_dict['return_sequences']
         nb_clstm_layers = len(layers)
 
         print(input)
@@ -528,16 +531,17 @@ class MyModel:
                 print('x: ', x)
                 print('clstm_output: ', clstm_output)
 
-        with tf.name_scope('fully_con'):
-            if self.config_dict['only_last_element_for_fc'] == 'yes':
-                # Only pass on the last element of the sequence to FC.
-                # return_seq is True just to save it in the graph for gradcam.
-                x = tf.keras.layers.Flatten()(x[:, -1, :, :, :])
-            else:
-                x = tf.keras.layers.Flatten()(x)
-            print(x)
-            x = tf.keras.layers.Dense(units=self.config_dict['nb_labels'])(x)
-            print(x)
+        if top_layer:
+            with tf.name_scope('fully_con'):
+                if self.config_dict['only_last_element_for_fc'] == 'yes':
+                    # Only pass on the last element of the sequence to FC.
+                    # return_seq is True just to save it in the graph for gradcam.
+                    x = tf.keras.layers.Flatten()(x[:, -1, :, :, :])
+                else:
+                    x = tf.keras.layers.Flatten()(x)
+                print(x)
+                x = tf.keras.layers.Dense(units=self.config_dict['nb_labels'])(x)
+                print(x)
 
         if self.config_dict['return_last_clstm']:
             model = Model(inputs=[input_layer], outputs=[x, clstm_output])
