@@ -718,30 +718,16 @@ class DataHandler:
         return flow
 
     def flip_images(self, images):
-        X_flip = []
-        tf.reset_default_graph()
-        # Tensorflow wants [height, width, channels] input below, hence [1] before [0].
-        X = tf.placeholder(tf.float32, shape=(self.image_size[1], self.image_size[0], 3))
-        tf_img1 = tf.image.flip_left_right(X)
-        with tf.Session() as sess:
-            sess.run(tf.global_variables_initializer())
-            for img in images:
-                flipped_imgs = sess.run([tf_img1], feed_dict={X: img})
-                X_flip.extend(flipped_imgs)
-        X_flip = np.array(X_flip, dtype=np.float32)
-        return X_flip
+        flipped = []
+        for img in images:
+            flipped_img = self.flip_image(img)
+            flipped.append(flipped_img)
+        flipped_array = np.array(flipped, dtype=np.float32)
+        return flipped_array
 
+    @tf.function
     def flip_image(self, image):
-        tf.reset_default_graph()
-        # Tensorflow wants [height, width, channels] input below, hence [1] before [0].
-        X = tf.placeholder(tf.float32, shape=(self.image_size[1], self.image_size[0], 3))
-        tf_img1 = tf.image.flip_left_right(X)
-        with tf.Session() as sess:
-            sess.run(tf.global_variables_initializer())
-            X_flip = sess.run([tf_img1], feed_dict={X: image})
-        X_flip = np.array(X_flip, dtype=np.float32)
-        X_flip = np.reshape(X_flip, (self.image_size[1], self.image_size[0], 3))
-        return X_flip
+        return tf.image.flip_left_right(image)
 
     def add_gaussian_noise(self, images):
         """
