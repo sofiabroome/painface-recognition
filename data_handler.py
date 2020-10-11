@@ -210,7 +210,6 @@ class DataHandler:
         df_test = df[df['train'] == 0]
 
         # Reset all indices so they're 0->N.
-        print('\nResetting dataframe indices...')
         df_train.reset_index(drop=True, inplace=True)
         df_test.reset_index(drop=True, inplace=True)
 
@@ -218,9 +217,6 @@ class DataHandler:
             df_val.reset_index(drop=True, inplace=True)
         else:
             df_val = []
-
-        print("Nb. of train, val and test frames: ",
-              len(df_train), len(df_val), len(df_test), '\n')
 
         train_sequence_dfs = self.get_sequences_from_frame_df(df=df_train)
         test_sequence_dfs = self.get_sequences_from_frame_df(df=df_test)
@@ -230,7 +226,10 @@ class DataHandler:
         else:
             val_sequence_dfs = []
 
-        print("Resulting in nb. of train, val and test sequences: ",
+        print("\nNb. of train, val and test frames: ",
+              len(df_train), len(df_val), len(df_test), '\n')
+
+        print("...resulting in nb. of train, val and test sequences: ",
               len(train_sequence_dfs),
               len(val_sequence_dfs),
               len(test_sequence_dfs), '\n')
