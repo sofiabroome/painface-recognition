@@ -89,7 +89,8 @@ def make_jobarray_configs(dataset, nb_repetitions):
             commands.append('VAL_SUBJECTS=' + '/'.join(val_horses))
             commands.append('TEST_SUBJECTS=' + test_subject)
             print(commands, '\n')
-            config_filename = 'config-' + ('%02d' % (counter_config)) + '.sh'
+            # config_filename = 'config-' + ('%02d' % (counter_config)) + '.sh'
+            config_filename = 'config-' + str(counter_config) + '.sh'
             out_file = os.path.join(output_dir, config_filename)
             print(out_file)
             print('\n')
@@ -106,16 +107,20 @@ def main():
                           nb_repetitions=nb_reps)
 
 if __name__=='__main__':
-    # dataset_str = 'pf'
+
+    dataset_str = 'pf'
     # dataset_str = 'lps'
-    dataset_str = 'all'
-    nb_reps = 2
+    # dataset_str = 'all'
+
+    nb_reps = 3
+
     model = '2stream'
     # model = 'clstm1'
+
     if model == '2stream':
-        config_file = 'configs/config_2stream_clstm.py'
+        config_file = 'configs/config_2stream_{}.py'.format(dataset_str)
     if model == 'clstm1':
         config_file = 'configs/config_clstm.py'
-    job_name = 'configs_to_run_'+ model + '_' + dataset_str + '_crossval'
+    job_name = 'configs_to_run_{}_{}_crossval'.format(model, dataset_str)
     main()
 
