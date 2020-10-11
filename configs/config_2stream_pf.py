@@ -35,7 +35,7 @@ config_dict = {
     'batch_size': 8,
     'nb_input_dims': 5,
     'val_mode': 'subject',  # subject | fraction | no_val
-    'val_fraction_value': 0.001,
+    'val_fraction_value': 0.0,
     'monitor': 'val_binary_accuracy',
     'monitor_mode': 'max',
     'data_type': 'rgb',
