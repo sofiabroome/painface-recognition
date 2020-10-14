@@ -43,4 +43,14 @@ config_dict = {
     'aug_light': 0,
     'do_evaluate': True,
     'train_mode': 'keras',
-    'print_loss_every': 100}
+    'print_loss_every': 100,
+    'resample_start_fraction_of_seq_length': 0.5,
+    # Parameters for functional API C-LSTM
+    'kernel_regularizer' : None,
+    'padding_clstm' : 'valid',
+    'strides_clstm' : (1,1),
+    'dropout_clstm' : 0.0,
+    'pooling_method' : 'max',
+    'return_sequences' : [True, True, True, True],
+    'only_last_element_for_fc' : 'no',
+    'return_last_clstm' : False}

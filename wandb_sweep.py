@@ -4,7 +4,7 @@ import sys
 import re
 
 from test_and_eval import run_evaluation
-from data_handler import DataHandler
+from data_handler import DataHandler, get_y_batches_paths_from_dfs
 import arg_parser
 import helpers
 import models
@@ -14,6 +14,7 @@ import train
 hyperparams = ['batch_size', 'dropout_1', 'kernel_size', 'lr',
                'nb_lstm_layers', 'nb_lstm_units', 'optimizer']
 
+
 def run():
 
     print(config_dict)
@@ -22,30 +23,31 @@ def run():
                      config_dict=config_dict,
                      all_subjects_df=all_subjects_df)
 
-    df_train, df_val, df_test = dh.get_data_indices(args)
+    train_sequence_dfs, val_sequence_dfs, test_sequence_dfs = dh.get_data_indices(args)
 
     train_dataset, val_dataset, test_dataset = dh.get_datasets(
-        df_train=df_train,
-        df_val=df_val,
-        df_test=df_test)
+        df_train=train_sequence_dfs,
+        df_val=val_sequence_dfs,
+        df_test=test_sequence_dfs)
 
-    train_steps, _, _ = dh.get_nb_steps(df_train, 'train')
+    train_steps = int(len(train_sequence_dfs)/config_dict['batch_size'])
 
-    test_steps, y_batches, y_batches_paths = dh.get_nb_steps(
-        df_test, 'test')
+    test_steps = int(len(test_sequence_dfs)/config_dict['batch_size'])
+    test_labels, test_paths = get_y_batches_paths_from_dfs(
+        test_sequence_dfs, config_dict)
 
     if config_dict['val_mode'] == 'no_val':
         val_steps = 0
     else:
-        val_steps, _, _ = dh.get_nb_steps(df_val, 'val')
+        val_steps = int(len(val_sequence_dfs)/config_dict['batch_size'])
 
     if args.test_run == 1:
         config_dict['nb_epochs'] = 1
         train_steps = 2
         val_steps = 2
         test_steps = 2
-        y_batches = y_batches[:test_steps]
-        y_batches_paths = y_batches_paths[:test_steps]
+        test_labels = test_labels[:test_steps]
+        test_paths = test_paths[:test_steps*config_dict['batch_size']]
 
     # Train the model
 
@@ -64,8 +66,9 @@ def run():
                        model_path=best_model_path,
                        test_dataset=test_dataset,
                        test_steps=test_steps,
-                       y_batches=y_batches,
-                       y_batches_paths=y_batches_paths)
+                       y_batches=test_labels,
+                       y_paths=test_paths)
+
 
 def overwrite_hyperparams_in_config():
     args_dict = vars(args)

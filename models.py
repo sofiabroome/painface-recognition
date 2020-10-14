@@ -107,7 +107,7 @@ class MyModel:
 
         if self.name == 'clstm_functional':
             print('C-LSTM, functional')
-            self.model = self.clstm(bn=True)
+            self.model = self.clstm()
 
         if self.name == 'rodriguez':
             print('Rodriguez Deep pain model')
@@ -511,7 +511,9 @@ class MyModel:
            bn: bool, whether to batch normalize
            return: x, the transformed input sequence."""
 
-        input_layer = Input(shape=(None, self.input_shape[0], self.input_shape[1], channels))
+        input_layer = Input(shape=(
+            self.config_dict['seq_length'],
+            self.input_shape[0], self.input_shape[1], channels))
         layers = self.config_dict['nb_lstm_layers'] * [self.config_dict['nb_lstm_units']]
         rs = self.config_dict['return_sequences']
         nb_clstm_layers = len(layers)

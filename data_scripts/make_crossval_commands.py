@@ -107,12 +107,16 @@ def main():
                           nb_repetitions=nb_reps)
 
 if __name__=='__main__':
+
     dataset_str = 'pf'
     # dataset_str = 'lps'
     # dataset_str = 'all'
+
     nb_reps = 3
+
     model = '2stream'
     # model = 'clstm1'
+
     if model == '2stream':
         config_file = 'configs/config_2stream_{}.py'.format(dataset_str)
     if model == 'clstm1':
