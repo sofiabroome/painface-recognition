@@ -14,7 +14,7 @@ config_dict = {
     'output_folder': '../data/lps/interpretability_results/',
     # 'checkpoint' : '../models/BEST_MODEL_2stream_5d_add_117332.h5', # 2stream
     # 'checkpoint' : '../models/best_model_2stream_5d_add_testhej.ckpt',
-    'checkpoint': '../models/best_model_2stream_5d_add_120475.ckpt',
+    'checkpoint': '../models/best_model_2stream_5d_add_122063.ckpt',
     'model' : '2stream_5d_add',
     # 'checkpoint' : '../models/BEST_MODEL_convolutional_LSTM_116306.h5',  # 1stream
     # 'checkpoint': '../models/best_model_convolutional_LSTM_testhej.ckpt',  # 1stream
@@ -60,12 +60,15 @@ config_dict = {
     'kernel_regularizer': 0.0,
     'return_sequences': '[True, True, True, False]',
     'return_last_clstm': True,
+    'resample_start_fraction_of_seq_length': 0.5,
     # Temporal mask things
+    'inference_only': True,
+    'normalization_mode': 'frame',
     'temporal_mask_type': 'freeze',
-    'nb_iterations_graddescent': 150,
+    'nb_iterations_graddescent': 1,
     'focus_type': 'guessed',
-    'lambda_1': 0.01,
-    'lambda_2': 0.02,
+    'lambda_1': 0.000000001,
+    'lambda_2': 0.000000002,
     'tv_norm_p': 3,
     'tv_norm_q': 3,
     'verbose': True,

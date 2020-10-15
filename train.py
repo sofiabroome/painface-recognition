@@ -41,9 +41,12 @@ def train(model_instance, config_dict, train_steps, val_steps,
         optimizer = Adagrad(lr=config_dict['lr'])
 
     print("Using binary crossentropy and binary accuracy metrics.")
-    model_instance.model.compile(loss='binary_crossentropy',
-                                 optimizer=optimizer,
-                                 metrics=['binary_accuracy'])
+    if config_dict['fine_tune']:
+        model_instance.model.load_weights(config_dict['checkpoint']).expect_partial()
+    else:
+        model_instance.model.compile(loss='binary_crossentropy',
+                                     optimizer=optimizer,
+                                     metrics=['binary_accuracy'])
 
     if config_dict['train_mode'] == 'keras':
         keras_train(model_instance.model, best_model_path,

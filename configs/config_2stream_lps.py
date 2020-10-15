@@ -1,5 +1,6 @@
 import configs.pixel_means as pixel_means
-data_path = '/local_storage/users/sbroome/painface-recognition/'
+# data_path = '/local_storage/users/sbroome/painface-recognition/'
+data_path = 'data/'
 
 config_dict = {
     'clip_list_pf': 'metadata/videos_overview_missingremoved.csv',
@@ -11,6 +12,9 @@ config_dict = {
     'pixel_mean': pixel_means.lps_rgb['mean'],
     'pixel_std': pixel_means.lps_rgb['std'],
     'model': '2stream_5d_add',
+    'fine_tune': True,
+    'inference_only': False,
+    'checkpoint': 'models/best_model_2stream_5d_add_122063.ckpt',
     'rgb_period': 1,  # Set to 10 if simonyan-like model
     'flow_period': 1,
     'input_width': 128,
@@ -44,7 +48,7 @@ config_dict = {
     'aug_crop': 0,
     'aug_light': 0,
     'do_evaluate': True,
-    'train_mode': 'keras',
+    'train_mode': 'low_level',  # keras | low_level
     'print_loss_every': 100,
     'resample_start_fraction_of_seq_length': 0.5,
     # Parameters for functional API C-LSTM

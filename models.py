@@ -83,7 +83,10 @@ class MyModel:
 
         if self.name == '2stream_5d_add':
             print('2stream 5D')
-            self.model = self.two_stream_5d(fusion='add')
+            if self.config_dict['inference_only']:
+                self.model = self.two_stream_5d(fusion='add', train=False)
+            else:
+                self.model = self.two_stream_5d(fusion='add')
 
         if self.name == '2stream_5d_mult':
             print('2stream 5D')
@@ -227,17 +230,17 @@ class MyModel:
         model = Model(inputs=[image_input], outputs=[output])
         return model
 
-    def two_stream_5d(self, fusion):
+    def two_stream_5d(self, fusion, train=True):
 
         rgb_model = self.convolutional_LSTM(channels=3, top_layer=False)
         # rgb_model = self.clstm(channels=3, top_layer=False, bn=True)
         input_array = Input(shape=(None, self.config_dict['seq_length'],
                             self.input_shape[0], self.input_shape[1], 3))
-        encoded_image = rgb_model(input_array[0,:])
+        encoded_image = rgb_model(input_array[0, :])
 
         of_model = self.convolutional_LSTM(channels=3, top_layer=False)
         # of_model = self.clstm(channels=3, top_layer=False, bn=True)
-        encoded_of = of_model(input_array[1,:])
+        encoded_of = of_model(input_array[1, :])
 
         if fusion == 'add':
             merged = add([encoded_image, encoded_of])
@@ -248,7 +251,8 @@ class MyModel:
 
         merged_flat = Flatten()(merged)
 
-        merged_flat = Dropout(self.dropout_1)(merged_flat)
+        if train:
+            merged_flat = Dropout(self.dropout_1)(merged_flat)
         dense = Dense(self.nb_labels)(merged_flat)
 
         if self.nb_labels == 2:
@@ -256,7 +260,12 @@ class MyModel:
         else:
             output = Activation('softmax')(dense)
 
-        two_stream_model = Model(inputs=[input_array], outputs=[output])
+        if self.config_dict['return_last_clstm']:
+            outputs = [output, merged]
+        else:
+            outputs = [output]
+
+        two_stream_model = Model(inputs=[input_array], outputs=outputs)
 
         return two_stream_model
 
@@ -455,8 +464,6 @@ class MyModel:
                 model.add(Activation('sigmoid'))
             else:
                 model.add(Activation('softmax'))
-        else:
-            model.add(TimeDistributed(Flatten()))
 
         return model
 
