@@ -150,16 +150,16 @@ def init_mask(seq, target, model, config_dict, thresh=0.9, mode="central"):
                 concat_streams = tf.concat([perturbed_rgb, perturbed_flow], axis=0)
                 concat_streams_6d = tf.expand_dims(concat_streams, axis=1)
                 print('concat streams shape: ', concat_streams.shape)
-                score = model(concat_streams_6d)
+                score, _ = model(concat_streams_6d)
             else:
-                score = model(perturb_sequence(x, mask))
+                score, _ = model(perturb_sequence(x, mask))
             return score
 
         # get the class score for the fully perturbed sequence
         full_pert_score = perturb_one_or_two_streams(seq, np.ones(config_dict['seq_length'], dtype='float32'))
         full_pert_score = full_pert_score[:, np.argmax(target)]
 
-        orig_score = model(seq)
+        orig_score, _ = model(seq)
         orig_score = orig_score[:, np.argmax(target)]
 
         # reduce mask size while the loss ratio remains above 90%

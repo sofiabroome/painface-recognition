@@ -1,8 +1,10 @@
 import os
 
 import cv2
+import glob
 import numpy as np
 from PIL import Image
+import tensorflow as tf
 
 from interpretability import mask
 
@@ -17,7 +19,7 @@ def visualize_results(config_dict, orig_seq, pert_seq, mask, root_dir=None,
     if not os.path.exists(root_dir):
         os.makedirs(root_dir)
 
-    for i in range(orig_seq.shape[1]):
+    for i in range(config_dict['seq_length']):
 
         if mark_imgs:
             orig_seq[:, i, :10, :10, 1:] = 0
@@ -33,13 +35,18 @@ def visualize_results(config_dict, orig_seq, pert_seq, mask, root_dir=None,
 
 def visualize_results_on_gradcam(config_dict, gradcam_images, mask, root_dir,
                                  image_width, image_height,
-                                 case="0", round_up_mask=True):
+                                 case="0", round_up_mask=True, flow=True):
     if not os.path.exists(root_dir):
         os.makedirs(root_dir)
 
     dots = find_temp_mask_red_dots(image_width, image_height, mask, round_up_mask)
 
-    dot_offset = config_dict['image_width'] * 2
+    if flow:
+        dot_offset = config_dict['input_width'] * 3
+        dot_offset_flow = config_dict['input_width'] * 4
+    else:
+        dot_offset = config_dict['input_width'] * 2
+
     for i in range(len(mask)):
         for j, dot in enumerate(dots):
 
@@ -53,6 +60,13 @@ def visualize_results_on_gradcam(config_dict, gradcam_images, mask, root_dir,
                 dot["y_start"]:,
                 dot_offset + dot["x_start"]:dot_offset + dot["x_end"],
                 dot["channel"]] = intensity
+
+            if flow:
+                gradcam_images[i][dot["y_start"]:, dot_offset_flow + dot["x_start"]:dot_offset_flow + dot["x_end"], :] = 0
+                gradcam_images[i][
+                    dot["y_start"]:,
+                    dot_offset_flow + dot["x_start"]:dot_offset_flow + dot["x_end"],
+                    dot["channel"]] = intensity
 
             # result = Image.fromarray(gradcam_images[i].astype(np.uint8), mode="RGB")
             tmp = cv2.cvtColor(gradcam_images[i], cv2.COLOR_BGR2RGB)
@@ -94,22 +108,63 @@ def find_temp_mask_red_dots(image_width, image_height, mask, round_up_mask):
     return dots
 
 
-def create_image_arrays(input_sequence, gradcams, time_mask,
+def prepare_for_image_write(array):
+    array -= np.min(array)
+    array /= np.max(array)
+    array = tf.cast(255*array, tf.uint8).numpy()
+    return array
+
+
+def create_image_arrays(config_dict, input_sequence, gradcams, time_mask,
                         output_folder, video_id, mask_type,
                         image_width, image_height):
     combined_images = []
-    for i in range(input_sequence.shape[1]):
-        input_data_img = input_sequence[0, i, :, :, :]
+    sequence = input_sequence[0, :, :, :, :, :]
+    perturbed_sequence = mask.perturb_sequence(
+        sequence,
+        time_mask,
+        perturbation_type=mask_type,
+        snap_values=True)
+    sequence = prepare_for_image_write(sequence)
 
-        time_mask_copy = time_mask.copy()
+    flow_sequence = input_sequence[1, :, :, :, :, :]
+    perturbed_flow = mask.perturb_sequence(
+        flow_sequence,
+        time_mask,
+        perturbation_type=mask_type,
+        snap_values=True)
+    flow_sequence = prepare_for_image_write(flow_sequence)
 
-        combined_img = np.concatenate((np.uint8(input_data_img),
+    perturbed_sequence = prepare_for_image_write(perturbed_sequence)
+    perturbed_flow = prepare_for_image_write(perturbed_flow)
+    # sequence -= np.min(sequence)
+    # sequence /= np.max(sequence)
+    # sequence = tf.cast(255*sequence, tf.uint8).numpy()
+
+    for i in range(config_dict['seq_length']):
+        # frame = input_sequence[0, 0, i, :, :, :]
+        # frame -= np.min(frame)
+        # frame /= np.max(frame)
+        # frame = tf.cast(255*frame, tf.uint8).numpy()
+        # frame = cv2.applyColorMap(sequence[0, i, :], cv2.COLORMAP_JET)
+        frame = cv2.cvtColor(sequence[0, i, :], cv2.COLOR_BGR2RGB)
+        frame = Image.fromarray(frame)
+
+        flow = cv2.cvtColor(flow_sequence[0, i, :], cv2.COLOR_BGR2RGB)
+        flow = Image.fromarray(flow)
+
+        # combined_img = np.concatenate((np.uint8(frame),
+        perturbed_frame = cv2.cvtColor(perturbed_sequence[0, i, :], cv2.COLOR_BGR2RGB)
+        perturbed_frame = Image.fromarray(perturbed_frame)
+
+        perturbed_flow_frame = cv2.cvtColor(perturbed_flow[0, i, :], cv2.COLOR_BGR2RGB)
+        perturbed_flow_frame = Image.fromarray(perturbed_flow_frame)
+
+        combined_img = np.concatenate((frame,
+                                       flow,
                                        np.uint8(gradcams[i]),
-                                       np.uint8(mask.perturb_sequence(
-                                           input_sequence,
-                                           time_mask_copy,
-                                           perb_type=mask_type,
-                                           snap_values=True)[0, i, :, :, :])),
+                                       perturbed_frame,
+                                       perturbed_flow_frame),
                                       axis=1)
 
         combined_images.append(combined_img)
@@ -118,11 +173,21 @@ def create_image_arrays(input_sequence, gradcams, time_mask,
             "img%02d.jpg" % (i + 1)),
             combined_img)
 
-    visualize_results_on_gradcam(combined_images,
+    visualize_results_on_gradcam(config_dict,
+                                 combined_images,
                                  time_mask,
+                                 output_folder,
                                  image_width,
                                  image_height,
-                                 root_dir=output_folder,
                                  case=mask_type + video_id)
+
+    path_to_combined_gif = os.path.join(output_folder, "mygif.gif")
+    fp_in = os.path.join(output_folder, '*.png')
+    img, *imgs = [Image.open(f) for f in sorted(glob.glob(fp_in))]
+    img.save(fp=path_to_combined_gif, format='GIF', append_images=imgs,
+             save_all=True, duration=1000, loop=0)
+    # os.system("convert -delay 10 -loop 0 {}.jpg {}".format(
+    #     os.path.join(output_folder, "*"),
+    #     path_to_combined_gif))
 
     return combined_images
