@@ -450,7 +450,10 @@ class DataHandler:
             last_valid_start_index = nb_frames_in_video - window_size
             last_valid_end_index = nb_frames_in_video - 1
 
-            if nb_per_video is None:
+            if nb_frames_in_video == self.config_dict['seq_length']:
+                start_indices = [0]
+
+            elif nb_per_video is None:
                 number_of_windows = last_valid_end_index // window_stride
                 print('Number of windows', number_of_windows)
                 start_indices = [(start_ind + window_index * window_stride)
