@@ -119,7 +119,9 @@ def add_flow_to_frames_df(flow_path, frames_df):
 
 def get_dataset_from_df(df, data_columns, config_dict, all_subjects_df):
     dh = data_handler.DataHandler(data_columns, config_dict, all_subjects_df)
-    return dh.get_dataset(df, train=False)
+    sequences_df = dh.get_sequences_from_frame_df(df)
+    # Set train to True to shuffle sequences
+    return dh.get_dataset(sequence_dfs=sequences_df, train=True)
 
 
 def make_df_frames_rgb():
