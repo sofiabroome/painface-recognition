@@ -51,12 +51,15 @@ def run():
     # Train the model
 
     model = models.MyModel(config_dict=config_dict)
-    best_model_path = train.train(model_instance=model,
-                                  config_dict=config_dict,
-                                  train_steps=train_steps,
-                                  val_steps=val_steps,
-                                  train_dataset=train_dataset,
-                                  val_dataset=val_dataset)
+    if config_dict['inference_only']:
+        best_model_path = config_dict['checkpoint']
+    else:
+        best_model_path = train.train(model_instance=model,
+                                      config_dict=config_dict,
+                                      train_steps=train_steps,
+                                      val_steps=val_steps,
+                                      train_dataset=train_dataset,
+                                      val_dataset=val_dataset)
 
     if config_dict['do_evaluate']:
         run_evaluation(args=args,
