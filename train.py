@@ -108,7 +108,7 @@ def low_level_train(model, ckpt_path, optimizer, config_dict,
     loss_fn = tf.keras.losses.BinaryCrossentropy()
     train_acc_metric = tf.keras.metrics.BinaryAccuracy()
     val_acc_metric = tf.keras.metrics.BinaryAccuracy()
-    val_acc_old = 0
+    val_acc_old = -1
 
     @tf.function
     def train_step(x, y):
