@@ -179,7 +179,10 @@ def run_evaluation(args, config_dict, model, model_path,
                    y_batches, y_paths):
 
     model = model.model
-    model.load_weights(model_path)
+    if config_dict['inference_only']:
+        model.load_weights(model_path).expect_partial()
+    else:
+        model.load_weights(model_path)
 
     ev = Evaluator(acc=True,
                    cm=True,
