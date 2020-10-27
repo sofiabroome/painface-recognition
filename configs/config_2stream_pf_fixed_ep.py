@@ -1,5 +1,4 @@
 import configs.pixel_means as pixel_means
-
 data_path = '/local_storage/users/sbroome/painface-recognition/'
 
 config_dict = {
@@ -9,17 +8,9 @@ config_dict = {
     'lps_rgb_path': data_path + 'lps/jpg_128_128_2fps/',
     'pf_of_path': data_path + 'pf/jpg_128_128_16fps_OF_magnitude_cv2/',
     'lps_of_path': data_path + 'lps/jpg_128_128_16fps_OF_magnitude_cv2_2fpsrate/',
-    'data_df_path': data_path + 'pf/' + 'jpg_128_128_16fps_OF_magnitude_cv2/horse_3.csv',
-    'pixel_mean': pixel_means.pf_rgb['mean'],
-    'pixel_std': pixel_means.pf_rgb['std'],
-    'output_folder': data_path + 'results/interpretability_results/',
-    # 'checkpoint' : '../models/BEST_MODEL_2stream_5d_add_117332.h5', # 2stream
-    # 'checkpoint' : '../models/best_model_2stream_5d_add_testhej.ckpt',
-    'checkpoint': '../models/best_model_2stream_5d_add_122063.ckpt',
-    'model' : '2stream_5d_add',
-    # 'checkpoint' : '../models/BEST_MODEL_convolutional_LSTM_116306.h5',  # 1stream
-    # 'checkpoint': '../models/best_model_convolutional_LSTM_testhej.ckpt',  # 1stream
-    # 'model': 'convolutional_LSTM',
+    'pixel_mean': pixel_means.imagenet['mean'],
+    'pixel_std': pixel_means.imagenet['std'],
+    'model': '2stream_5d_add',
     'rgb_period': 1,  # Set to 10 if simonyan-like model
     'flow_period': 1,
     'input_width': 128,
@@ -28,21 +19,23 @@ config_dict = {
     'nb_labels': 2,
     'target_names': ['NO_PAIN', 'PAIN'],
     'nb_lstm_units': 32,
+    'nb_dense_units': 32,
+    'nb_conv_filters': 16,
     'kernel_size': 5,
     'dropout_1': 0.25,
     'dropout_2': 0.5,
-    'nb_epochs': 100,
+    'nb_epochs': 50,
     'early_stopping': 15,
     'optimizer': 'adadelta',
-    'lr': 0.01,
+    'lr': 0.001,
     'round_to_batch': True,
     'seq_length': 10,
     'seq_stride': 10,
     'nb_workers': 1,
-    'batch_size': 1,
+    'batch_size': 8,
     'nb_input_dims': 5,
     'val_mode': 'no_val',  # subject | fraction | no_val
-    'val_fraction_value': 0.001,
+    'val_fraction_value': 0.0,
     'monitor': 'val_binary_accuracy',
     'monitor_mode': 'max',
     'data_type': 'rgb',
@@ -51,19 +44,21 @@ config_dict = {
     'aug_crop': 0,
     'aug_light': 0,
     'do_evaluate': True,
-    'train_mode': 'keras',
-    'print_loss_every': 100,
-    'padding_clstm': 'same',
-    'pooling_method': 'max',  # avg | max
-    'only_last_element_for_fc': True,
-    'stride_clstm': 1,
-    'dropout_clstm': 0.0,
-    'kernel_regularizer': 0.0,
-    'return_sequences': '[True, True, True, False]',
-    'return_last_clstm': True,
+    'train_mode': 'low_level',  # keras | low_level
+    'print_loss_every': 1000,
     'resample_start_fraction_of_seq_length': 0.5,
+    'fine_tune': False,
+    # Parameters for functional API C-LSTM
+    'kernel_regularizer' : None,
+    'padding_clstm' : 'valid',
+    'strides_clstm' : (1,1),
+    'dropout_clstm' : 0.0,
+    'pooling_method' : 'max',
+    'return_sequences' : [True, True, True, True],
+    'only_last_element_for_fc' : 'no',
+    'return_last_clstm' : False,
     # Temporal mask things
-    'inference_only': True,
+    'inference_only': False,
     'normalization_mode': 'sequence',  # 'frame' | 'sequence'
     'temporal_mask_type': 'freeze',
     'nb_iterations_graddescent': 500,
