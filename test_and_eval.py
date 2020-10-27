@@ -1,8 +1,9 @@
 from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score
 import tensorflow as tf
 import numpy as np
+import data_handler
 import subprocess
-import helpers
+import random
 import wandb
 import os
 
@@ -174,6 +175,46 @@ def get_majority_vote_3d(y_pred, y_paths):
     return majority_votes, corresponding_paths
 
 
+def get_per_video_vote(y_pred, y_paths, ground_truth):
+    nb_sequences = y_pred.shape[0]
+    majority_votes = {}
+    for i in range(nb_sequences):
+        seq_path = y_paths[i]
+        video_id = data_handler.get_video_id_from_frame_path(seq_path)
+        label_votes = majority_votes.get(video_id, {0: 0, 1: 0})
+        vote = np.argmax(y_pred[i])
+        if vote in label_votes:
+            label_votes[vote] += 1
+        else:
+            label_votes[vote] = 1
+
+        if 'ground_truth' not in label_votes:
+            label_votes['ground_truth'] = np.argmax(ground_truth[i])
+
+        majority_votes[video_id] = label_votes
+    print(majority_votes)
+    wandb.log({'video level votes': str(majority_votes)})
+    return majority_votes
+
+
+def compute_video_level_accuracy(majvotes):
+    nb_correct = 0
+    total = 0
+    for video_id in majvotes.keys():
+        nopain = majvotes[video_id][0]
+        pain = majvotes[video_id][1]
+        majority = 0 if nopain > pain else 1
+        if nopain == pain:
+            majority = random.choice([0, 1])
+        gt = majvotes[video_id]['ground_truth']
+        if majority == gt:
+            nb_correct += 1
+        total += 1
+    acc = nb_correct/total
+    wandb.log({'video level accuracy': acc})
+    print('Video level accuracy: ', nb_correct/total)
+
+
 def run_evaluation(args, config_dict, model, model_path,
                    test_dataset, test_steps,
                    y_batches, y_paths):
@@ -198,7 +239,13 @@ def run_evaluation(args, config_dict, model, model_path,
     nb_batches = y_batches.shape[0]
 
     y_test = np.reshape(y_batches, (nb_batches*config_dict['batch_size'],
-                                 config_dict['nb_labels']))
+                        config_dict['nb_labels']))
+
+    majvotes = get_per_video_vote(
+        y_pred=y_preds, y_paths=y_paths, ground_truth=y_test)
+
+    compute_video_level_accuracy(majvotes)
+
     # Take argmax of the probabilities.
     y_preds_argmax = np.argmax(y_preds, axis=1)
     y_preds_onehot = tf.keras.utils.to_categorical(y_preds_argmax,
