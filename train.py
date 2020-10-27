@@ -126,7 +126,8 @@ def low_level_train(model, ckpt_path, optimizer, config_dict,
         loss = loss_fn(y, preds)
         val_acc_metric.update_state(y, preds)
         return loss
-
+    
+    epochs_not_improved = 0
     for epoch in range(config_dict['nb_epochs']):
         print('\nStart of epoch %d' % (epoch,))
         wandb.log({'epoch': epoch})
@@ -171,15 +172,21 @@ def low_level_train(model, ckpt_path, optimizer, config_dict,
                     loss_value = validation_step(x_batch_val, y_batch_val)
                     # step_time = time.time() - step_start_time
                     # print('Step time: %.2f' % step_time)
-                    wandb.log({'val_loss': loss_value.numpy()})
 
+            wandb.log({'val_loss': loss_value.numpy()})
             val_acc = val_acc_metric.result()
+            wandb.log({'val_acc': val_acc})
             print("Validation acc: %.4f" % (float(val_acc),))
 
             if val_acc > val_acc_old:
                 print('The validation acc improved, saving checkpoint...')
                 model.save_weights(ckpt_path)
                 val_acc_old = val_acc
+            else:
+                epochs_not_improved += 1
+                if epochs_not_improved == config_dict['early_stopping']:
+                    break
+                    
             val_acc_metric.reset_states()
         else:
             print('\n Not validating but saving '
