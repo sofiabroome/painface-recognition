@@ -215,7 +215,7 @@ def compute_video_level_accuracy(majvotes):
     print('Video level accuracy: ', nb_correct/total)
 
 
-def run_evaluation(args, config_dict, model, model_path,
+def run_evaluation(config_dict, model, model_path,
                    test_dataset, test_steps,
                    y_batches, y_paths):
 
