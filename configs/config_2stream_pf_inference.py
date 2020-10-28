@@ -10,7 +10,11 @@ config_dict = {
     'lps_of_path': data_path + 'lps/jpg_128_128_16fps_OF_magnitude_cv2_2fpsrate/',
     'pixel_mean': pixel_means.imagenet['mean'],
     'pixel_std': pixel_means.imagenet['std'],
-    'checkpoint': 'models/best_model_2stream_5d_add_testhej.ckpt',
+    # 'checkpoint': 'models/best_model_2stream_5d_add_testhej.ckpt',
+    'checkpoint': 'models/best_model_2stream_5d_add_124408.ckpt',
+    # 'checkpoint': 'models/best_model_2stream_5d_add_124281.ckpt',
+    'inference_only': True,
+    'fine_tune': False,
     'model': '2stream_5d_add',
     'rgb_period': 1,  # Set to 10 if simonyan-like model
     'flow_period': 1,
@@ -35,7 +39,7 @@ config_dict = {
     'nb_workers': 1,
     'batch_size': 8,
     'nb_input_dims': 5,
-    'val_mode': 'subject',  # subject | fraction | no_val
+    'val_mode': 'no_val',  # subject | fraction | no_val
     'val_fraction_value': 0.0,
     'monitor': 'val_binary_accuracy',
     'monitor_mode': 'max',
@@ -48,7 +52,6 @@ config_dict = {
     'train_mode': 'low_level',  # keras | low_level
     'print_loss_every': 1000,
     'resample_start_fraction_of_seq_length': 0.5,
-    'fine_tune': False,
     # Parameters for functional API C-LSTM
     'kernel_regularizer' : None,
     'padding_clstm' : 'valid',
@@ -59,7 +62,6 @@ config_dict = {
     'only_last_element_for_fc' : 'no',
     'return_last_clstm' : False,
     # Temporal mask things
-    'inference_only': True,
     'normalization_mode': 'sequence',  # 'frame' | 'sequence'
     'temporal_mask_type': 'freeze',
     'nb_iterations_graddescent': 500,

@@ -1,6 +1,6 @@
 import configs.pixel_means as pixel_means
-# data_path = '/local_storage/users/sbroome/painface-recognition/'
-data_path = 'data/'
+data_path = '/local_storage/users/sbroome/painface-recognition/'
+# data_path = 'data/'
 
 config_dict = {
     'clip_list_pf': 'metadata/videos_overview_missingremoved.csv',

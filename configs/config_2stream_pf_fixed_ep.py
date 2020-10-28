@@ -24,8 +24,8 @@ config_dict = {
     'kernel_size': 5,
     'dropout_1': 0.25,
     'dropout_2': 0.5,
-    'nb_epochs': 50,
-    'early_stopping': 15,
+    'nb_epochs': 30,
+    'early_stopping': 30,
     'optimizer': 'adadelta',
     'lr': 0.001,
     'round_to_batch': True,
@@ -34,7 +34,7 @@ config_dict = {
     'nb_workers': 1,
     'batch_size': 8,
     'nb_input_dims': 5,
-    'val_mode': 'no_val',  # subject | fraction | no_val
+    'val_mode': 'subject',  # subject | fraction | no_val
     'val_fraction_value': 0.0,
     'monitor': 'val_binary_accuracy',
     'monitor_mode': 'max',

@@ -47,6 +47,8 @@ config_dict = {
     'train_mode': 'keras',
     'print_loss_every': 100,
     'resample_start_fraction_of_seq_length': 0.5,
+    'inference_only': False,
+    'fine_tune': False,
     # Parameters for functional API C-LSTM
     'kernel_regularizer' : None,
     'padding_clstm' : 'valid',
