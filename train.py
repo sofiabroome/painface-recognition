@@ -54,7 +54,9 @@ def train(model_instance, config_dict, train_steps, val_steps,
                     train_dataset, val_dataset)
 
     if config_dict['train_mode'] == 'low_level':
-        low_level_train(model_instance.model, best_model_path,
+        last_model_path = create_last_model_path(model_instance, config_dict)
+        print('Saving last epoch model to: ', last_model_path)
+        low_level_train(model_instance.model, best_model_path, last_model_path,
                         optimizer, config_dict, train_steps,
                         val_steps, train_dataset, val_dataset)
 
@@ -101,8 +103,8 @@ def keras_train(model, ckpt_path, config_dict, train_steps, val_steps,
     plot_training(binacc_test_history, binacc_train_history, config_dict)
 
 
-def low_level_train(model, ckpt_path, optimizer, config_dict,
-                    train_steps, val_steps=None,
+def low_level_train(model, ckpt_path, last_ckpt_path, optimizer,
+                    config_dict, train_steps, val_steps=None,
                     train_dataset=None, val_dataset=None):
 
     loss_fn = tf.keras.losses.BinaryCrossentropy()
@@ -188,10 +190,8 @@ def low_level_train(model, ckpt_path, optimizer, config_dict,
                     break
                     
             val_acc_metric.reset_states()
-        else:
-            print('\n Not validating but saving '
-                  'checkpoint after epoch {}'.format(epoch))
-            model.save_weights(ckpt_path)
+        print('\n Saving checkpoint to {} after epoch {}'.format(last_ckpt_path, epoch))
+        model.save_weights(last_ckpt_path)
         print("Epoch time taken: %.2fs" % (time.time() - start_time))
 
 
@@ -217,9 +217,14 @@ def round_to_batch_size(data_array, batch_size):
 
 
 def create_best_model_path(model, config_dict):
-    model_path = '_'.join(('models/best_model',
-                          model.name,
-                          config_dict['job_identifier'])) + '.ckpt'
+    model_path = '_'.join(('models/' + config_dict['job_identifier'],
+                           'best_model', model.name)) + '.ckpt'
+    return model_path
+
+
+def create_last_model_path(model, config_dict):
+    model_path = '_'.join(('models/' + config_dict['job_identifier'],
+                           'last_model', model.name)) + '.ckpt'
     return model_path
 
 
