@@ -175,44 +175,67 @@ def get_majority_vote_3d(y_pred, y_paths):
     return majority_votes, corresponding_paths
 
 
-def get_per_video_vote(y_pred, y_paths, ground_truth):
+def get_per_video_vote(y_pred, y_paths, ground_truth, confidence_threshold=0):
     nb_sequences = y_pred.shape[0]
     majority_votes = {}
     for i in range(nb_sequences):
         seq_path = y_paths[i]
         video_id = data_handler.get_video_id_from_frame_path(seq_path)
         label_votes = majority_votes.get(video_id, {0: 0, 1: 0})
-        vote = np.argmax(y_pred[i])
-        if vote in label_votes:
-            label_votes[vote] += 1
-        else:
-            label_votes[vote] = 1
-
+        confidence = np.max(y_pred[i])
         if 'ground_truth' not in label_votes:
             label_votes['ground_truth'] = np.argmax(ground_truth[i])
-
-        majority_votes[video_id] = label_votes
+        if confidence > confidence_threshold:
+            vote = np.argmax(y_pred[i])
+            if vote in label_votes:
+                label_votes[vote] += 1
+            else:
+                label_votes[vote] = 1
+    
+            majority_votes[video_id] = label_votes
     print(majority_votes)
-    wandb.log({'video level votes': str(majority_votes)})
+    wandb.log({'video votes, confthresh {}'.format(confidence_threshold): str(majority_votes)})
     return majority_votes
 
 
 def compute_video_level_accuracy(majvotes):
     nb_correct = 0
     total = 0
+    nb_correct_mil = {0.05: 0, 0.1: 0, 0.2: 0, 0.3: 0, 0.4: 0}
+    mil_thresholds = nb_correct_mil.keys()
     for video_id in majvotes.keys():
         nopain = majvotes[video_id][0]
         pain = majvotes[video_id][1]
+        nb_instances = pain + nopain
         majority = 0 if nopain > pain else 1
         if nopain == pain:
             majority = random.choice([0, 1])
         gt = majvotes[video_id]['ground_truth']
+        for mil_threshold in mil_thresholds:
+            if gt == 1:
+                correct = 1 if pain >= int(mil_threshold*nb_instances) else 0
+            else:
+                correct = 1 if pain < int(mil_threshold*nb_instances) else 0
+            if correct:
+                # print('{} was correctly classified by MIL-vote, threshold {}'.format(
+                    video_id, mil_threshold))
+                
+            nb_correct_mil[mil_threshold] += correct
+            
         if majority == gt:
+            print('{} was correctly classified by majority vote'.format(video_id))
             nb_correct += 1
         total += 1
+    print('Nb correctly classified by majority: {}, out of {} videos'.format(
+        nb_correct, total))
+    for mil_threshold in mil_thresholds:
+        print('\nNb correctly classified by MIL vote, threshold {}: {} out of {} videos'.format(mil_threshold, nb_correct_mil[mil_threshold], total))
+        acc_mil = nb_correct_mil[mil_threshold]/total
+        wandb.log({'video mil accuracy {}'.format(mil_threshold): acc_mil})
+        print('Video level mil accuracy: ', acc_mil)
     acc = nb_correct/total
-    wandb.log({'video level accuracy': acc})
-    print('Video level accuracy: ', nb_correct/total)
+    wandb.log({'video level accuracy by majority vote': acc})
+    print('Video level accuracy by majority vote: ', acc)
 
 
 def run_evaluation(args, config_dict, model, model_path,
@@ -240,11 +263,14 @@ def run_evaluation(args, config_dict, model, model_path,
 
     y_test = np.reshape(y_batches, (nb_batches*config_dict['batch_size'],
                         config_dict['nb_labels']))
+    confidence_thresholds = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.98, 0.99]
+    for confthresh in confidence_thresholds:
+        print('\n CONFTHRESH: ', confthresh)
+        majvotes = get_per_video_vote(
+            y_pred=y_preds, y_paths=y_paths, ground_truth=y_test,
+            confidence_threshold=confthresh)
 
-    majvotes = get_per_video_vote(
-        y_pred=y_preds, y_paths=y_paths, ground_truth=y_test)
-
-    compute_video_level_accuracy(majvotes)
+        compute_video_level_accuracy(majvotes)
 
     # Take argmax of the probabilities.
     y_preds_argmax = np.argmax(y_preds, axis=1)
