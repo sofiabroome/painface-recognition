@@ -62,8 +62,7 @@ def run():
                                       val_dataset=val_dataset)
 
     if config_dict['do_evaluate']:
-        run_evaluation(args=args,
-                       config_dict=config_dict,
+        run_evaluation(config_dict=config_dict,
                        model=model,
                        model_path=best_model_path,
                        test_dataset=test_dataset,
