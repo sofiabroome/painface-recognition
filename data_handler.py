@@ -103,9 +103,9 @@ class DataHandler:
             clip_batch_labels = features[default_array_str][clip_batch]['y'].numpy()
             clip_batch_paths = features[default_array_str][clip_batch]['paths'].numpy()
             for ind, path in enumerate(clip_batch_paths):
-                # print('path: ', path)
                 video_id = get_video_id_from_frame_path(str(path))
                 if clip_batch == 0 and ind == 0:
+                    print('start, video id: ', video_id)
                     same_video_index = 0
                     old_video_id = video_id
                     same_video_features = []
@@ -113,6 +113,7 @@ class DataHandler:
                     same_video_labels = []
 
                 if video_id != old_video_id:
+                    print('new video id: ', video_id)
                     if video_batch_index == 0:
                         video_feats_batch = []
                         video_preds_batch = []
@@ -144,6 +145,7 @@ class DataHandler:
                         video_preds_batch = np.array(video_preds_batch)
                         video_labels_batch = np.array(video_labels_batch)
                         video_batch_index = 0
+                        print(video_feats_batch.shape, video_preds_batch.shape, video_labels_batch.shape)
                         yield video_feats_batch, video_preds_batch, video_labels_batch
 
                 same_video_features.append(clip_batch_feats[ind])
@@ -168,7 +170,9 @@ class DataHandler:
             video_feats_batch = np.array(video_feats_batch)
             video_preds_batch = np.array(video_preds_batch)
             video_labels_batch = np.array(video_labels_batch)
-
+            video_batch_index = 0
+            print('\n Last yield.')
+            print(video_feats_batch.shape, video_preds_batch.shape, video_labels_batch.shape)
             yield video_feats_batch, video_preds_batch, video_labels_batch
 
     def df_val_split(self,
@@ -1275,6 +1279,7 @@ def get_flow_magnitude(flow):
 
 def zero_pad_list(list_to_pad, pad_length):
     list_length = len(list_to_pad)
+    print('list length in zero pad: ', list_length)
     element_shape = list_to_pad[0].shape
     zeros = np.zeros(element_shape)
     nb_to_pad = pad_length - list_length
