@@ -28,11 +28,12 @@ class MyModel:
         self.optimizer = config_dict['optimizer']
         self.batch_size = config_dict['batch_size']
         self.nb_lstm_layers = config_dict['nb_lstm_layers']
-
-        if self.config_dict['train_video_level_features']:
-            self.name = 'only train video feats'
-            if self.video_features_model == 'video_level_network':
-                self.model = self.video_level_network()
+        
+        if not self.config_dict['save_features']:
+            if self.config_dict['train_video_level_features']:
+                self.name = 'only train video feats'
+                if self.video_features_model == 'video_level_network':
+                    self.model = self.video_level_network()
 
         if self.name == 'conv2d_timedist_lstm':
             print("Conv2d-lstm model timedist")
