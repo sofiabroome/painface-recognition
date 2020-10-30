@@ -216,9 +216,9 @@ def compute_video_level_accuracy(majvotes):
                 correct = 1 if pain >= int(mil_threshold*nb_instances) else 0
             else:
                 correct = 1 if pain < int(mil_threshold*nb_instances) else 0
-            if correct:
+            # if correct:
                 # print('{} was correctly classified by MIL-vote, threshold {}'.format(
-                    video_id, mil_threshold))
+                # video_id, mil_threshold))
                 
             nb_correct_mil[mil_threshold] += correct
             
@@ -229,7 +229,8 @@ def compute_video_level_accuracy(majvotes):
     print('Nb correctly classified by majority: {}, out of {} videos'.format(
         nb_correct, total))
     for mil_threshold in mil_thresholds:
-        print('\nNb correctly classified by MIL vote, threshold {}: {} out of {} videos'.format(mil_threshold, nb_correct_mil[mil_threshold], total))
+        print('\nNb correctly classified by MIL vote, threshold {}: {} out of {} videos'.format(
+            mil_threshold, nb_correct_mil[mil_threshold], total))
         acc_mil = nb_correct_mil[mil_threshold]/total
         wandb.log({'video mil accuracy {}'.format(mil_threshold): acc_mil})
         print('Video level mil accuracy: ', acc_mil)
