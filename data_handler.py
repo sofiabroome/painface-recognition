@@ -51,9 +51,14 @@ class DataHandler:
 
         if self.config_dict['nb_input_dims'] == 5:
             if '2stream' in self.config_dict['model']:
-                dataset = tf.data.Dataset.from_generator(
-                    lambda: self.prepare_2stream_image_generator_5D(sequence_dfs, train),
-                    output_types=(tf.float32, tf.uint8))
+                if self.config_dict['save_features']:
+                    dataset = tf.data.Dataset.from_generator(
+                        lambda: self.prepare_2stream_image_generator_5D_with_paths(sequence_dfs, train),
+                        output_types=(tf.float32, tf.uint8, tf.string))
+                else:
+                    dataset = tf.data.Dataset.from_generator(
+                        lambda: self.prepare_2stream_image_generator_5D(sequence_dfs, train),
+                        output_types=(tf.float32, tf.uint8))
             else:
                 dataset = tf.data.Dataset.from_generator(
                     lambda: self.prepare_image_generator_5D(sequence_dfs, train),
@@ -74,6 +79,97 @@ class DataHandler:
                 )
 
         return dataset
+
+    def features_to_dataset(self, features):
+        bs = self.config_dict['video_batch_size']
+        dataset = tf.data.Dataset.from_generator(
+            lambda: self.generate_video_features(
+                features, video_batch_size=bs),
+            output_types=(tf.float32, tf.float32, tf.uint8),
+            output_shapes=(tf.TensorShape([bs, None, 5120]),
+                           tf.TensorShape([bs, None, 2]),
+                           tf.TensorShape([bs, None, 2]))
+        )
+        return dataset
+
+    def generate_video_features(self, features, video_batch_size):
+        default_array_str = 'arr_0'
+        pad_length = self.config_dict['video_pad_length']
+        nb_clip_batches = features[default_array_str].shape[0]
+        video_batch_index = 0
+        for clip_batch in range(nb_clip_batches):
+            clip_batch_feats = features[default_array_str][clip_batch]['features'].numpy()
+            clip_batch_preds = features[default_array_str][clip_batch]['preds'].numpy()
+            clip_batch_labels = features[default_array_str][clip_batch]['y'].numpy()
+            clip_batch_paths = features[default_array_str][clip_batch]['paths'].numpy()
+            for ind, path in enumerate(clip_batch_paths):
+                # print('path: ', path)
+                video_id = get_video_id_from_frame_path(str(path))
+                if clip_batch == 0 and ind == 0:
+                    same_video_index = 0
+                    old_video_id = video_id
+                    same_video_features = []
+                    same_video_preds = []
+                    same_video_labels = []
+
+                if video_id != old_video_id:
+                    if video_batch_index == 0:
+                        video_feats_batch = []
+                        video_preds_batch = []
+                        video_labels_batch = []
+
+                    old_video_id = video_id
+
+                    same_video_features = zero_pad_list(same_video_features, pad_length)
+                    same_video_preds = zero_pad_list(same_video_preds, pad_length)
+                    same_video_labels = zero_pad_list(same_video_labels, pad_length)
+
+                    feats = np.array(same_video_features)
+                    f_shape = feats.shape
+                    feats = np.reshape(
+                        feats, [f_shape[0], f_shape[1] * f_shape[2] * f_shape[3] * f_shape[4]])
+
+                    video_feats_batch.append(feats)
+                    video_preds_batch.append(same_video_preds)
+                    video_labels_batch.append(same_video_labels)
+
+                    video_batch_index += 1
+                    same_video_index = 0
+                    same_video_features = []
+                    same_video_preds = []
+                    same_video_labels = []
+
+                    if video_batch_index == video_batch_size:
+                        video_feats_batch = np.array(video_feats_batch)
+                        video_preds_batch = np.array(video_preds_batch)
+                        video_labels_batch = np.array(video_labels_batch)
+                        video_batch_index = 0
+                        yield video_feats_batch, video_preds_batch, video_labels_batch
+
+                same_video_features.append(clip_batch_feats[ind])
+                same_video_preds.append(clip_batch_preds[ind])
+                same_video_labels.append(clip_batch_labels[ind])
+                same_video_index += 1
+
+        # Finally also yield the last one.
+        same_video_features = zero_pad_list(same_video_features, pad_length)
+        same_video_preds = zero_pad_list(same_video_preds, pad_length)
+        same_video_labels = zero_pad_list(same_video_labels, pad_length)
+
+        feats = np.array(same_video_features)
+        f_shape = feats.shape
+        feats = np.reshape(
+            feats, [f_shape[0], f_shape[1] * f_shape[2] * f_shape[3] * f_shape[4]])
+        video_feats_batch.append(feats)
+        video_preds_batch.append(same_video_preds)
+        video_labels_batch.append(same_video_labels)
+        video_batch_index += 1
+        if video_batch_index == video_batch_size:
+            video_feats_batch = np.array(video_feats_batch)
+            video_preds_batch = np.array(video_preds_batch)
+            video_labels_batch = np.array(video_labels_batch)
+
+            yield video_feats_batch, video_preds_batch, video_labels_batch
 
     def df_val_split(self,
                      df,
@@ -429,6 +525,65 @@ class DataHandler:
                     batch_index = 0
                     yield [X_array, flow_array], y_array
 
+    def prepare_2stream_image_generator_5D_with_paths(self, sequence_dfs, train):
+        """
+        Prepare batches of frame sequences, optical flow sequences,
+        and labels, with help from the DataFrame with frame paths and labels.
+        :param sequence_dfs: pd.DataFrame
+        :param train: Boolean
+        :return: np.ndarray, np.ndarray, np.ndarray, np.ndarray
+        """
+        while True:
+            batch_index = 0
+            for sequence_df in sequence_dfs:
+
+                X_seq_list = []
+                y_seq_list = []
+                flow_seq_list = []
+                path_seq_list = []
+
+                for seq_index, row in sequence_df.iterrows():
+
+                    if (seq_index % self.config_dict['rgb_period']) == 0:
+                        x = self.get_image(row['path'])
+                        y = row['pain']
+                        X_seq_list.append(x)
+                        y_seq_list.append(y)
+                        path_seq_list.append(row['path'])  # Only save one (last) path per seq
+
+                    if (seq_index % self.config_dict['flow_period']) == 0:
+                        flow = self.get_flow(row['of_path'])
+                        if self.config_dict['rgb_period'] > 1:
+                            # We only want the first two channels of the flow
+                            flow = np.take(flow, [0, 1], axis=2)  # Simonyan type input
+                        flow_seq_list.append(flow)
+
+                if batch_index == 0:
+                    X_batch_list = []
+                    y_batch_list = []
+                    flow_batch_list = []
+                    path_batch_list = []
+
+                # *We only have per-clip labels, so the pain levels should not differ.
+                assert (len(set(y_seq_list)) == 1)
+
+                X_batch_list.append(X_seq_list)
+                flow_batch_list.append(flow_seq_list)
+                y_batch_list.append(y_seq_list[0])  # *only need one
+                path_batch_list.append(path_seq_list[0])  # *only need one
+                batch_index += 1
+
+                if batch_index % self.batch_size == 0 and not batch_index == 0:
+                    X_array = np.array(X_batch_list, dtype=np.float32)
+                    y_array = np.array(y_batch_list, dtype=np.uint8)
+                    flow_array = np.array(flow_batch_list, dtype=np.float32)
+                    path_array = np.array(path_batch_list)
+                    if self.nb_labels == 2:
+                        y_array = tf.keras.utils.to_categorical(y_array, num_classes=self.nb_labels)
+                    y_array = np.reshape(y_array, (self.batch_size, self.nb_labels))
+                    batch_index = 0
+                    yield [X_array, flow_array], y_array, path_array
+
     def get_sequences_from_frame_df(self, df):
         """
         Given a dataframe of all frame paths, video IDs and labels,
@@ -437,9 +592,9 @@ class DataHandler:
         :param df: pd.DataFrame
         :return: [pd.DataFrame]
         """
-        print('\nPreparing sequences from list of frames...')
-        nb_frames = len(df)
-        print('Number of frames in df: ', nb_frames)
+        # print('\nPreparing sequences from list of frames...')
+        # nb_frames = len(df)
+        # print('Number of frames in df: ', nb_frames)
 
         def build_sequences_from_frames(start_ind, video_frame_df, nb_per_video=None):
             nb_frames_in_video = len(video_frame_df)
@@ -455,15 +610,15 @@ class DataHandler:
 
             elif nb_per_video is None:
                 number_of_windows = last_valid_end_index // window_stride
-                print('Number of windows', number_of_windows)
+                # print('Number of windows', number_of_windows)
                 start_indices = [(start_ind + window_index * window_stride)
                                  for window_index in range(number_of_windows)]
             else:  # Resampling for minor class
-                print('\nComputing start indices for resampling from the following df...\n')
-                print('video_frame_df.head():')
-                print(video_frame_df.head(), '\n')
-                print('Frames in video: {}, nb per video: {}, last valid start {}'.format(
-                    nb_frames_in_video, nb_per_video, last_valid_start_index))
+                # print('\nComputing start indices for resampling from the following df...\n')
+                # print('video_frame_df.head():')
+                # print(video_frame_df.head(), '\n')
+                # print('Frames in video: {}, nb per video: {}, last valid start {}'.format(
+                #     nb_frames_in_video, nb_per_video, last_valid_start_index))
                 step_length = int((last_valid_start_index - start_ind)/nb_per_video)
                 step_length = 1 if step_length == 0 else step_length
                 approx_start_indices = [*range(start_ind, last_valid_start_index, step_length)]
@@ -493,9 +648,9 @@ class DataHandler:
                             break
                         else:
                             start_indices.append(new_start_index)
-                print(approx_start_indices)
-                print(start_indices)
-                print('\n')
+                # print(approx_start_indices)
+                # print(start_indices)
+                # print('\n')
 
             for start in start_indices:
                 stop = start + window_size
@@ -1116,4 +1271,16 @@ def get_flow_magnitude(flow):
             mag = np.sqrt(np.power(xflow, 2) + np.power(yflow, 2))
             magnitude[i, j] = mag
     return magnitude
+
+
+def zero_pad_list(list_to_pad, pad_length):
+    list_length = len(list_to_pad)
+    element_shape = list_to_pad[0].shape
+    zeros = np.zeros(element_shape)
+    nb_to_pad = pad_length - list_length
+
+    for p in range(nb_to_pad):
+        list_to_pad.append(zeros)
+
+    return list_to_pad
 

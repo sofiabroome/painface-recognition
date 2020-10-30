@@ -6,6 +6,8 @@ from tqdm import tqdm
 import matplotlib
 matplotlib.use('agg')
 import matplotlib.pyplot as plt
+import numpy as np
+import models
 import wandb
 import time
 import os
@@ -103,9 +105,83 @@ def keras_train(model, ckpt_path, config_dict, train_steps, val_steps,
     plot_training(binacc_test_history, binacc_train_history, config_dict)
 
 
+def video_level_train(config_dict, dataset):
+    """
+    Train a simple model on features on video-level, since we have sparse
+    pain behavior in the LPS data.
+    """
+    loss_fn = tf.keras.losses.BinaryCrossentropy()
+    model = models.MyModel(config_dict=config_dict).model
+    optimizer = Adam(lr=config_dict['lr'])
+
+    @tf.function
+    def train_step(x, y):
+        with tf.GradientTape() as tape:
+            preds = model(x, training=True)
+            y = y[:, 0, :]
+            print(preds.shape)
+            loss = loss_fn(y, preds)
+        grads = tape.gradient(loss, model.trainable_weights)
+        optimizer.apply_gradients(zip(grads, model.trainable_weights))
+        return loss
+
+    @tf.function
+    def validation_step(x, y):
+        preds = model(x, training=False)
+        loss = loss_fn(y, preds)
+        return loss
+
+    for epoch in range(config_dict['video_nb_epochs']):
+        print('\nStart of epoch %d' % (epoch,))
+        wandb.log({'epoch': epoch})
+        # start_time = time.time()
+
+        with tqdm(total=5) as pbar:
+            for step, sample in enumerate(dataset):
+                # if step > train_steps:
+                #     break
+                # step_start_time = time.time()
+                pbar.update(1)
+                feats_batch, preds_batch, labels_batch = sample
+                loss_value = train_step(feats_batch, labels_batch)
+                # step_time = time.time() - step_start_time
+                # print('Step time: %.2f' % step_time)
+                wandb.log({'train_loss': loss_value.numpy()})
+
+                if step % config_dict['print_loss_every'] == 0:
+                    print(
+                        "Training loss (for one batch) at step %d: %.4f"
+                        % (step, float(loss_value.numpy()))
+                    )
+                    print("Seen so far: %d samples" %
+                          ((step + 1) * config_dict['batch_size']))
+
+        # if not config_dict['val_mode'] == 'no_val':
+
+        #     with tqdm(total=train_steps) as pbar:
+        #         for step, sample in enumerate(val_dataset):
+        #             if step > val_steps:
+        #                 break
+        #             pbar.update(1)
+        #             # step_start_time = time.time()
+        #             x_batch_val, y_batch_val = sample
+        #             loss_value = validation_step(x_batch_val, y_batch_val)
+        #             # step_time = time.time() - step_start_time
+        #             # print('Step time: %.2f' % step_time)
+
+        # #     wandb.log({'val_loss': loss_value.numpy()})
+
+        # print('\n Saving checkpoint to {} after epoch {}'.format(last_ckpt_path, epoch))
+        # model.save_weights(last_ckpt_path)
+        # print("Epoch time taken: %.2fs" % (time.time() - start_time))
+
+
 def low_level_train(model, ckpt_path, last_ckpt_path, optimizer,
                     config_dict, train_steps, val_steps=None,
                     train_dataset=None, val_dataset=None):
+    """
+    Train a model in "low-level" tf with standard, dense supervision.
+    """
 
     loss_fn = tf.keras.losses.BinaryCrossentropy()
     train_acc_metric = tf.keras.metrics.BinaryAccuracy()
@@ -164,7 +240,7 @@ def low_level_train(model, ckpt_path, last_ckpt_path, optimizer,
 
         if not config_dict['val_mode'] == 'no_val':
 
-            with tqdm(total=train_steps) as pbar:
+            with tqdm(total=val_steps) as pbar:
                 for step, sample in enumerate(val_dataset):
                     if step > val_steps:
                         break
@@ -193,6 +269,41 @@ def low_level_train(model, ckpt_path, last_ckpt_path, optimizer,
         print('\n Saving checkpoint to {} after epoch {}'.format(last_ckpt_path, epoch))
         model.save_weights(last_ckpt_path)
         print("Epoch time taken: %.2fs" % (time.time() - start_time))
+
+
+def save_features(model, config_dict, steps, dataset):
+    """
+    Save features to file.
+    """
+    if config_dict['inference_only']:
+        model.load_weights(config_dict['checkpoint']).expect_partial()
+
+    @tf.function
+    def get_features_step(x):
+        predictions, features = model(x, training=False)
+        # Downsample further with one MP layer, strides and kernel 2x2
+        # The result per frame is 4x4x32.
+        features = tf.keras.layers.TimeDistributed(
+            tf.keras.layers.MaxPool2D())(features)
+        return predictions, features
+
+    features_to_save = []
+
+    with tqdm(total=steps) as pbar:
+        for step, sample in enumerate(dataset):
+            if step > steps:
+                break
+            pbar.update(1)
+            to_save_dict = {}
+            x_batch_train, y_batch_train, paths = sample
+            preds, flow_rgb_map_merge = get_features_step(x_batch_train)
+            to_save_dict['paths'] = paths
+            to_save_dict['preds'] = preds
+            to_save_dict['features'] = flow_rgb_map_merge
+            to_save_dict['y'] = y_batch_train
+            features_to_save.append(to_save_dict)
+    features_to_save = np.asarray(features_to_save)
+    np.savez_compressed(config_dict['checkpoint'][:13] + '_saved_features', features_to_save)
 
 
 def val_split(X_train, y_train, val_fraction, batch_size, round_to_batch=True):

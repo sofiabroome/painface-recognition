@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import wandb
 import sys
 import re
@@ -44,7 +45,7 @@ def run():
         config_dict['nb_epochs'] = 1
         train_steps = 2
         val_steps = 2
-        test_steps = 2
+        test_steps = 40
         test_labels = test_labels[:test_steps]
         test_paths = test_paths[:test_steps*config_dict['batch_size']]
 
@@ -60,6 +61,18 @@ def run():
                                       val_steps=val_steps,
                                       train_dataset=train_dataset,
                                       val_dataset=val_dataset)
+
+    if config_dict['train_video_level_features']:
+        test_dataset = dh.get_dataset(test_sequence_dfs, train=False)
+        if config_dict['save_features']:
+            train.save_features(model.model, config_dict,
+                                steps=test_steps, dataset=test_dataset)
+        features = np.load(config_dict['checkpoint'][:13] + '_saved_features.npz',
+                           allow_pickle=True)
+        dataset = dh.features_to_dataset(features)
+        # samples = [sample for sample in dataset]
+        train.video_level_train(config_dict=config_dict,
+                                dataset=dataset)
 
     if config_dict['do_evaluate']:
         run_evaluation(config_dict=config_dict,

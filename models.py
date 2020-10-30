@@ -16,6 +16,7 @@ class MyModel:
         :param config_dict: dict
         """
         self.name = config_dict['model']
+        self.video_features_model = config_dict['video_features_model']
         self.config_dict = config_dict
         self.input_shape = config_dict['input_height'], config_dict['input_width']
         self.nb_lstm_units = config_dict['nb_lstm_units']
@@ -27,6 +28,11 @@ class MyModel:
         self.optimizer = config_dict['optimizer']
         self.batch_size = config_dict['batch_size']
         self.nb_lstm_layers = config_dict['nb_lstm_layers']
+
+        if self.config_dict['train_video_level_features']:
+            self.name = 'only train video feats'
+            if self.video_features_model == 'video_level_network':
+                self.model = self.video_level_network()
 
         if self.name == 'conv2d_timedist_lstm':
             print("Conv2d-lstm model timedist")
@@ -559,3 +565,14 @@ class MyModel:
 
         return model
 
+    def video_level_network(self):
+        input_layer = Input(shape=(self.config_dict['video_pad_length'], 5120))
+        gru = tf.keras.layers.GRU(
+            self.config_dict['nb_units'], return_sequences=False)
+        x = gru(input_layer)
+        x = tf.keras.layers.Flatten()(x)
+        x = tf.keras.layers.Dense(units=self.config_dict['nb_labels'])(x)
+
+        model = Model(inputs=[input_layer], outputs=[x])
+
+        return model
