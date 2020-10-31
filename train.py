@@ -119,11 +119,11 @@ def video_level_train(config_dict, dataset):
         with tf.GradientTape() as tape:
             preds = model(x, training=True)
             y = y[:, 0, :]
-            print(preds.shape)
+            # print(preds.shape)
             loss = loss_fn(y, preds)
         grads = tape.gradient(loss, model.trainable_weights)
         optimizer.apply_gradients(zip(grads, model.trainable_weights))
-        return loss
+        return grads, loss
 
     @tf.function
     def validation_step(x, y):
@@ -134,18 +134,21 @@ def video_level_train(config_dict, dataset):
     for epoch in range(config_dict['video_nb_epochs']):
         print('\nStart of epoch %d' % (epoch,))
         wandb.log({'epoch': epoch})
-        # start_time = time.time()
+        start_time = time.time()
 
-        with tqdm(total=5) as pbar:
+        with tqdm(total=30) as pbar:
             for step, sample in enumerate(dataset):
                 # if step > train_steps:
                 #     break
-                # step_start_time = time.time()
+                step_start_time = time.time()
                 pbar.update(1)
                 feats_batch, preds_batch, labels_batch = sample
-                loss_value = train_step(feats_batch, labels_batch)
-                # step_time = time.time() - step_start_time
-                # print('Step time: %.2f' % step_time)
+                print(feats_batch.shape, preds_batch.shape,labels_batch.shape)
+                grads, loss_value = train_step(feats_batch, labels_batch)
+                step_time = time.time() - step_start_time
+                print('Step time: %.2f' % step_time)
+                # print('\n GRADS:')
+                # print([grad.numpy() for grad in grads])
                 wandb.log({'train_loss': loss_value.numpy()})
 
                 if step % config_dict['print_loss_every'] == 0:
@@ -173,7 +176,7 @@ def video_level_train(config_dict, dataset):
 
         # print('\n Saving checkpoint to {} after epoch {}'.format(last_ckpt_path, epoch))
         # model.save_weights(last_ckpt_path)
-        # print("Epoch time taken: %.2fs" % (time.time() - start_time))
+        print("Epoch time taken: %.2fs" % (time.time() - start_time))
 
 
 def low_level_train(model, ckpt_path, last_ckpt_path, optimizer,
@@ -285,6 +288,8 @@ def save_features(model, config_dict, steps, dataset):
         # The result per frame is 4x4x32.
         features = tf.keras.layers.TimeDistributed(
             tf.keras.layers.MaxPool2D())(features)
+        features = tf.keras.layers.TimeDistributed(
+            tf.keras.layers.GlobalAveragePooling2D())(features)
         return predictions, features
 
     features_to_save = []
