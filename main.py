@@ -70,8 +70,12 @@ def run():
         features = np.load(config_dict['checkpoint'][:13] + '_saved_features.npz',
                            allow_pickle=True)
         dataset = dh.features_to_dataset(features)
+        print('Shuffling dataset...')
+        dataset = dataset.shuffle(
+            config_dict['shuffle_buffer'], reshuffle_each_iteration=True)
         dataset = dataset.padded_batch(config_dict['video_batch_size'])
-
+        dataset = dataset.prefetch(2)
+        print('Training on loaded features...')
         # samples = [sample for sample in dataset]
         train.video_level_train(config_dict=config_dict,
                                 dataset=dataset)
