@@ -1,6 +1,6 @@
 import configs.pixel_means as pixel_means
-# data_path = '/local_storage/users/sbroome/painface-recognition/'
-data_path = 'data/'
+data_path = '/local_storage/users/sbroome/painface-recognition/'
+# data_path = 'data/'
 
 config_dict = {
     # Program components
@@ -39,8 +39,9 @@ config_dict = {
     'nb_layers' : 1,
     'nb_units' : 4,
     'video_batch_size' : 3,
-    'video_pad_length' : 100,
+    'video_pad_length' : 150,
     'video_nb_epochs': 2,
+    'shuffle_buffer': 100,
     # Parameters for functional API C-LSTM
     'kernel_regularizer' : None,
     'padding_clstm' : 'valid',
