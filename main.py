@@ -70,6 +70,8 @@ def run():
         features = np.load(config_dict['checkpoint'][:13] + '_saved_features.npz',
                            allow_pickle=True)
         dataset = dh.features_to_dataset(features)
+        dataset = dataset.padded_batch(config_dict['video_batch_size'])
+
         # samples = [sample for sample in dataset]
         train.video_level_train(config_dict=config_dict,
                                 dataset=dataset)

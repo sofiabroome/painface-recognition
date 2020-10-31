@@ -81,22 +81,18 @@ class DataHandler:
         return dataset
 
     def features_to_dataset(self, features):
-        bs = self.config_dict['video_batch_size']
         dataset = tf.data.Dataset.from_generator(
-            lambda: self.generate_video_features(
-                features, video_batch_size=bs),
+            lambda: self.generate_video_features(features),
             output_types=(tf.float32, tf.float32, tf.uint8),
-            output_shapes=(tf.TensorShape([bs, None, 5120]),
-                           tf.TensorShape([bs, None, 2]),
-                           tf.TensorShape([bs, None, 2]))
+            output_shapes=(tf.TensorShape([None, None]),
+                           tf.TensorShape([None, 2]),
+                           tf.TensorShape([None, 2]))
         )
         return dataset
 
-    def generate_video_features(self, features, video_batch_size):
+    def generate_video_features(self, features):
         default_array_str = 'arr_0'
-        pad_length = self.config_dict['video_pad_length']
         nb_clip_batches = features[default_array_str].shape[0]
-        video_batch_index = 0
         for clip_batch in range(nb_clip_batches):
             clip_batch_feats = features[default_array_str][clip_batch]['features'].numpy()
             clip_batch_preds = features[default_array_str][clip_batch]['preds'].numpy()
@@ -106,7 +102,6 @@ class DataHandler:
                 video_id = get_video_id_from_frame_path(str(path))
                 if clip_batch == 0 and ind == 0:
                     print('start, video id: ', video_id)
-                    same_video_index = 0
                     old_video_id = video_id
                     same_video_features = []
                     same_video_preds = []
@@ -114,66 +109,33 @@ class DataHandler:
 
                 if video_id != old_video_id:
                     print('new video id: ', video_id)
-                    if video_batch_index == 0:
-                        video_feats_batch = []
-                        video_preds_batch = []
-                        video_labels_batch = []
-
                     old_video_id = video_id
-
-                    same_video_features = zero_pad_list(same_video_features, pad_length)
-                    same_video_preds = zero_pad_list(same_video_preds, pad_length)
-                    same_video_labels = zero_pad_list(same_video_labels, pad_length)
 
                     feats = np.array(same_video_features)
                     f_shape = feats.shape
                     feats = np.reshape(
-                        feats, [f_shape[0], f_shape[1] * f_shape[2] * f_shape[3] * f_shape[4]])
-
-                    video_feats_batch.append(feats)
-                    video_preds_batch.append(same_video_preds)
-                    video_labels_batch.append(same_video_labels)
-
-                    video_batch_index += 1
-                    same_video_index = 0
+                        # feats, [f_shape[0], f_shape[1] * f_shape[2] * f_shape[3] * f_shape[4]])
+                        feats, [f_shape[0], f_shape[1] * f_shape[2]])
+                    preds = same_video_preds
+                    labels = same_video_labels
                     same_video_features = []
                     same_video_preds = []
                     same_video_labels = []
 
-                    if video_batch_index == video_batch_size:
-                        video_feats_batch = np.array(video_feats_batch)
-                        video_preds_batch = np.array(video_preds_batch)
-                        video_labels_batch = np.array(video_labels_batch)
-                        video_batch_index = 0
-                        print(video_feats_batch.shape, video_preds_batch.shape, video_labels_batch.shape)
-                        yield video_feats_batch, video_preds_batch, video_labels_batch
+                    yield feats, preds, labels
 
                 same_video_features.append(clip_batch_feats[ind])
                 same_video_preds.append(clip_batch_preds[ind])
                 same_video_labels.append(clip_batch_labels[ind])
-                same_video_index += 1
 
         # Finally also yield the last one.
-        same_video_features = zero_pad_list(same_video_features, pad_length)
-        same_video_preds = zero_pad_list(same_video_preds, pad_length)
-        same_video_labels = zero_pad_list(same_video_labels, pad_length)
 
         feats = np.array(same_video_features)
         f_shape = feats.shape
         feats = np.reshape(
-            feats, [f_shape[0], f_shape[1] * f_shape[2] * f_shape[3] * f_shape[4]])
-        video_feats_batch.append(feats)
-        video_preds_batch.append(same_video_preds)
-        video_labels_batch.append(same_video_labels)
-        video_batch_index += 1
-        if video_batch_index == video_batch_size:
-            video_feats_batch = np.array(video_feats_batch)
-            video_preds_batch = np.array(video_preds_batch)
-            video_labels_batch = np.array(video_labels_batch)
-            video_batch_index = 0
-            print('\n Last yield.')
-            print(video_feats_batch.shape, video_preds_batch.shape, video_labels_batch.shape)
-            yield video_feats_batch, video_preds_batch, video_labels_batch
+            # feats, [f_shape[0], f_shape[1] * f_shape[2] * f_shape[3] * f_shape[4]])
+            feats, [f_shape[0], f_shape[1] * f_shape[2]])
+        yield feats, same_video_preds, same_video_labels
 
     def df_val_split(self,
                      df,
