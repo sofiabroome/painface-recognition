@@ -567,7 +567,7 @@ class MyModel:
         return model
 
     def video_level_network(self):
-        input_layer = Input(shape=(None, 5120))
+        input_layer = Input(shape=(None, 320))
         gru = tf.keras.layers.GRU(
             self.config_dict['nb_units'], return_sequences=False)
         x = gru(input_layer)
