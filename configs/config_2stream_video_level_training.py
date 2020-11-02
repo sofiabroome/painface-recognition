@@ -1,15 +1,18 @@
 import configs.pixel_means as pixel_means
-data_path = '/local_storage/users/sbroome/painface-recognition/'
-# data_path = 'data/'
+# data_path = '/local_storage/users/sbroome/painface-recognition/'
+data_path = 'data/'
 
 config_dict = {
     # Program components
+    'get_raw_sequence_data': False,
     'inference_only': True,
     'fine_tune': False,
     'save_features': False,
+    'save_features_per_video': False,
     'train_video_level_features': True,
-    'do_evaluate': False,
+    'do_evaluate': True,
     # Data
+    'data_path': data_path,
     'clip_list_pf': 'metadata/videos_overview_missingremoved.csv',
     'clip_list_lps': 'metadata/lps_videos_overview.csv',
     'pf_rgb_path': data_path + 'pf/jpg_128_128_2fps/',
@@ -61,7 +64,7 @@ config_dict = {
     'nb_workers': 1,
     'batch_size': 8,
     'nb_input_dims': 5,
-    'val_mode': 'no_val',  # subject | fraction | no_val
+    'val_mode': 'subject',  # subject | fraction | no_val
     'val_fraction_value': 0.0,
     'monitor': 'val_binary_accuracy',
     'monitor_mode': 'max',

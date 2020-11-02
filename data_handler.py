@@ -80,15 +80,128 @@ class DataHandler:
 
         return dataset
 
-    def features_to_dataset(self, features):
+    def features_to_dataset(self, subjects):
+        subj_codes = []
+        for subj in subjects:
+            code = self.all_subjects_df[
+                self.all_subjects_df['subject'] == subj]['code']
+            subj_codes.append(code.values[0])
         dataset = tf.data.Dataset.from_generator(
-            lambda: self.generate_video_features(features),
-            output_types=(tf.float32, tf.float32, tf.uint8),
+            lambda: self.generate_features(subject_codes=subj_codes,
+                                           ),
+            output_types=(tf.float32, tf.float32, tf.uint8, tf.string),
             output_shapes=(tf.TensorShape([None, None]),
                            tf.TensorShape([None, 2]),
-                           tf.TensorShape([None, 2]))
+                           tf.TensorShape([None, 2]),
+                           tf.TensorShape([]))
         )
+        print('Shuffling dataset...')
+        dataset = dataset.shuffle(
+            self.config_dict['shuffle_buffer'], reshuffle_each_iteration=True)
+        dataset = dataset.padded_batch(self.config_dict['video_batch_size'])
         return dataset
+
+    def generate_features(self,
+                          subject_codes,
+                          features_folder='video_level_features_320dim/'):
+        """
+        Load features from file (per video).
+        :param subject_codes: [str]
+        :param features_folder: str
+        :yield: batch features, batch preds, batch labels
+        """
+        path_to_features = self.config_dict['data_path'] + 'lps/' + features_folder
+        df_summary = pd.read_csv(path_to_features + 'summary.csv')
+        subj_dfs = []
+        for subj_code in subject_codes:
+            subject_selected_df = df_summary[(df_summary.subject == subj_code)]
+            subj_dfs.append(subject_selected_df)
+
+        df = pd.concat(subj_dfs)
+
+        default_array_str = 'arr_0'
+
+        for index, row in df.iterrows():
+            video_id = row['video_id']
+            path = path_to_features + video_id + '.npz'
+            loaded = np.load(path, allow_pickle=True)[default_array_str].tolist()
+            feats = loaded['features']
+            f_shape = feats.shape
+            preds = np.array(loaded['preds'])
+            labels = np.array(loaded['labels'])
+            assert preds.shape[0] == f_shape[0]
+            assert labels.shape[0] == f_shape[0]
+            yield feats, preds, labels, video_id
+
+    def prepare_video_features(self, features):
+        save_folder = 'data/lps/video_level_features_320dim/'
+        default_array_str = 'arr_0'
+        nb_clip_batches = features[default_array_str].shape[0]
+        col_headers = ['subject', 'video_id', 'length']
+        big_list = []
+        for clip_batch in range(nb_clip_batches):
+            clip_batch_feats = features[default_array_str][clip_batch]['features'].numpy()
+            clip_batch_preds = features[default_array_str][clip_batch]['preds'].numpy()
+            clip_batch_labels = features[default_array_str][clip_batch]['y'].numpy()
+            clip_batch_paths = features[default_array_str][clip_batch]['paths'].numpy()
+            for ind, path in enumerate(clip_batch_paths):
+                video_id = get_video_id_from_frame_path(str(path))
+                if clip_batch == 0 and ind == 0:
+                    print('start, video id: ', video_id)
+                    old_video_id = video_id
+                    same_video_features = []
+                    same_video_preds = []
+                    same_video_labels = []
+
+                if video_id != old_video_id:
+                    print('new video id: ', video_id)
+                    old_video_id = video_id
+
+                    feats = np.array(same_video_features)
+                    f_shape = feats.shape
+                    feats = np.reshape(
+                        # feats, [f_shape[0], f_shape[1] * f_shape[2] * f_shape[3] * f_shape[4]])
+                        feats, [f_shape[0], f_shape[1] * f_shape[2]])
+                    preds = same_video_preds
+                    labels = same_video_labels
+                    to_save_dict = {}
+                    to_save_dict['features'] = feats
+                    to_save_dict['preds'] = preds
+                    to_save_dict['labels'] = labels
+                    length = f_shape[0]
+                    to_save_dict = np.array(to_save_dict)
+                    save_filename = save_folder + video_id + '.npz'
+                    subject = video_id[0]
+                    video_list = [subject, video_id, length]
+                    big_list.append(video_list)
+                    np.savez_compressed(save_filename, to_save_dict)
+                    same_video_features = []
+                    same_video_preds = []
+                    same_video_labels = []
+
+                same_video_features.append(clip_batch_feats[ind])
+                same_video_preds.append(clip_batch_preds[ind])
+                same_video_labels.append(clip_batch_labels[ind])
+
+        # Finally also use the last one (video ID doesn't change)
+
+        feats = np.array(same_video_features)
+        f_shape = feats.shape
+        feats = np.reshape(
+            # feats, [f_shape[0], f_shape[1] * f_shape[2] * f_shape[3] * f_shape[4]])
+            feats, [f_shape[0], f_shape[1] * f_shape[2]])
+        to_save_dict = {}
+        to_save_dict['features'] = feats
+        to_save_dict['preds'] = preds
+        to_save_dict['labels'] = labels
+        subject = video_id[0]
+        length = f_shape[0]
+        video_list = [subject, video_id, length]
+        big_list.append(video_list)
+        video_df = pd.DataFrame(big_list, columns=col_headers)
+        save_filename = save_folder + video_id + '.npz'
+        np.savez_compressed(save_filename, to_save_dict)
+        video_df.to_csv(save_folder + 'summary.csv')
 
     def generate_video_features(self, features):
         default_array_str = 'arr_0'

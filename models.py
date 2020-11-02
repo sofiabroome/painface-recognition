@@ -31,7 +31,8 @@ class MyModel:
         
         if not self.config_dict['save_features']:
             if self.config_dict['train_video_level_features']:
-                self.name = 'only train video feats'
+                config_dict['model'] == self.video_features_model
+                self.name = 'only_train_video_feats'
                 if self.video_features_model == 'video_level_network':
                     self.model = self.video_level_network()
 

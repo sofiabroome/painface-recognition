@@ -105,14 +105,25 @@ def keras_train(model, ckpt_path, config_dict, train_steps, val_steps,
     plot_training(binacc_test_history, binacc_train_history, config_dict)
 
 
-def video_level_train(config_dict, dataset):
+def video_level_train(config_dict, train_dataset, val_dataset=None):
     """
     Train a simple model on features on video-level, since we have sparse
     pain behavior in the LPS data.
     """
     loss_fn = tf.keras.losses.BinaryCrossentropy()
+    train_acc_metric = tf.keras.metrics.BinaryAccuracy()
+    val_acc_metric = tf.keras.metrics.BinaryAccuracy()
+    val_acc_old = -1
     model = models.MyModel(config_dict=config_dict).model
     optimizer = Adam(lr=config_dict['lr'])
+    last_ckpt_path = create_last_model_path(config_dict)
+    best_ckpt_path = create_last_model_path(config_dict)
+
+    import ipdb; ipdb.set_trace()
+
+    train_steps = len([sample for sample in train_dataset])
+    val_steps = len([sample for sample in val_dataset])
+    epochs_not_improved = 0
 
     @tf.function
     def train_step(x, y):
@@ -128,7 +139,9 @@ def video_level_train(config_dict, dataset):
     @tf.function
     def validation_step(x, y):
         preds = model(x, training=False)
+        y = y[:, 0, :]
         loss = loss_fn(y, preds)
+        val_acc_metric.update_state(y, preds)
         return loss
 
     for epoch in range(config_dict['video_nb_epochs']):
@@ -136,14 +149,15 @@ def video_level_train(config_dict, dataset):
         wandb.log({'epoch': epoch})
         start_time = time.time()
 
-        with tqdm(total=30) as pbar:
-            for step, sample in enumerate(dataset):
+        with tqdm(total=train_steps) as pbar:
+            for step, sample in enumerate(train_dataset):
                 # if step > train_steps:
                 #     break
                 step_start_time = time.time()
                 pbar.update(1)
-                feats_batch, preds_batch, labels_batch = sample
-                print(feats_batch.shape, preds_batch.shape,labels_batch.shape)
+                feats_batch, preds_batch, labels_batch, video_id = sample
+                print('Video ID: ', video_id)
+                print(feats_batch.shape, preds_batch.shape, labels_batch.shape)
                 grads, loss_value = train_step(feats_batch, labels_batch)
                 step_time = time.time() - step_start_time
                 print('Step time: %.2f' % step_time)
@@ -159,24 +173,39 @@ def video_level_train(config_dict, dataset):
                     print("Seen so far: %d samples" %
                           ((step + 1) * config_dict['batch_size']))
 
-        # if not config_dict['val_mode'] == 'no_val':
+        if not config_dict['val_mode'] == 'no_val':
 
-        #     with tqdm(total=train_steps) as pbar:
-        #         for step, sample in enumerate(val_dataset):
-        #             if step > val_steps:
-        #                 break
-        #             pbar.update(1)
-        #             # step_start_time = time.time()
-        #             x_batch_val, y_batch_val = sample
-        #             loss_value = validation_step(x_batch_val, y_batch_val)
-        #             # step_time = time.time() - step_start_time
-        #             # print('Step time: %.2f' % step_time)
+            with tqdm(total=val_steps) as pbar:
+                for step, sample in enumerate(val_dataset):
+                    if step > val_steps:
+                        break
+                    pbar.update(1)
+                    # step_start_time = time.time()
+                    feats_batch, preds_batch, labels_batch, _ = sample
+                    loss_value = validation_step(feats_batch, labels_batch)
+                    # step_time = time.time() - step_start_time
+                    # print('Step time: %.2f' % step_time)
 
-        # #     wandb.log({'val_loss': loss_value.numpy()})
+            wandb.log({'val_loss': loss_value.numpy()})
+            val_acc = val_acc_metric.result()
+            wandb.log({'val_acc': val_acc})
+            print("Validation acc: %.4f" % (float(val_acc),))
 
-        # print('\n Saving checkpoint to {} after epoch {}'.format(last_ckpt_path, epoch))
-        # model.save_weights(last_ckpt_path)
+            if val_acc > val_acc_old:
+                print('The validation acc improved, saving checkpoint...')
+                model.save_weights(best_ckpt_path)
+                val_acc_old = val_acc
+            else:
+                epochs_not_improved += 1
+                if epochs_not_improved == config_dict['early_stopping']:
+                    break
+
+            val_acc_metric.reset_states()
+
+        print('\n Saving checkpoint to {} after epoch {}'.format(last_ckpt_path, epoch))
+        model.save_weights(last_ckpt_path)
         print("Epoch time taken: %.2fs" % (time.time() - start_time))
+    return best_ckpt_path
 
 
 def low_level_train(model, ckpt_path, last_ckpt_path, optimizer,
@@ -332,15 +361,15 @@ def round_to_batch_size(data_array, batch_size):
     return data_array_rounded
 
 
-def create_best_model_path(model, config_dict):
+def create_best_model_path(config_dict):
     model_path = '_'.join(('models/' + config_dict['job_identifier'],
-                           'best_model', model.name)) + '.ckpt'
+                           'best_model', config_dict['model'])) + '.ckpt'
     return model_path
 
 
-def create_last_model_path(model, config_dict):
+def create_last_model_path(config_dict):
     model_path = '_'.join(('models/' + config_dict['job_identifier'],
-                           'last_model', model.name)) + '.ckpt'
+                           'last_model', config_dict['model'])) + '.ckpt'
     return model_path
 
 

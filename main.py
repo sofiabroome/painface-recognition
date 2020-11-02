@@ -22,32 +22,34 @@ def run():
                                   config_dict=config_dict,
                                   all_subjects_df=all_subjects_df)
 
-    train_sequence_dfs, val_sequence_dfs, test_sequence_dfs = dh.get_data_indices(args)
+    if config_dict['get_raw_sequence_data']:
 
-    test_sequence_dfs = dh.round_to_batch_size(test_sequence_dfs)
+        train_sequence_dfs, val_sequence_dfs, test_sequence_dfs = dh.get_data_indices(args)
 
-    train_dataset, val_dataset, test_dataset = dh.get_datasets(
-        df_train=train_sequence_dfs,
-        df_val=val_sequence_dfs,
-        df_test=test_sequence_dfs)
+        test_sequence_dfs = dh.round_to_batch_size(test_sequence_dfs)
 
-    train_steps = int(len(train_sequence_dfs)/config_dict['batch_size'])
+        train_dataset, val_dataset, test_dataset = dh.get_datasets(
+            df_train=train_sequence_dfs,
+            df_val=val_sequence_dfs,
+            df_test=test_sequence_dfs)
 
-    test_steps = int(len(test_sequence_dfs)/config_dict['batch_size'])
-    test_labels, test_paths = dh.get_y_batches_paths_from_dfs(test_sequence_dfs)
+        train_steps = int(len(train_sequence_dfs)/config_dict['batch_size'])
 
-    if config_dict['val_mode'] == 'no_val':
-        val_steps = 0
-    else:
-        val_steps = int(len(val_sequence_dfs)/config_dict['batch_size'])
+        test_steps = int(len(test_sequence_dfs)/config_dict['batch_size'])
+        test_labels, test_paths = dh.get_y_batches_paths_from_dfs(test_sequence_dfs)
 
-    if args.test_run == 1:
-        config_dict['nb_epochs'] = 1
-        train_steps = 2
-        val_steps = 2
-        test_steps = 40
-        test_labels = test_labels[:test_steps]
-        test_paths = test_paths[:test_steps*config_dict['batch_size']]
+        if config_dict['val_mode'] == 'no_val':
+            val_steps = 0
+        else:
+            val_steps = int(len(val_sequence_dfs)/config_dict['batch_size'])
+
+        if args.test_run == 1:
+            config_dict['nb_epochs'] = 1
+            train_steps = 2
+            val_steps = 2
+            test_steps = 40
+            test_labels = test_labels[:test_steps]
+            test_paths = test_paths[:test_steps*config_dict['batch_size']]
 
     # Train the model
 
@@ -62,23 +64,31 @@ def run():
                                       train_dataset=train_dataset,
                                       val_dataset=val_dataset)
 
-    if config_dict['train_video_level_features']:
+    if config_dict['save_features']:
         test_dataset = dh.get_dataset(test_sequence_dfs, train=False)
-        if config_dict['save_features']:
-            train.save_features(model.model, config_dict,
-                                steps=test_steps, dataset=test_dataset)
+        train.save_features(model.model, config_dict,
+                            steps=test_steps, dataset=test_dataset)
+
+    if config_dict['save_features_per_video']:
         features = np.load(config_dict['checkpoint'][:13] + '_saved_features.npz',
                            allow_pickle=True)
-        dataset = dh.features_to_dataset(features)
-        print('Shuffling dataset...')
-        dataset = dataset.shuffle(
-            config_dict['shuffle_buffer'], reshuffle_each_iteration=True)
-        dataset = dataset.padded_batch(config_dict['video_batch_size'])
-        dataset = dataset.prefetch(2)
+        dh.prepare_video_features(features)
+
+    if config_dict['train_video_level_features']:
+        train_dataset = dh.features_to_dataset(train_subjects)
+        val_dataset = dh.features_to_dataset(val_subjects)
+        test_dataset = dh.features_to_dataset(test_subjects)
+        # dataset = dataset.prefetch(2)
         print('Training on loaded features...')
         # samples = [sample for sample in dataset]
-        train.video_level_train(config_dict=config_dict,
-                                dataset=dataset)
+        best_model_path = train.video_level_train(
+            config_dict=config_dict,
+            train_dataset=train_dataset,
+            val_dataset=val_dataset)
+        test_paths = [sample[3].numpy().tolist() for sample in test_dataset]
+        test_steps = len(test_paths)
+        test_paths = np.array(test_paths)
+        test_labels = np.array([sample[2].numpy().tolist() for sample in test_dataset])
 
     if config_dict['do_evaluate']:
         run_evaluation(config_dict=config_dict,
@@ -106,6 +116,9 @@ if __name__ == '__main__':
                 'no_val requires low level train mode'
     config_dict['train_subjects'] = train_subjects
     config_dict['test_subjects'] = test_subjects
+    if config_dict['val_mode'] == 'subject':
+        val_subjects = re.split('/', args.val_subjects)
+
     wandb.init(project='pfr', config=config_dict)
 
     config_dict['job_identifier'] = args.job_identifier
