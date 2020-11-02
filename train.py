@@ -119,16 +119,14 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
     last_ckpt_path = create_last_model_path(config_dict)
     best_ckpt_path = create_last_model_path(config_dict)
 
-    import ipdb; ipdb.set_trace()
-
     train_steps = len([sample for sample in train_dataset])
     val_steps = len([sample for sample in val_dataset])
     epochs_not_improved = 0
 
     @tf.function
-    def train_step(x, y):
+    def train_step(x, preds, y):
         with tf.GradientTape() as tape:
-            preds = model(x, training=True)
+            preds = model([x, preds], training=True)
             y = y[:, 0, :]
             # print(preds.shape)
             loss = loss_fn(y, preds)
@@ -137,8 +135,8 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
         return grads, loss
 
     @tf.function
-    def validation_step(x, y):
-        preds = model(x, training=False)
+    def validation_step(x, preds, y):
+        preds = model([x, preds], training=False)
         y = y[:, 0, :]
         loss = loss_fn(y, preds)
         val_acc_metric.update_state(y, preds)
@@ -158,7 +156,7 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
                 feats_batch, preds_batch, labels_batch, video_id = sample
                 print('Video ID: ', video_id)
                 print(feats_batch.shape, preds_batch.shape, labels_batch.shape)
-                grads, loss_value = train_step(feats_batch, labels_batch)
+                grads, loss_value = train_step(feats_batch, preds_batch, labels_batch)
                 step_time = time.time() - step_start_time
                 print('Step time: %.2f' % step_time)
                 # print('\n GRADS:')
@@ -182,7 +180,7 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
                     pbar.update(1)
                     # step_start_time = time.time()
                     feats_batch, preds_batch, labels_batch, _ = sample
-                    loss_value = validation_step(feats_batch, labels_batch)
+                    loss_value = validation_step(feats_batch, preds_batch, labels_batch)
                     # step_time = time.time() - step_start_time
                     # print('Step time: %.2f' % step_time)
 
