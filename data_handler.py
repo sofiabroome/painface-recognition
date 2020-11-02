@@ -130,6 +130,8 @@ class DataHandler:
             f_shape = feats.shape
             preds = np.array(loaded['preds'])
             labels = np.array(loaded['labels'])
+            print('\n video_id:', video_id)
+            print('shapes: ', f_shape, preds.shape, labels.shape)
             assert preds.shape[0] == f_shape[0]
             assert labels.shape[0] == f_shape[0]
             yield feats, preds, labels, video_id
@@ -167,6 +169,10 @@ class DataHandler:
                         feats, [f_shape[0], f_shape[1] * f_shape[2]])
                     preds = same_video_preds
                     labels = same_video_labels
+                    print('\n video_id:', video_id)
+                    print('shapes: ', f_shape, preds.shape, labels.shape)
+                    assert preds.shape[0] == f_shape[0]
+                    assert labels.shape[0] == f_shape[0]
                     to_save_dict = {}
                     to_save_dict['features'] = feats
                     to_save_dict['preds'] = preds
@@ -197,6 +203,10 @@ class DataHandler:
         to_save_dict['features'] = feats
         to_save_dict['preds'] = preds
         to_save_dict['labels'] = labels
+        print('\n video_id:', video_id)
+        print('shapes: ', f_shape, preds.shape, labels.shape)
+        assert preds.shape[0] == f_shape[0]
+        assert labels.shape[0] == f_shape[0]
         subject = video_id[0]
         length = f_shape[0]
         video_list = [subject, video_id, length]
