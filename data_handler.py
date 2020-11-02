@@ -1,6 +1,7 @@
 import tensorflow as tf
 import pandas as pd
 import numpy as np
+import subprocess
 import helpers
 import random
 import cv2
@@ -134,7 +135,9 @@ class DataHandler:
             yield feats, preds, labels, video_id
 
     def prepare_video_features(self, features):
-        save_folder = 'data/lps/video_level_features_320dim/'
+        save_folder = self.config_dict['data_path'] + 'lps/video_level_features_320dim/'
+        if not os.path.exists(save_folder):
+            subprocess.call(['mkdir', save_folder])
         default_array_str = 'arr_0'
         nb_clip_batches = features[default_array_str].shape[0]
         col_headers = ['subject', 'video_id', 'length']
