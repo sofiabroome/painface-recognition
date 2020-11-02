@@ -568,13 +568,14 @@ class MyModel:
         return model
 
     def video_level_network(self):
-        input_layer = Input(shape=(None, 320))
+        input_features = Input(shape=(None, 320))
+        input_preds = Input(shape=(None, 2))
         gru = tf.keras.layers.GRU(
             self.config_dict['nb_units'], return_sequences=False)
-        x = gru(input_layer)
+        x = gru(input_features)
         x = tf.keras.layers.Flatten()(x)
         x = tf.keras.layers.Dense(units=self.config_dict['nb_labels'])(x)
 
-        model = Model(inputs=[input_layer], outputs=[x])
+        model = Model(inputs=[input_features, input_preds], outputs=[x])
 
         return model
