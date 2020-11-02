@@ -4,7 +4,7 @@ import wandb
 import sys
 import re
 
-from test_and_eval import run_evaluation
+import test_and_eval
 import data_handler
 import arg_parser
 import helpers
@@ -85,19 +85,30 @@ def run():
             config_dict=config_dict,
             train_dataset=train_dataset,
             val_dataset=val_dataset)
-        test_paths = [sample[3].numpy().tolist() for sample in test_dataset]
-        test_steps = len(test_paths)
-        test_paths = np.array(test_paths)
-        test_labels = np.array([sample[2].numpy().tolist() for sample in test_dataset])
 
     if config_dict['do_evaluate']:
-        run_evaluation(config_dict=config_dict,
-                       model=model,
-                       model_path=best_model_path,
-                       test_dataset=test_dataset,
-                       test_steps=test_steps,
-                       y_batches=test_labels,
-                       y_paths=test_paths)
+        if config_dict['train_video_level_features']:
+
+            test_paths = [sample[3].numpy().tolist() for sample in test_dataset]
+            test_steps = len(test_paths)
+            test_paths = np.array(test_paths)
+            test_labels = np.array([sample[2].numpy().tolist() for sample in test_dataset])
+
+            test_and_eval.evaluate_on_video_level(
+                config_dict=config_dict,
+                model=model,
+                model_path=best_model_path,
+                test_dataset=test_dataset,
+                test_steps=test_steps)
+        else:
+            test_and_eval.run_evaluation(
+                config_dict=config_dict,
+                model=model,
+                model_path=best_model_path,
+                test_dataset=test_dataset,
+                test_steps=test_steps,
+                y_batches=test_labels,
+                y_paths=test_paths)
 
 if __name__ == '__main__':
 

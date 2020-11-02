@@ -43,7 +43,7 @@ config_dict = {
     'nb_units' : 4,
     'video_batch_size' : 3,
     'video_pad_length' : 150,
-    'video_nb_epochs': 2,
+    'video_nb_epochs': 1,
     'shuffle_buffer': 100,
     # Parameters for functional API C-LSTM
     'kernel_regularizer' : None,

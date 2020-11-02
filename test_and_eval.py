@@ -5,6 +5,7 @@ import data_handler
 import subprocess
 import random
 import wandb
+from tqdm import tqdm
 import os
 
 NB_DECIMALS = 4
@@ -239,6 +240,36 @@ def compute_video_level_accuracy(majvotes):
     print('Video level accuracy by majority vote: ', acc)
 
 
+def evaluate_on_video_level(config_dict, model, model_path, test_dataset,
+                            test_steps):
+
+    test_acc_metric = tf.keras.metrics.BinaryAccuracy()
+    model = model.model
+    if config_dict['inference_only']:
+        model.load_weights(model_path).expect_partial()
+    else:
+        model.load_weights(model_path)
+
+    @tf.function
+    def test_step(x, preds, y):
+        preds = model([x, preds], training=False)
+        y = y[:, 0, :]
+        test_acc_metric.update_state(y, preds)
+
+    with tqdm(total=test_steps) as pbar:
+        for step, sample in enumerate(test_dataset):
+            if step > test_steps:
+                break
+            pbar.update(1)
+            # step_start_time = time.time()
+            feats_batch, preds_batch, labels_batch, _ = sample
+            test_step(feats_batch, preds_batch, labels_batch)
+
+    test_acc = test_acc_metric.result()
+    wandb.log({'test_acc': test_acc})
+    print("Test acc: %.4f" % (float(test_acc),))
+
+
 def run_evaluation(config_dict, model, model_path,
                    test_dataset, test_steps,
                    y_batches, y_paths):
@@ -264,14 +295,14 @@ def run_evaluation(config_dict, model, model_path,
 
     y_test = np.reshape(y_batches, (nb_batches*config_dict['batch_size'],
                         config_dict['nb_labels']))
-    confidence_thresholds = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.98, 0.99]
-    for confthresh in confidence_thresholds:
-        print('\n CONFTHRESH: ', confthresh)
-        majvotes = get_per_video_vote(
-            y_pred=y_preds, y_paths=y_paths, ground_truth=y_test,
-            confidence_threshold=confthresh)
+    # confidence_thresholds = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.98, 0.99]
+    # for confthresh in confidence_thresholds:
+    #     print('\n CONFTHRESH: ', confthresh)
+    #     majvotes = get_per_video_vote(
+    #         y_pred=y_preds, y_paths=y_paths, ground_truth=y_test,
+    #         confidence_threshold=confthresh)
 
-        compute_video_level_accuracy(majvotes)
+    #     compute_video_level_accuracy(majvotes)
 
     # Take argmax of the probabilities.
     y_preds_argmax = np.argmax(y_preds, axis=1)
