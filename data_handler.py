@@ -13,6 +13,9 @@ matplotlib.use('agg')
 import matplotlib.pyplot as plt
 
 
+DEFAULT_NPLOAD_STR = 'arr_0'
+
+
 class DataHandler:
     def __init__(self, data_columns, config_dict, all_subjects_df):
         """
@@ -137,18 +140,23 @@ class DataHandler:
             yield feats, preds, labels, video_id
 
     def prepare_video_features(self, features):
-        save_folder = self.config_dict['data_path'] + 'lps/video_level_features_320dim/'
+        save_folder = self.config_dict['data_path'] + 'lps/video_level_features_320dim_test/'
+
         if not os.path.exists(save_folder):
             subprocess.call(['mkdir', save_folder])
-        default_array_str = 'arr_0'
-        nb_clip_batches = features[default_array_str].shape[0]
-        col_headers = ['subject', 'video_id', 'length']
-        big_list = []
+
+        nb_clip_batches = features[DEFAULT_NPLOAD_STR].shape[0]
+        dict_of_dicts = {}  # key will be video ID, value will be to_save_dict
+        import ipdb; ipdb.set_trace()
+
         for clip_batch in range(nb_clip_batches):
-            clip_batch_feats = features[default_array_str][clip_batch]['features'].numpy()
-            clip_batch_preds = features[default_array_str][clip_batch]['preds'].numpy()
-            clip_batch_labels = features[default_array_str][clip_batch]['y'].numpy()
-            clip_batch_paths = features[default_array_str][clip_batch]['paths'].numpy()
+            # Get the data from one batch (8 short clips).
+            clip_batch_feats = features[DEFAULT_NPLOAD_STR][clip_batch]['features'].numpy()
+            clip_batch_preds = features[DEFAULT_NPLOAD_STR][clip_batch]['preds'].numpy()
+            clip_batch_labels = features[DEFAULT_NPLOAD_STR][clip_batch]['y'].numpy()
+            clip_batch_paths = features[DEFAULT_NPLOAD_STR][clip_batch]['paths'].numpy()
+
+            # Iterate over the short clips in the batch.
             for ind, path in enumerate(clip_batch_paths):
                 video_id = get_video_id_from_frame_path(str(path))
                 if clip_batch == 0 and ind == 0:
@@ -157,63 +165,78 @@ class DataHandler:
                     same_video_features = []
                     same_video_preds = []
                     same_video_labels = []
+                    same_video_paths = []
 
                 if video_id != old_video_id:
-                    print('new video id: ', video_id)
-                    old_video_id = video_id
+                    feats, preds, labels, paths = prepare_fplp(same_video_features,
+                                                               same_video_preds,
+                                                               same_video_labels,
+                                                               same_video_paths)
 
-                    feats = np.array(same_video_features)
-                    f_shape = feats.shape
-                    feats = np.reshape(
-                        # feats, [f_shape[0], f_shape[1] * f_shape[2] * f_shape[3] * f_shape[4]])
-                        feats, [f_shape[0], f_shape[1] * f_shape[2]])
-                    preds = same_video_preds
-                    labels = same_video_labels
-                    print('\n video_id:', video_id)
-                    print('shapes: ', f_shape, preds.shape, labels.shape)
-                    assert preds.shape[0] == f_shape[0]
-                    assert labels.shape[0] == f_shape[0]
-                    to_save_dict = {}
-                    to_save_dict['features'] = feats
-                    to_save_dict['preds'] = preds
-                    to_save_dict['labels'] = labels
-                    length = f_shape[0]
-                    to_save_dict = np.array(to_save_dict)
-                    save_filename = save_folder + video_id + '.npz'
-                    subject = video_id[0]
-                    video_list = [subject, video_id, length]
-                    big_list.append(video_list)
-                    np.savez_compressed(save_filename, to_save_dict)
+                    length = feats.shape[0]
+                    subject = old_video_id[0]
+                    print('Saving features from old_video_id:', old_video_id)
+                    print('shapes: ', feats.shape, preds.shape, labels.shape, paths.shape)
+                    to_save_dict = put_in_dict(feats, preds, labels, paths, length, subject)
+                    if old_video_id in dict_of_dicts:
+                        print('Already had one for: ', old_video_id)
+                        print(labels, '\n')
+                        dict_to_merge_with = dict_of_dicts[old_video_id]
+                        merged_dict, length = mergesort_features_into_dict(
+                            old_video_id, dict_to_merge_with, to_save_dict)
+                        dict_of_dicts[old_video_id] = merged_dict
+                    else:
+                        dict_of_dicts[old_video_id] = to_save_dict
+
+                    print('\n New video id: ', video_id)
                     same_video_features = []
                     same_video_preds = []
                     same_video_labels = []
+                    same_video_paths = []
+                    old_video_id = video_id
 
                 same_video_features.append(clip_batch_feats[ind])
                 same_video_preds.append(clip_batch_preds[ind])
                 same_video_labels.append(clip_batch_labels[ind])
+                same_video_paths.append(path)
 
         # Finally also use the last one (video ID doesn't change)
 
-        feats = np.array(same_video_features)
-        f_shape = feats.shape
-        feats = np.reshape(
-            # feats, [f_shape[0], f_shape[1] * f_shape[2] * f_shape[3] * f_shape[4]])
-            feats, [f_shape[0], f_shape[1] * f_shape[2]])
-        to_save_dict = {}
-        to_save_dict['features'] = feats
-        to_save_dict['preds'] = preds
-        to_save_dict['labels'] = labels
-        print('\n video_id:', video_id)
-        print('shapes: ', f_shape, preds.shape, labels.shape)
-        assert preds.shape[0] == f_shape[0]
-        assert labels.shape[0] == f_shape[0]
+        feats, preds, labels, paths = prepare_fplp(same_video_features,
+                                                   same_video_preds,
+                                                   same_video_labels,
+                                                   same_video_paths)
+        length = feats.shape[0]
         subject = video_id[0]
-        length = f_shape[0]
-        video_list = [subject, video_id, length]
-        big_list.append(video_list)
+        print('\n Saving last video_id:', video_id)
+        print('shapes: ', feats.shape, preds.shape, labels.shape, paths.shape)
+
+        import ipdb; ipdb.set_trace()
+
+        to_save_dict = put_in_dict(feats, preds, labels, paths, length, subject)
+
+        if video_id in dict_of_dicts:
+            print('Already had one for: ', video_id)
+            print(labels, '\n')
+            dict_to_merge_with = dict_of_dicts[video_id]
+            merged_dict, length = mergesort_features_into_dict(video_id, dict_to_merge_with, to_save_dict)
+            dict_of_dicts[video_id] = merged_dict
+        else:
+            dict_of_dicts[video_id] = to_save_dict
+
+        big_list = []
+        for video_id, to_save_dict in dict_of_dicts.items():
+            subject = to_save_dict['subject']
+            length = to_save_dict['length']
+            video_list = [subject, old_video_id, length]
+            save_filename = save_folder + video_id + '.npz'
+            to_save_dict = np.array(to_save_dict)
+            np.savez_compressed(save_filename, to_save_dict)
+            big_list.append(video_list)
+
+        import ipdb; ipdb.set_trace()
+        col_headers = ['subject', 'video_id', 'length']
         video_df = pd.DataFrame(big_list, columns=col_headers)
-        save_filename = save_folder + video_id + '.npz'
-        np.savez_compressed(save_filename, to_save_dict)
         video_df.to_csv(save_folder + 'summary.csv')
 
     def generate_video_features(self, features):
@@ -706,11 +729,11 @@ class DataHandler:
                 start_indices = [(start_ind + window_index * window_stride)
                                  for window_index in range(number_of_windows)]
             else:  # Resampling for minor class
-                # print('\nComputing start indices for resampling from the following df...\n')
-                # print('video_frame_df.head():')
-                # print(video_frame_df.head(), '\n')
-                # print('Frames in video: {}, nb per video: {}, last valid start {}'.format(
-                #     nb_frames_in_video, nb_per_video, last_valid_start_index))
+                print('\nComputing start indices for resampling from the following df...\n')
+                print('video_frame_df.head():')
+                print(video_frame_df.head(), '\n')
+                print('Frames in video: {}, nb per video: {}, last valid start {}'.format(
+                    nb_frames_in_video, nb_per_video, last_valid_start_index))
                 step_length = int((last_valid_start_index - start_ind)/nb_per_video)
                 step_length = 1 if step_length == 0 else step_length
                 approx_start_indices = [*range(start_ind, last_valid_start_index, step_length)]
@@ -1377,3 +1400,80 @@ def zero_pad_list(list_to_pad, pad_length):
 
     return list_to_pad
 
+
+def put_in_dict(feats, preds, labels, paths, length, subject):
+    to_save_dict = {'features': feats, 'preds': preds, 'labels': labels,
+                    'paths': paths, 'length': length, 'subject': subject}
+    return to_save_dict
+
+
+def prepare_fplp(same_video_features, same_video_preds, same_video_labels, same_video_paths):
+    """
+    :param same_video_features: [np.array]
+    :param same_video_preds: [np.array]
+    :param same_video_labels: [np.array]
+    :param same_video_paths: [str]
+    :return: (np.array, np.array, np.array, np.array)
+    """
+    feats = np.array(same_video_features)
+    f_shape = feats.shape
+    if len(f_shape) == 3:
+        feats = np.reshape(feats, [f_shape[0], f_shape[1] * f_shape[2]])
+    preds = np.array(same_video_preds)
+    labels = np.array(same_video_labels)
+    paths = np.array(same_video_paths)
+    assert preds.shape[0] == feats.shape[0]
+    assert labels.shape[0] == feats.shape[0]
+    assert paths.shape[0] == feats.shape[0]
+    return feats, preds, labels, paths
+
+
+def mergesort_features_into_dict(video_id, d1, d2):
+    """
+    Both dicts have keys: features, preds, labels, paths, length, subject.
+    Need to mergesort them using the paths.
+    :param video_id: str
+    :param d1: dict
+    :param d2: dict
+    :return: dict
+    """
+    # All paths are named frame_xxxxxx.jpg, hence take -11:-5
+    d1_internal_inds_frame_inds = [(1, ind, int(str(frame_path)[-11:-5])) for ind, frame_path in enumerate(d1['paths'])]
+    d2_internal_inds_frame_inds = [(2, ind, int(str(frame_path)[-11:-5])) for ind, frame_path in enumerate(d2['paths'])]
+
+    # Example result:
+    # d1_internal_inds_frame_inds = [(1, 0, 1), (1, 1, 11), (1, 2, 21), (1, 3, 31), (1, 4, 41)]
+    # d2_internal_inds_frame_inds = [(2, 0, 6), (2, 1, 36), (2, 2, 56), (2, 3, 86), (2, 4, 106)]
+
+    # So the internal inds should be updated according to the frame inds.
+    # (Need to keep track of which is which, hence have identifiers in each tuple before sorting.)
+
+    # Concatenate and sort on the frame index
+    combined = d1_internal_inds_frame_inds + d2_internal_inds_frame_inds
+    combined.sort(key=lambda x: x[2])
+
+    same_video_feats = []
+    same_video_preds = []
+    same_video_labels = []
+    same_video_paths = []
+
+    for id, ind, frame_ind in combined:
+        data = d1 if id == 1 else d2
+        same_video_feats.append(data['features'][ind])
+        same_video_preds.append(data['preds'][ind])
+        same_video_labels.append(data['labels'][ind])
+        same_video_paths.append(data['paths'][ind])
+
+    import ipdb; ipdb.set_trace()
+
+    feats, preds, labels, paths = prepare_fplp(same_video_features=same_video_feats,
+                                               same_video_preds=same_video_preds,
+                                               same_video_labels=same_video_labels,
+                                               same_video_paths=same_video_paths)
+
+
+    length = len(combined)
+    subject = video_id[0]
+    merged_dict = put_in_dict(feats, preds, labels, paths, length, subject)
+
+    return merged_dict, length
