@@ -1,12 +1,10 @@
 from tensorflow.keras.layers import MaxPooling2D, GlobalAveragePooling2D, LSTM, Dense, Flatten, Conv2D
 from tensorflow.keras.layers import Dropout, BatchNormalization, Input, Activation
-from tensorflow.keras.layers import concatenate, add, average, multiply
 from tensorflow.keras.layers import ConvLSTM2D
 from tensorflow.keras.layers import TimeDistributed
 from tensorflow.keras.applications import InceptionV3
 from tensorflow.keras.models import Sequential, Model
 import tensorflow as tf
-import ast
 
 
 class MyModel:
@@ -142,7 +140,7 @@ class MyModel:
         of_input = Input(shape=(self.input_shape[0], self.input_shape[1], 3))
         encoded_of = of_model(of_input)
         
-        merged = add([encoded_image, encoded_of])
+        merged = tf.keras.layers.add([encoded_image, encoded_of])
 
         merged = Dropout(.2)(merged)
         dense = Dense(self.nb_labels)(merged)
@@ -165,7 +163,7 @@ class MyModel:
         of_input = Input(shape=(self.input_shape[0], self.input_shape[1], 3))
         encoded_of = of_model(of_input)
         
-        merged = add([encoded_image, encoded_of])
+        merged = tf.keras.layers.add([encoded_image, encoded_of])
 
         merged = Dropout(.2)(merged)
         dense = Dense(self.nb_labels)(merged)
@@ -251,11 +249,11 @@ class MyModel:
         encoded_of = of_model(input_array[1, :])
 
         if fusion == 'add':
-            merged = add([encoded_image, encoded_of])
+            merged = tf.keras.layers.add([encoded_image, encoded_of])
         if fusion == 'mult':
-            merged = multiply([encoded_image, encoded_of])
+            merged = tf.keras.layers.multiply([encoded_image, encoded_of])
         if fusion == 'concat':
-            merged = concatenate([encoded_image, encoded_of], axis=-1)
+            merged = tf.keras.layers.concatenate([encoded_image, encoded_of], axis=-1)
 
         merged_flat = Flatten()(merged)
 
@@ -287,11 +285,11 @@ class MyModel:
         encoded_of = of_model(of_input)
 
         if fusion == 'add':
-            merged = add([encoded_image, encoded_of])
+            merged = tf.keras.layers.add([encoded_image, encoded_of])
         if fusion == 'mult':
-            merged = multiply([encoded_image, encoded_of])
+            merged = tf.keras.layers.multiply([encoded_image, encoded_of])
         if fusion == 'concat':
-            merged = concatenate([encoded_image, encoded_of], axis=-1)
+            merged = tf.keras.layers.concatenate([encoded_image, encoded_of], axis=-1)
 
         merged = Dropout(self.dropout_1)(merged)
         dense = Dense(self.nb_labels)(merged)
@@ -378,7 +376,7 @@ class MyModel:
         flow_class_scores = of_model(of_input)
 
         if fusion == 'average':
-            output = average([rgb_class_scores, flow_class_scores])
+            output = tf.keras.layers.average([rgb_class_scores, flow_class_scores])
         if fusion == 'svm':
             print('SVM implementation TODO.')
 
