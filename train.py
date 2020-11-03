@@ -195,7 +195,7 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
                 val_acc_old = val_acc
             else:
                 epochs_not_improved += 1
-                if epochs_not_improved == config_dict['early_stopping']:
+                if epochs_not_improved == config_dict['video_early_stopping']:
                     break
 
             val_acc_metric.reset_states()
