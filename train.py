@@ -31,7 +31,7 @@ def train(model_instance, config_dict, train_steps, val_steps,
     :return: keras.Sequential() object | The (trained) model instance
     """
     print(model_instance.model.summary())
-    best_model_path = create_best_model_path(model_instance, config_dict)
+    best_model_path = create_best_model_path(config_dict)
     print('Saving best epoch model to: ', best_model_path)
 
     print("Setting the optimizer to {}.".format(config_dict['optimizer']))
@@ -56,7 +56,7 @@ def train(model_instance, config_dict, train_steps, val_steps,
                     train_dataset, val_dataset)
 
     if config_dict['train_mode'] == 'low_level':
-        last_model_path = create_last_model_path(model_instance, config_dict)
+        last_model_path = create_last_model_path(config_dict)
         print('Saving last epoch model to: ', last_model_path)
         low_level_train(model_instance.model, best_model_path, last_model_path,
                         optimizer, config_dict, train_steps,
@@ -154,11 +154,11 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
                 step_start_time = time.time()
                 pbar.update(1)
                 feats_batch, preds_batch, labels_batch, video_id = sample
-                print('Video ID: ', video_id)
-                print(feats_batch.shape, preds_batch.shape, labels_batch.shape)
+                # print('Video ID: ', video_id)
+                # print(feats_batch.shape, preds_batch.shape, labels_batch.shape)
                 grads, loss_value = train_step(feats_batch, preds_batch, labels_batch)
                 step_time = time.time() - step_start_time
-                print('Step time: %.2f' % step_time)
+                # print('Step time: %.2f' % step_time)
                 # print('\n GRADS:')
                 # print([grad.numpy() for grad in grads])
                 wandb.log({'train_loss': loss_value.numpy()})
