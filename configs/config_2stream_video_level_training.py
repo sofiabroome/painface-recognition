@@ -40,11 +40,11 @@ config_dict = {
     # Model for video level features
     'video_features_model' : 'video_level_network',
     'nb_layers' : 1,
-    'nb_units' : 16,
+    'nb_units' : 32,
     'video_batch_size' : 3,
-    # 'video_pad_length' : 150,
-    'video_nb_epochs': 100,
-    'video_early_stopping': 15,
+    'video_pad_length' : 150,
+    'video_nb_epochs': 50,
+    'video_early_stopping': 50,
     'shuffle_buffer': 150,
     # Parameters for functional API C-LSTM
     'kernel_regularizer' : None,
@@ -74,7 +74,7 @@ config_dict = {
     'aug_crop': 0,
     'aug_light': 0,
     'train_mode': 'low_level',  # keras | low_level
-    'print_loss_every': 100,
+    'print_loss_every': 1,
     'resample_start_fraction_of_seq_length': 0.5,
     # Temporal mask things
     'normalization_mode': 'sequence',  # 'frame' | 'sequence'
