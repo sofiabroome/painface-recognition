@@ -132,6 +132,7 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
             loss = loss_fn(y, preds)
         grads = tape.gradient(loss, model.trainable_weights)
         optimizer.apply_gradients(zip(grads, model.trainable_weights))
+        train_acc_metric.update_state(y, preds)
         return grads, loss
 
     @tf.function
@@ -170,6 +171,13 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
                     )
                     print("Seen so far: %d samples" %
                           ((step + 1) * config_dict['batch_size']))
+
+        train_acc = train_acc_metric.result()
+        wandb.log({'train_acc': train_acc})
+        print('Training acc over epoch: %.4f' % (float(train_acc),))
+
+        # Reset training metrics at the end of each epoch
+        train_acc_metric.reset_states()
 
         if not config_dict['val_mode'] == 'no_val':
 
