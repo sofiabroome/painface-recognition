@@ -25,6 +25,9 @@ config_dict = {
     'train_video_features_folder': 'lps/video_level_features_320dim_test/',
     'val_video_features_folder': 'lps/video_level_features_320dim_noresample/',
     'test_video_features_folder': 'lps/video_level_features_320dim_noresample/',
+    # 'train_video_features_folder': 'lps/video_level_features_320dim_test/',
+    # 'val_video_features_folder': 'lps/video_level_features_320dim_test/',
+    # 'test_video_features_folder': 'lps/video_level_features_320dim_test/',
     # Model
     'model': '2stream_5d_add',
     'rgb_period': 1,  # Set to 10 if simonyan-like model
@@ -41,17 +44,16 @@ config_dict = {
     'dropout_2': 0.5,
     'return_last_clstm' : True,
     # Model for video level features
-    # 'video_features_model' : 'video_level_network',
-    # 'video_features_model' : 'video_level_preds_attn_network',
-    'video_features_model' : 'video_level_preds_mil_attn',
+    'video_features_model' : 'video_level_preds_attn_network',
+    # 'video_features_model' : 'video_level_preds_mil_attn',
     'nb_layers' : 1,
-    'nb_units' : 8,
+    'nb_units' : 32,
     'video_batch_size' : 3,
     'video_pad_length' : 150,
     'video_nb_epochs': 100,
-    'video_early_stopping': 50,
+    'video_early_stopping': 15,
     'shuffle_buffer': 150,
-    'k_mil_loss': 10,
+    'k_mil_loss': 0.15,
     # Parameters for functional API C-LSTM
     'kernel_regularizer' : None,
     'padding_clstm' : 'valid',

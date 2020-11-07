@@ -2,6 +2,15 @@ import configs.pixel_means as pixel_means
 data_path = '/local_storage/users/sbroome/painface-recognition/'
 
 config_dict = {
+    # Program components
+    'get_raw_sequence_data': True,
+    'inference_only': False,
+    'fine_tune': False,
+    'save_features': False,
+    'save_features_per_video': False,
+    'train_video_level_features': False,
+    'do_evaluate': True,
+    # Data
     'clip_list_pf': 'metadata/videos_overview_missingremoved.csv',
     'clip_list_lps': 'metadata/lps_videos_overview.csv',
     'pf_rgb_path': data_path + 'pf/jpg_128_128_2fps/',
@@ -10,6 +19,8 @@ config_dict = {
     'lps_of_path': data_path + 'lps/jpg_128_128_16fps_OF_magnitude_cv2_2fpsrate/',
     'pixel_mean': pixel_means.pf_rgb['mean'],
     'pixel_std': pixel_means.pf_rgb['std'],
+    'checkpoint': 'models/124805_best_model_2stream_5d_add.ckpt',
+    # Model
     'model': '2stream_5d_add',
     'rgb_period': 1,  # Set to 10 if simonyan-like model
     'flow_period': 1,
@@ -24,6 +35,16 @@ config_dict = {
     'kernel_size': 5,
     'dropout_1': 0.25,
     'dropout_2': 0.5,
+    # Model for video level features
+    'video_features_model' : 'video_level_network',
+    'nb_layers' : 1,
+    'nb_units' : 16,
+    'video_batch_size' : 3,
+    # 'video_pad_length' : 150,
+    'video_nb_epochs': 100,
+    'video_early_stopping': 15,
+    'shuffle_buffer': 150,
+    # Training
     'nb_epochs': 100,
     'early_stopping': 15,
     'optimizer': 'adadelta',
@@ -43,12 +64,9 @@ config_dict = {
     'aug_flip': 0,
     'aug_crop': 0,
     'aug_light': 0,
-    'do_evaluate': True,
     'train_mode': 'keras',
     'print_loss_every': 100,
     'resample_start_fraction_of_seq_length': 0.5,
-    'inference_only': False,
-    'fine_tune': False,
     # Parameters for functional API C-LSTM
     'kernel_regularizer' : None,
     'padding_clstm' : 'valid',
