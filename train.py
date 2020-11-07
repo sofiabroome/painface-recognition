@@ -105,11 +105,25 @@ def keras_train(model, ckpt_path, config_dict, train_steps, val_steps,
     plot_training(binacc_test_history, binacc_train_history, config_dict)
 
 
+def get_sparse_pain_loss(y=None, preds=None, k_fraction=0.15):
+    k = tf.cast(tf.math.ceil(k_fraction * y.shape[1]), dtype=tf.int32)
+    label_index = tf.argmax(y[0,0,:])  # Take first (video-level label)
+    k_preds, indices = tf.math.top_k(preds[:,:,label_index], k)
+    k_y = tf.cast(tf.gather_nd(y[:,:,label_index], tf.expand_dims(indices, axis=2), batch_dims=1), tf.float32)
+    # mil = tf.reduce_sum( 1/k * tf.reduce_sum(tf.multiply(tf.math.log(k_preds), k_y), axis=1))
+    mil = tf.reduce_sum( tf.cast(1/k,dtype=tf.float32) * tf.reduce_sum(tf.multiply(k_preds, k_y), axis=1))
+    return -mil
+
+
 def video_level_train(config_dict, train_dataset, val_dataset=None):
     """
     Train a simple model on features on video-level, since we have sparse
     pain behavior in the LPS data.
     """
+    # if config_dict['video_features_model'] == 'video_level_preds_mil_attn':
+    #     loss_fn = get_sparse_pain_loss()
+    # else:
+    #     loss_fn = tf.keras.losses.BinaryCrossentropy()
     loss_fn = tf.keras.losses.BinaryCrossentropy()
     train_acc_metric = tf.keras.metrics.BinaryAccuracy()
     val_acc_metric = tf.keras.metrics.BinaryAccuracy()
@@ -123,12 +137,14 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
     val_steps = len([sample for sample in val_dataset])
     epochs_not_improved = 0
 
-    @tf.function
+    # @tf.function
     def train_step(x, preds, y):
         with tf.GradientTape() as tape:
             preds = model([x, preds], training=True)
+            # if using standard crossent:
             y = y[:, 0, :]
             # print(preds.shape)
+            # loss = get_sparse_pain_loss(y, preds, config_dict['k_mil_loss'])
             loss = loss_fn(y, preds)
         grads = tape.gradient(loss, model.trainable_weights)
         optimizer.apply_gradients(zip(grads, model.trainable_weights))
@@ -140,6 +156,7 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
         preds = model([x, preds], training=False)
         y = y[:, 0, :]
         loss = loss_fn(y, preds)
+        # loss = get_sparse_pain_loss(y, preds, config_dict['k_mil_loss'])
         val_acc_metric.update_state(y, preds)
         return loss
 
@@ -155,8 +172,8 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
                 step_start_time = time.time()
                 pbar.update(1)
                 feats_batch, preds_batch, labels_batch, video_id = sample
-                # print('Video ID: ', video_id)
-                # print(feats_batch.shape, preds_batch.shape, labels_batch.shape)
+                print('Video ID: ', video_id)
+                print(feats_batch.shape, preds_batch.shape, labels_batch.shape)
                 grads, loss_value = train_step(feats_batch, preds_batch, labels_batch)
                 step_time = time.time() - step_start_time
                 # print('Step time: %.2f' % step_time)
