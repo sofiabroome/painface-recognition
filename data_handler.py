@@ -84,7 +84,7 @@ class DataHandler:
 
         return dataset
 
-    def features_to_dataset(self, subjects):
+    def features_to_dataset(self, subjects, split='train'):
         subj_codes = []
         for subj in subjects:
             code = self.all_subjects_df[
@@ -92,7 +92,7 @@ class DataHandler:
             subj_codes.append(code.values[0])
         dataset = tf.data.Dataset.from_generator(
             lambda: self.generate_features(subject_codes=subj_codes,
-                                           ),
+                                           split=split),
             output_types=(tf.float32, tf.float32, tf.uint8, tf.string),
             output_shapes=(tf.TensorShape([None, None]),
                            tf.TensorShape([None, 2]),
@@ -107,14 +107,21 @@ class DataHandler:
 
     def generate_features(self,
                           subject_codes,
-                          features_folder='video_level_features_320dim/'):
+                          split='train'):
         """
         Load features from file (per video).
         :param subject_codes: [str]
         :param features_folder: str
         :yield: batch features, batch preds, batch labels
         """
-        path_to_features = self.config_dict['data_path'] + 'lps/' + features_folder
+        if split == 'train':
+            feature_folder = self.config_dict['train_video_features_folder']
+        if split == 'val':
+            feature_folder = self.config_dict['val_video_features_folder']
+        if split == 'test':
+            feature_folder = self.config_dict['test_video_features_folder']
+
+        path_to_features = self.config_dict['data_path'] + feature_folder
         df_summary = pd.read_csv(path_to_features + 'summary.csv')
         subj_dfs = []
         for subj_code in subject_codes:
@@ -140,7 +147,7 @@ class DataHandler:
             yield feats, preds, labels, video_id
 
     def prepare_video_features(self, features):
-        save_folder = self.config_dict['data_path'] + 'lps/video_level_features_320dim_test/'
+        save_folder = self.config_dict['data_path'] + self.config_dict['per_video_features_folder']
 
         if not os.path.exists(save_folder):
             subprocess.call(['mkdir', save_folder])
@@ -179,6 +186,7 @@ class DataHandler:
                     to_save_dict = put_in_dict(feats, preds, labels, paths, length, subject)
                     if old_video_id in dict_of_dicts:
                         print('Already had one for: ', old_video_id)
+                        continue
                         print(labels, '\n')
                         dict_to_merge_with = dict_of_dicts[old_video_id]
                         merged_dict, length = mergesort_features_into_dict(
@@ -214,11 +222,11 @@ class DataHandler:
 
         if video_id in dict_of_dicts:
             print('Already had one for: ', video_id)
-            print(labels, '\n')
-            dict_to_merge_with = dict_of_dicts[video_id]
-            merged_dict, length = mergesort_features_into_dict(
-                video_id, dict_to_merge_with, to_save_dict)
-            dict_of_dicts[video_id] = merged_dict
+            # print(labels, '\n')
+            # dict_to_merge_with = dict_of_dicts[video_id]
+            # merged_dict, length = mergesort_features_into_dict(
+            #     video_id, dict_to_merge_with, to_save_dict)
+            # dict_of_dicts[video_id] = merged_dict
         else:
             dict_of_dicts[video_id] = to_save_dict
 
