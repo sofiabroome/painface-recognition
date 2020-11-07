@@ -253,9 +253,12 @@ def evaluate_on_video_level(config_dict, model, model_path, test_dataset,
     @tf.function
     def test_step(x, preds, y):
         preds = model([x, preds], training=False)
+        # preds = evaluate_sparse_pain(y, preds, config_dict['k_mil_loss']) 
         y = y[:, 0, :]
         test_acc_metric.update_state(y, preds)
-
+        return preds, y
+    all_preds = []
+    all_y = []
     with tqdm(total=test_steps) as pbar:
         for step, sample in enumerate(test_dataset):
             if step > test_steps:
@@ -263,11 +266,36 @@ def evaluate_on_video_level(config_dict, model, model_path, test_dataset,
             pbar.update(1)
             # step_start_time = time.time()
             feats_batch, preds_batch, labels_batch, _ = sample
-            test_step(feats_batch, preds_batch, labels_batch)
-
+            preds, y = test_step(feats_batch, preds_batch, labels_batch)
+            all_preds.append(preds)
+            all_y.append(y)
+    all_preds = make_array(all_preds)
+    all_y = make_array(all_y)
+    cm = confusion_matrix(np.argmax(all_y, axis=1), np.argmax(all_preds, axis=1))
+    print('\n Confusion matrix: \n', cm)
     test_acc = test_acc_metric.result()
     wandb.log({'test_acc': test_acc})
     print("Test acc: %.4f" % (float(test_acc),))
+
+
+def make_array(list_of_tensors):
+    list_of_arrays = [lt.numpy() for lt in list_of_tensors]
+    return np.concatenate(list_of_arrays)
+
+
+def evaluate_sparse_pain(y=None, preds=None, k_fraction=0.15):
+    class_mil_scores = []
+    k = tf.cast(tf.math.ceil(k_fraction * y.shape[1]), dtype=tf.int32)
+    for label_index in range(2):
+        k_preds, indices = tf.math.top_k(preds[:,:,label_index], k)
+        k_y = tf.cast(tf.gather_nd(y[:,:,label_index], tf.expand_dims(indices, axis=2), batch_dims=1), tf.float32)
+        classwise_k_max_mean = tf.cast(1/k,dtype=tf.float32) * tf.reduce_sum(k_preds, axis=1)
+        class_mil_scores.append(classwise_k_max_mean)
+    class_mil_scores = tf.convert_to_tensor(class_mil_scores, dtype=tf.float32)
+    batch_class_scores = tf.transpose(class_mil_scores)
+    return batch_class_scores
+
+
 
 
 def run_evaluation(config_dict, model, model_path,
