@@ -253,7 +253,8 @@ def evaluate_on_video_level(config_dict, model, model_path, test_dataset,
     @tf.function
     def test_step(x, preds, y):
         preds = model([x, preds], training=False)
-        # preds = evaluate_sparse_pain(y, preds, config_dict['k_mil_loss']) 
+        if config_dict['video_loss'] == 'mil':
+            preds = evaluate_sparse_pain(y, preds, config_dict['k_mil_loss']) 
         y = y[:, 0, :]
         test_acc_metric.update_state(y, preds)
         return preds, y

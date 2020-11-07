@@ -141,11 +141,12 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
     def train_step(x, preds, y):
         with tf.GradientTape() as tape:
             preds = model([x, preds], training=True)
-            # if using standard crossent:
-            y = y[:, 0, :]
             # print(preds.shape)
-            # loss = get_sparse_pain_loss(y, preds, config_dict['k_mil_loss'])
-            loss = loss_fn(y, preds)
+            if config_dict['video_loss'] == 'cross_entropy':
+                y = y[:, 0, :]
+                loss = loss_fn(y, preds)
+            if config_dict['video_loss'] == 'mil':
+                loss = get_sparse_pain_loss(y, preds, config_dict['k_mil_loss'])
         grads = tape.gradient(loss, model.trainable_weights)
         optimizer.apply_gradients(zip(grads, model.trainable_weights))
         train_acc_metric.update_state(y, preds)
@@ -154,9 +155,11 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
     @tf.function
     def validation_step(x, preds, y):
         preds = model([x, preds], training=False)
-        y = y[:, 0, :]
-        loss = loss_fn(y, preds)
-        # loss = get_sparse_pain_loss(y, preds, config_dict['k_mil_loss'])
+        if config_dict['video_loss'] == 'cross_entropy':
+            y = y[:, 0, :]
+            loss = loss_fn(y, preds)
+        if config_dict['video_loss'] == 'mil':
+            loss = get_sparse_pain_loss(y, preds, config_dict['k_mil_loss'])
         val_acc_metric.update_state(y, preds)
         return loss
 
