@@ -33,6 +33,10 @@ class MyModel:
                 self.name = 'only_train_video_feats'
                 if self.video_features_model == 'video_level_network':
                     self.model = self.video_level_network()
+                if self.video_features_model == 'video_level_preds_attn_network':
+                    self.model = self.video_level_preds_attn_network()
+                if self.video_features_model == 'video_level_preds_mil_attn':
+                    self.model = self.video_level_preds_mil_attn()
 
         if self.name == 'conv2d_timedist_lstm':
             print("Conv2d-lstm model timedist")
@@ -575,5 +579,55 @@ class MyModel:
         x = tf.keras.layers.Dense(units=self.config_dict['nb_labels'])(x)
 
         model = Model(inputs=[input_features, input_preds], outputs=[x])
+        model.summary()
+
+        return model
+
+    def video_level_preds_mil_attn(self):
+
+        input_features = Input(shape=(None, 320))
+        input_preds = Input(shape=(None, 2))
+
+        feature_enc1 = tf.keras.layers.GRU(
+            self.config_dict['nb_units'], return_sequences=True)
+        feature_enc2 = tf.keras.layers.GRU(
+            self.config_dict['nb_labels'], return_sequences=True)
+        preds_enc = tf.keras.layers.GRU(
+            self.config_dict['nb_labels'], return_sequences=True)
+        x = feature_enc1(input_features)
+        x = feature_enc2(x)
+        preds = preds_enc(input_preds)
+        x = tf.keras.layers.multiply([x, preds])
+        x = Activation('softmax')(x)
+
+        model = Model(inputs=[input_features, input_preds], outputs=[x])
+        model.summary()
+
+        return model
+
+
+    def video_level_preds_attn_network(self):
+
+        input_features = Input(shape=(None, 320))
+        input_preds = Input(shape=(None, 2))
+
+        feature_enc1 = tf.keras.layers.GRU(
+            self.config_dict['nb_units'], return_sequences=True)
+        # feature_enc2 = tf.keras.layers.GRU(
+        #     self.config_dict['nb_labels'], return_sequences=True)
+        # preds_enc = tf.keras.layers.GRU(
+        #     self.config_dict['nb_labels'], return_sequences=True)
+        preds_enc = tf.keras.layers.GRU(
+            self.config_dict['nb_units'], return_sequences=True)
+        x = feature_enc1(input_features)
+        # x = feature_enc2(x)
+        preds = preds_enc(input_preds)
+        x = tf.keras.layers.multiply([x, preds])
+        x = tf.keras.layers.GlobalMaxPooling1D()(x)
+        # x = tf.keras.layers.GlobalAveragePooling1D()(x)
+        x = tf.keras.layers.Dense(units=self.config_dict['nb_labels'])(x)
+
+        model = Model(inputs=[input_features, input_preds], outputs=[x])
+        model.summary()
 
         return model
