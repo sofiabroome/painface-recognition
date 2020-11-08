@@ -14,7 +14,6 @@ class MyModel:
         :param config_dict: dict
         """
         self.name = config_dict['model']
-        self.video_features_model = config_dict['video_features_model']
         self.config_dict = config_dict
         self.input_shape = config_dict['input_height'], config_dict['input_width']
         self.nb_lstm_units = config_dict['nb_lstm_units']
@@ -29,7 +28,8 @@ class MyModel:
         
         if not self.config_dict['save_features']:
             if self.config_dict['train_video_level_features']:
-                config_dict['model'] == self.video_features_model
+                self.video_features_model = self.config_dict['video_features_model']
+                config_dict['model'] = self.video_features_model
                 self.name = 'only_train_video_feats'
                 if self.video_features_model == 'video_level_network':
                     self.model = self.video_level_network()
