@@ -44,7 +44,8 @@ config_dict = {
     'dropout_2': 0.5,
     'return_last_clstm' : True,
     # Model for video level features
-    'video_features_model' : 'video_level_preds_attn_network',
+    # 'video_features_model' : 'video_level_preds_attn_network',
+    'video_features_model' : 'video_fc_model',
     'video_loss' : 'cross_entropy',
     # 'video_features_model' : 'video_level_preds_mil_attn',
     # 'video_loss' : 'mil',

@@ -37,6 +37,8 @@ class MyModel:
                     self.model = self.video_level_preds_attn_network()
                 if self.video_features_model == 'video_level_preds_mil_attn':
                     self.model = self.video_level_preds_mil_attn()
+                if self.video_features_model == 'video_fc_model':
+                    self.model = self.video_fc_model()
 
         if self.name == 'conv2d_timedist_lstm':
             print("Conv2d-lstm model timedist")
@@ -576,6 +578,19 @@ class MyModel:
             self.config_dict['nb_units'], return_sequences=False)
         x = gru(input_features)
         x = tf.keras.layers.Flatten()(x)
+        x = tf.keras.layers.Dense(units=self.config_dict['nb_labels'])(x)
+
+        model = Model(inputs=[input_features, input_preds], outputs=[x])
+        model.summary()
+
+        return model
+
+    def video_fc_model(self):
+        input_features = Input(shape=(None, 320))
+        input_preds = Input(shape=(None, 2))
+        # x = tf.keras.layers.Flatten()(input_features)
+        x = tf.keras.layers.GlobalAveragePooling1D()(input_features)
+        x = tf.keras.layers.Dense(units=self.config_dict['nb_units'])(x)
         x = tf.keras.layers.Dense(units=self.config_dict['nb_labels'])(x)
 
         model = Model(inputs=[input_features, input_preds], outputs=[x])
