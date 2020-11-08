@@ -175,13 +175,9 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
                 step_start_time = time.time()
                 pbar.update(1)
                 feats_batch, preds_batch, labels_batch, video_id = sample
-                print('Video ID: ', video_id)
-                print(feats_batch.shape, preds_batch.shape, labels_batch.shape)
                 grads, loss_value = train_step(feats_batch, preds_batch, labels_batch)
                 step_time = time.time() - step_start_time
                 # print('Step time: %.2f' % step_time)
-                # print('\n GRADS:')
-                # print([grad.numpy() for grad in grads])
                 wandb.log({'train_loss': loss_value.numpy()})
 
                 if step % config_dict['print_loss_every'] == 0:
@@ -191,6 +187,10 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
                     )
                     print("Seen so far: %d samples" %
                           ((step + 1) * config_dict['batch_size']))
+                    print('\n GRADS:')
+                    print([grad.numpy() for grad in grads])
+                    print('\n Video ID: ', video_id)
+                    print(feats_batch.shape, preds_batch.shape, labels_batch.shape)
 
         train_acc = train_acc_metric.result()
         wandb.log({'train_acc': train_acc})
