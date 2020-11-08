@@ -1,6 +1,6 @@
 import configs.pixel_means as pixel_means
-# data_path = '/local_storage/users/sbroome/painface-recognition/'
-data_path = 'data/'
+data_path = '/local_storage/users/sbroome/painface-recognition/'
+# data_path = 'data/'
 
 config_dict = {
     # Program components
@@ -8,7 +8,7 @@ config_dict = {
     'inference_only': True,
     'fine_tune': False,
     'save_features': False,
-    'save_features_per_video': True,
+    'save_features_per_video': False,
     'train_video_level_features': True,
     'do_evaluate': True,
     # Data
@@ -22,10 +22,10 @@ config_dict = {
     'pixel_mean': pixel_means.pf_rgb['mean'],
     'pixel_std': pixel_means.pf_rgb['std'],
     'checkpoint': 'models/124805_best_model_2stream_5d_add.ckpt',
-    'save_video_features_folder': 'lps/video_level_features_320dim_zeropad/',
+    'save_video_features_folder': 'lps/video_level_features_320dim_zeropad_noresample/',
     'train_video_features_folder': 'lps/video_level_features_320dim_zeropad/',
-    'val_video_features_folder': 'lps/video_level_features_320dim_zeropad/',
-    'test_video_features_folder': 'lps/video_level_features_320dim_zeropad/',
+    'val_video_features_folder': 'lps/video_level_features_320dim_zeropad_noresample/',
+    'test_video_features_folder': 'lps/video_level_features_320dim_zeropad_noresample/',
     # 'train_video_features_folder': 'lps/video_level_features_320dim_test/',
     # 'val_video_features_folder': 'lps/video_level_features_320dim_noresample/',
     # 'test_video_features_folder': 'lps/video_level_features_320dim_noresample/',
@@ -57,7 +57,7 @@ config_dict = {
     'nb_units' : 32,
     'video_batch_size' : 3,
     'video_pad_length' : 144,
-    'video_nb_epochs': 2,
+    'video_nb_epochs': 100,
     'video_early_stopping': 15,
     'shuffle_buffer': 150,
     'k_mil_loss': 0.15,
@@ -89,7 +89,7 @@ config_dict = {
     'aug_crop': 0,
     'aug_light': 0,
     'train_mode': 'low_level',  # keras | low_level
-    'print_loss_every': 1,
+    'print_loss_every': 300,
     'resample_start_fraction_of_seq_length': 0.5,
     # Temporal mask things
     'normalization_mode': 'sequence',  # 'frame' | 'sequence'
