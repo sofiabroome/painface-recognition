@@ -9,14 +9,11 @@ def prepare_raw_data(path_to_raw_csv):
 
     # Part 1: Drop irrelevant columns and rename columns to shorter names
     # i.e. not the full question from Canvas
-    df.drop('section')
-    df.drop(columns=['section'])
     df = df.drop(columns=['section'])
     df = df.drop(columns=['section_id'])
     df = df.drop(columns=['attempt'])
     df.rename(columns={
-        '69192: Vänligen fyll i den individuella sifferkoden som du fått'
-        'på mail tillsammans med länken till det här quizet:':
+        '69192: Vänligen fyll i den individuella sifferkoden som du fått på mail tillsammans med länken till det här quizet:':
             'sifferkod'}, inplace=True)
     df.rename(columns={'65723: Kön:': 'gender'}, inplace=True)
     # Cols named 'x.y.z' were the scores of the questions = drop, not relevant.
@@ -70,13 +67,7 @@ def prepare_raw_data(path_to_raw_csv):
     df.columns = new_cols
 
     # Part 2, insert a ground truth entry
-    gtdf = pd.read_csv[
-        '../Documents/EquineML/painface-recognition/data/lps/random_clips_lps/ground_truth_randomclips_lps.csv']
-    gtdf.sort_values(by='ind', axis=1)
-    gtdf = pd.read_csv(
-        '../Documents/EquineML/painface-recognition/data/lps/random_clips_lps/ground_truth_randomclips_lps.csv')
-    gtdf.sort_values(by=['ind'], axis=1)
-    gtdf.sort_values(by=['ind'])
+    gtdf = pd.read_csv('../data/lps/random_clips_lps/ground_truth_randomclips_lps.csv')
     gt = gtdf.sort_values(by=['ind'])
     pain_list = list(gt['pain'])
     gt_list = ['nan', 'gt', 'gender', '0', 'no', 'no']
@@ -84,10 +75,10 @@ def prepare_raw_data(path_to_raw_csv):
     df.append(gt_entry)
     dflength = len(df)
     df.loc[dflength] = gt_entry
+    # Just tests
     gt_copy = gt
     gt_copy.drop(15)
-    gt_copy.drop(28)
-    df.drop(28)
+    ###
     df_without_me = df.drop(28)
     df = df_without_me
     df.to_csv('qrename_intermediate_save.csv')
@@ -105,7 +96,7 @@ def compute_results():
 
     OUTLIER = 467
 
-    acceptance_threshold = 0
+    acceptance_threshold = 5
 
     scores = []
     pain_scores = []
@@ -124,7 +115,7 @@ def compute_results():
             answer = q_answers[participant]
 
             pain = 1 if ground_truth > 0 else 0
-            print('Label: ', ground_truth, 'Pain: ', pain)
+            # print('Label: ', ground_truth, 'Pain: ', pain)
 
             if pain:
                 if answer > acceptance_threshold:
@@ -143,7 +134,7 @@ def compute_results():
                     nopain_correct = 1
                 nb_correct_nopain += nopain_correct
 
-            print('Answer:', answer, 'Correct: ', correct, '\n')
+            # print('Answer:', answer, 'Correct: ', correct, '\n')
             nb_correct += correct
         scores.append(nb_correct)
         pain_scores.append(nb_correct_pain)
@@ -163,3 +154,5 @@ def compute_results():
     print('\nMean no pain score: ', round(np.mean(np.array(nopain_scores)/12), 4))
     print('Std no pain score: ', round(np.std(np.array(nopain_scores)/12), 4))
 
+# prepare_raw_data('~/Downloads/vets_slutresultat.csv')
+compute_results()
