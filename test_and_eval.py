@@ -4,6 +4,7 @@ import numpy as np
 import data_handler
 import subprocess
 import random
+import train
 import wandb
 from tqdm import tqdm
 import os
@@ -250,20 +251,19 @@ def evaluate_on_video_level(config_dict, model, model_path, test_dataset,
     else:
         model.load_weights(model_path)
 
-    @tf.function
+    # @tf.function
     def test_step(x, preds, y):
         if config_dict['video_loss'] == 'cross_entropy':
             preds = model([x, preds], training=False)
         if config_dict['video_loss'] == 'mil':
             preds_seq = model([x, preds], training=True)
-            preds_mil = evaluate_sparse_pain(y, preds_seq, config_dict['k_mil_loss'])
+            preds_mil = evaluate_sparse_pain(y, preds_seq, config_dict)
             preds = preds_mil
         if config_dict['video_loss'] == 'mil_ce':
             preds_seq, preds_one = model([x, preds], training=True)
-            y_one = y[:, 0, :]
-            preds_mil = evaluate_sparse_pain(y, preds_seq, config_dict['k_mil_loss'])
+            preds_one = tf.keras.layers.Activation('softmax')(preds_one)
+            preds_mil = evaluate_sparse_pain(y, preds_seq, config_dict)
             preds = 1/2 * (preds_one + preds_mil)
-            # import ipdb; ipdb.set_trace()
         y = y[:, 0, :]
         test_acc_metric.update_state(y, preds)
         return preds, y
@@ -298,20 +298,11 @@ def make_array(list_of_tensors):
     return np.concatenate(list_of_arrays)
 
 
-def evaluate_sparse_pain(y=None, preds=None, k_fraction=0.15):
-    class_mil_scores = []
-    k = tf.cast(tf.math.ceil(k_fraction * y.shape[1]), dtype=tf.int32)
-    for label_index in range(2):
-        k_preds, indices = tf.math.top_k(preds[:,:,label_index], k)
-        k_y = tf.cast(tf.gather_nd(y[:,:,label_index], tf.expand_dims(indices, axis=2), batch_dims=1), tf.float32)
-        # classwise_k_max_mean = -tf.cast(1/k,dtype=tf.float32) * tf.reduce_sum(tf.math.log(k_preds), axis=1)
-        classwise_k_max_mean = tf.cast(1/k,dtype=tf.float32) * tf.reduce_sum(k_preds, axis=1)
-        class_mil_scores.append(classwise_k_max_mean)
-    class_mil_scores = tf.convert_to_tensor(class_mil_scores, dtype=tf.float32)
-    batch_class_scores = tf.transpose(class_mil_scores)
-    return batch_class_scores
-
-
+def evaluate_sparse_pain(y_batch, preds_batch, config_dict):
+    batch_size = y_batch.shape[0]  # last batch may be smaller
+    kmax_scores = train.get_k_max_scores_per_class(y_batch, preds_batch, batch_size, config_dict)
+    batch_class_distribution = tf.keras.layers.Activation('softmax')(kmax_scores)
+    return batch_class_distribution
 
 
 def run_evaluation(config_dict, model, model_path,

@@ -106,28 +106,56 @@ def keras_train(model, ckpt_path, config_dict, train_steps, val_steps,
 
     plot_training(binacc_test_history, binacc_train_history, config_dict)
 
+def get_k_max_scores_per_class(y_batch, preds_batch, batch_size, config_dict):
+    kmax_scores = []
+    for sample_index in range(batch_size):
+        sample_class_kmax_scores = []
+        padded_indices = [i for i in range(y_batch.shape[1]) if
+                          (y_batch[sample_index, i, 0] == 0 and y_batch[sample_index, i, 1] == 0)]
 
-def get_sparse_pain_loss(y=None, preds=None, k_fraction=0.15,
-                         tv_weight_pain=10, tv_weight_nopain=100, batch_size=3):
-    # import ipdb; ipdb.set_trace()
-    # seq_lengths = [[i for i in range(y.shape[1])
-    #                 if (y[b, i, 0] == 0 and y[b, i, 1] == 0)][0]
+        if len(padded_indices) == 0:
+            seq_length = config_dict['video_pad_length']
+        else:
+            seq_length = padded_indices[0]
+
+        k = tf.cast(tf.math.ceil(config_dict['k_mil_fraction'] * seq_length), dtype=tf.int32)
+        # print('\n', k, seq_length)
+        for class_index in range(config_dict['nb_labels']):
+            # Just need label index because the other would be zeroed out.
+            preds_nopad = preds_batch[sample_index, :, class_index][:seq_length]
+            k_preds, indices = tf.math.top_k(preds_nopad, k)
+            sample_class_kmax_score = tf.cast(1/k, dtype=tf.float32) * tf.reduce_sum(k_preds)
+            sample_class_kmax_scores.append(sample_class_kmax_score)
+        kmax_scores.append(sample_class_kmax_scores)
+    kmax_scores = tf.convert_to_tensor(kmax_scores)
+    return kmax_scores
+
+
+def get_sparse_pain_loss(y_batch, preds_batch, config_dict):
+    batch_size = y_batch.shape[0]  # last batch may be smaller
+    # seq_lengths = [[i for i in range(y_batch.shape[1]) if (y_batch[b, i, 0] == 0 and y_batch[b, i, 1] == 0)][0]
     #                for b in range(batch_size)]
-    k = tf.cast(tf.math.ceil(k_fraction * y.shape[1]), dtype=tf.int32)
-    # batch_k = [tf.cast(tf.math.ceil(k_fraction * seqlength), dtype=tf.int32) for seqlength in seq_lengths]
-    label_index = tf.argmax(y[0, 0, :])  # Take first (video-level label)
-    # label_indices = [tf.argmax(y[b, 0, :]) for b in range(batch_size)]
-    # k_preds, indices = tf.math.top_k(preds[:,:,label_index], k)
-    k_preds, indices = tf.math.top_k(preds[:,:,label_index], k)
-    k_y = tf.cast(tf.gather_nd(y[:,:,label_index], tf.expand_dims(indices, axis=2), batch_dims=1), tf.float32)
-    mil = tf.reduce_sum( tf.cast(1/k,dtype=tf.float32) * tf.reduce_sum(tf.multiply(tf.math.log(k_preds), k_y), axis=1))
-    # import ipdb; ipdb.set_trace()
-    batch_indicator_nopain = tf.cast(y[:, 0, 0],dtype=tf.float32)
-    batch_indicator_pain = tf.cast(y[:, 0, 1],dtype=tf.float32)
-    tv_nopain = tv_weight_nopain * tf.reduce_sum(
-        batch_indicator_nopain * batch_calc_TV_norm(preds[:, :, 0]))
-    tv_pain = tv_weight_pain * tf.reduce_sum(
-        batch_indicator_pain * batch_calc_TV_norm(preds[:, :, 1]))
+    # print(seq_lengths)
+
+    def get_mil_loss(kmax_scores):
+        kmax_distribution = tf.keras.layers.Activation('softmax')(kmax_scores)
+        mils = 0
+        # for sample_index in range(config_dict['video_batch_size']):
+        for sample_index in range(batch_size):
+            label_index = tf.argmax(y_batch[sample_index, 0, :])  # Take first (video-level label)
+            mil = tf.math.log(kmax_distribution[sample_index, label_index])
+            mils += mil
+        # return mils/config_dict['video_batch_size']
+        return mils/batch_size
+
+    kmax_scores = get_k_max_scores_per_class(y_batch, preds_batch, batch_size, config_dict)
+    mil = get_mil_loss(kmax_scores)
+    batch_indicator_nopain = tf.cast(y_batch[:, 0, 0], dtype=tf.float32)
+    batch_indicator_pain = tf.cast(y_batch[:, 0, 1], dtype=tf.float32)
+    tv_nopain = config_dict['tv_weight_nopain'] * tf.reduce_sum(
+        batch_indicator_nopain * batch_calc_TV_norm(preds_batch[:, :, 0]))
+    tv_pain = config_dict['tv_weight_pain'] * tf.reduce_sum(
+        batch_indicator_pain * batch_calc_TV_norm(preds_batch[:, :, 1]))
 
     # print('tv pain, ', tv_pain)
     # print('tv no pain, ', tv_nopain)
@@ -135,7 +163,7 @@ def get_sparse_pain_loss(y=None, preds=None, k_fraction=0.15,
 
     total_loss = tv_nopain + tv_pain - mil
     # total_loss = -mil
-    
+
     return total_loss
 
 def batch_calc_TV_norm(batch_vectors, p=3, q=3):
@@ -187,17 +215,13 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
                 loss = loss_fn(y, preds)
             if config_dict['video_loss'] == 'mil':
                 preds_seq = model([x, preds], training=True)
-                sparse_loss = get_sparse_pain_loss(
-                    y, preds_seq, config_dict['k_mil_loss'],
-                    config_dict['tv_weight_pain'], config_dict['tv_weight_nopain'])
+                sparse_loss = get_sparse_pain_loss(y, preds_seq, config_dict)
                 loss = sparse_loss
             if config_dict['video_loss'] == 'mil_ce':
                 preds_seq, preds_one = model([x, preds], training=True)
                 y_one = y[:, 0, :]
                 ce_loss = loss_fn(y_one, preds_one)
-                sparse_loss = get_sparse_pain_loss(
-                    y, preds_seq, config_dict['k_mil_loss'],
-                    config_dict['tv_weight_pain'], config_dict['tv_weight_nopain'])
+                sparse_loss = get_sparse_pain_loss(y, preds_seq, config_dict)
                 loss = ce_loss + sparse_loss
         grads = tape.gradient(loss, model.trainable_weights)
         optimizer.apply_gradients(zip(grads, model.trainable_weights))
@@ -212,22 +236,19 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
             loss = loss_fn(y, preds)
         if config_dict['video_loss'] == 'mil':
             preds_seq = model([x, preds], training=True)
-            sparse_loss = get_sparse_pain_loss(
-                    y, preds_seq, config_dict['k_mil_loss'],
-                    config_dict['tv_weight_pain'], config_dict['tv_weight_nopain'])
+            sparse_loss = get_sparse_pain_loss(y, preds_seq, config_dict)
             loss = sparse_loss
-            preds_mil = test_and_eval.evaluate_sparse_pain(y, preds_seq, config_dict['k_mil_loss'])
+            preds_mil = test_and_eval.evaluate_sparse_pain(y, preds_seq, config_dict)
             preds = preds_mil
             y = y[:, 0, :]
         if config_dict['video_loss'] == 'mil_ce':
             preds_seq, preds_one = model([x, preds], training=True)
+            preds_one = tf.keras.layers.Activation('softmax')(preds_one)
             y_one = y[:, 0, :]
             ce_loss = loss_fn(y_one, preds_one)
-            sparse_loss = get_sparse_pain_loss(
-                    y, preds_seq, config_dict['k_mil_loss'],
-                    config_dict['tv_weight_pain'], config_dict['tv_weight_nopain'])
+            sparse_loss = get_sparse_pain_loss(y, preds_seq, config_dict)
             loss = ce_loss + sparse_loss
-            preds_mil = test_and_eval.evaluate_sparse_pain(y, preds_seq, config_dict['k_mil_loss'])
+            preds_mil = test_and_eval.evaluate_sparse_pain(y, preds_seq, config_dict)
             preds = 1/2 * (preds_one + preds_mil)
             y = y[:, 0, :]
         val_acc_metric.update_state(y, preds)

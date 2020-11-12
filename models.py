@@ -614,7 +614,8 @@ class MyModel:
 
         x_feats = feature_enc1(input_features)
         x_feats = feature_enc2(x_feats)
-        preds_seq_from_feats = Activation('softmax')(x_feats)
+        # preds_seq_from_feats = Activation('softmax')(x_feats)
+        preds_seq_from_feats = x_feats
 
         model = Model(inputs=[input_features, input_preds], outputs=[preds_seq_from_feats])
         model.summary()
@@ -629,8 +630,9 @@ class MyModel:
         x_preds = tf.keras.layers.Flatten()(input_preds)
         x_preds = tf.keras.layers.Dense(units=self.config_dict['nb_units'])(x_preds)
         x_preds = tf.keras.layers.Dense(units=self.config_dict['nb_labels'])(x_preds)
-        preds_one_from_preds = Activation('softmax')(x_preds)
-        
+        # preds_one_from_preds = Activation('softmax')(x_preds)
+        preds_one_from_preds = x_preds
+
         # Features module
         feature_enc1 = tf.keras.layers.GRU(
             self.config_dict['nb_units'], return_sequences=True)
@@ -639,7 +641,8 @@ class MyModel:
 
         x_feats = feature_enc1(input_features)
         x_feats = feature_enc2(x_feats)
-        preds_seq_from_feats = Activation('softmax')(x_feats)
+        # preds_seq_from_feats = Activation('softmax')(x_feats)
+        preds_seq_from_feats = x_feats
 
         model = Model(inputs=[input_features, input_preds], outputs=[preds_seq_from_feats, preds_one_from_preds])
         model.summary()
