@@ -107,15 +107,18 @@ def keras_train(model, ckpt_path, config_dict, train_steps, val_steps,
     plot_training(binacc_test_history, binacc_train_history, config_dict)
 
 
-def get_sparse_pain_loss(y=None, preds=None, k_fraction=0.15):
+def get_sparse_pain_loss(y=None, preds=None, k_fraction=0.15,
+                         tv_weight_pain=10, tv_weight_nopain=100):
     k = tf.cast(tf.math.ceil(k_fraction * y.shape[1]), dtype=tf.int32)
     label_index = tf.argmax(y[0,0,:])  # Take first (video-level label)
     k_preds, indices = tf.math.top_k(preds[:,:,label_index], k)
     k_y = tf.cast(tf.gather_nd(y[:,:,label_index], tf.expand_dims(indices, axis=2), batch_dims=1), tf.float32)
     mil = tf.reduce_sum( tf.cast(1/k,dtype=tf.float32) * tf.reduce_sum(tf.multiply(tf.math.log(k_preds), k_y), axis=1))
     # import ipdb; ipdb.set_trace()
-    tv_nopain = 1.0 * tf.reduce_sum(tf.cast(y[:,0,0],dtype=tf.float32) * batch_calc_TV_norm(preds[:,:,0]))
-    tv_pain = 1.0 * tf.reduce_sum(tf.cast(y[:,0,1],dtype=tf.float32) * batch_calc_TV_norm(preds[:,:,1]))
+    indicator_nopain = tf.cast(y[:,0,0],dtype=tf.float32)
+    indicator_pain = tf.cast(y[:,0,1],dtype=tf.float32)
+    tv_nopain = tv_weight_nopain * tf.reduce_sum(indicator_nopain * batch_calc_TV_norm(preds[:,:,0]))
+    tv_pain = tv_weight_pain * tf.reduce_sum(indicator_pain * batch_calc_TV_norm(preds[:,:,1]))
 
     # print('tv pain, ', tv_pain)
     # print('tv no pain, ', tv_nopain)
@@ -178,7 +181,9 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
                 preds_seq = model([x, preds], training=True)
                 # y_one = y[:, 0, :]
                 # ce_loss = loss_fn(y_one, preds_one)
-                sparse_loss = get_sparse_pain_loss(y, preds_seq, config_dict['k_mil_loss'])
+                sparse_loss = get_sparse_pain_loss(
+                    y, preds_seq, config_dict['k_mil_loss'],
+                    config_dict['tv_weight_pain'], config_dict['tv_weight_nopain'])
                 # loss = ce_loss + sparse_loss
                 loss = sparse_loss
         grads = tape.gradient(loss, model.trainable_weights)
@@ -197,7 +202,9 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
             preds_seq = model([x, preds], training=True)
             # y_one = y[:, 0, :]
             # ce_loss = loss_fn(y_one, preds_one)
-            sparse_loss = get_sparse_pain_loss(y, preds_seq, config_dict['k_mil_loss'])
+            sparse_loss = get_sparse_pain_loss(
+                    y, preds_seq, config_dict['k_mil_loss'],
+                    config_dict['tv_weight_pain'], config_dict['tv_weight_nopain'])
             # loss = ce_loss + sparse_loss
             loss = sparse_loss
             preds_mil = test_and_eval.evaluate_sparse_pain(y, preds_seq, config_dict['k_mil_loss'])

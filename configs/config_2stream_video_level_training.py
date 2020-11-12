@@ -65,6 +65,8 @@ config_dict = {
     'video_early_stopping': 50,
     'shuffle_buffer': 150,
     'k_mil_loss': 0.15,
+    'tv_weight_pain': 10,
+    'tv_weight_nopain': 100,
     # Parameters for functional API C-LSTM
     'kernel_regularizer' : None,
     'padding_clstm' : 'valid',
