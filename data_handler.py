@@ -84,7 +84,7 @@ class DataHandler:
 
         return dataset
 
-    def features_to_dataset(self, subjects, split='train'):
+    def features_to_dataset(self, subjects, split):
         subj_codes = []
         for subj in subjects:
             code = self.all_subjects_df[
@@ -107,7 +107,7 @@ class DataHandler:
 
     def generate_features(self,
                           subject_codes,
-                          split='train'):
+                          split):
         """
         Load features from file (per video).
         :param subject_codes: [str]

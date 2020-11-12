@@ -75,8 +75,8 @@ def run():
         dh.prepare_video_features(features)
 
     if config_dict['train_video_level_features']:
-        train_dataset = dh.features_to_dataset(train_subjects)
-        val_dataset = dh.features_to_dataset(val_subjects)
+        train_dataset = dh.features_to_dataset(train_subjects, split='train')
+        val_dataset = dh.features_to_dataset(val_subjects, split='val')
         # dataset = dataset.prefetch(2)
         print('Training on loaded features...')
         # samples = [sample for sample in dataset]
@@ -87,7 +87,7 @@ def run():
 
     if config_dict['do_evaluate']:
         if config_dict['video_level_mode']:
-            test_dataset = dh.features_to_dataset(test_subjects)
+            test_dataset = dh.features_to_dataset(test_subjects, split='test')
             test_paths = [sample[3].numpy().tolist() for sample in test_dataset]
             test_steps = len(test_paths)
             test_paths = np.array(test_paths, dtype=object)
