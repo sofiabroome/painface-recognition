@@ -255,12 +255,14 @@ def evaluate_on_video_level(config_dict, model, model_path, test_dataset,
         if config_dict['video_loss'] == 'cross_entropy':
             preds = model([x, preds], training=False)
         if config_dict['video_loss'] == 'mil':
-            # preds_seq, preds_one = model([x, preds], training=True)
             preds_seq = model([x, preds], training=True)
-            # y_one = y[:, 0, :]
             preds_mil = evaluate_sparse_pain(y, preds_seq, config_dict['k_mil_loss'])
-            # preds = 1/2 * (preds_one + preds_mil)
             preds = preds_mil
+        if config_dict['video_loss'] == 'mil_ce':
+            preds_seq, preds_one = model([x, preds], training=True)
+            y_one = y[:, 0, :]
+            preds_mil = evaluate_sparse_pain(y, preds_seq, config_dict['k_mil_loss'])
+            preds = 1/2 * (preds_one + preds_mil)
             # import ipdb; ipdb.set_trace()
         y = y[:, 0, :]
         test_acc_metric.update_state(y, preds)

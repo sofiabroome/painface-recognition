@@ -35,8 +35,10 @@ class MyModel:
                     self.model = self.video_level_network()
                 if self.video_features_model == 'video_level_preds_attn_network':
                     self.model = self.video_level_preds_attn_network()
-                if self.video_features_model == 'video_level_preds_mil_attn':
-                    self.model = self.video_level_preds_mil_attn()
+                if self.video_features_model == 'video_level_mil_feats':
+                    self.model = self.video_level_mil_feats()
+                if self.video_features_model == 'video_level_mil_feats_preds':
+                    self.model = self.video_level_mil_feats_preds()
                 if self.video_features_model == 'video_fc_model':
                     self.model = self.video_fc_model()
 
@@ -600,32 +602,46 @@ class MyModel:
 
         return model
 
-    def video_level_preds_mil_attn(self):
+    def video_level_mil_feats(self):
 
-        # input_features = Input(shape=(None, 320))
-        # input_preds = Input(shape=(None, 2))
         input_features = Input(shape=(self.config_dict['video_pad_length'], 320))
         input_preds = Input(shape=(self.config_dict['video_pad_length'], 2))
-
-        # x_preds = tf.keras.layers.Flatten()(input_preds)
-        # x_preds = tf.keras.layers.Dense(units=self.config_dict['nb_units'])(x_preds)
-        # x_preds = tf.keras.layers.Dense(units=self.config_dict['nb_labels'])(x_preds)
 
         feature_enc1 = tf.keras.layers.GRU(
             self.config_dict['nb_units'], return_sequences=True)
         feature_enc2 = tf.keras.layers.GRU(
             self.config_dict['nb_labels'], return_sequences=True)
-        # preds_enc = tf.keras.layers.GRU(
-        #     self.config_dict['nb_labels'], return_sequences=True)
+
         x_feats = feature_enc1(input_features)
         x_feats = feature_enc2(x_feats)
-        # preds = preds_enc(input_preds)
-        # x = tf.keras.layers.multiply([x, preds])
         preds_seq_from_feats = Activation('softmax')(x_feats)
-        # preds_one_from_preds = Activation('softmax')(x_preds)
 
-        # model = Model(inputs=[input_features, input_preds], outputs=[preds_seq_from_feats, preds_one_from_preds])
         model = Model(inputs=[input_features, input_preds], outputs=[preds_seq_from_feats])
+        model.summary()
+
+        return model
+
+    def video_level_mil_feats_preds(self):
+
+        input_features = Input(shape=(self.config_dict['video_pad_length'], 320))
+        input_preds = Input(shape=(self.config_dict['video_pad_length'], 2))
+        # Preds module
+        x_preds = tf.keras.layers.Flatten()(input_preds)
+        x_preds = tf.keras.layers.Dense(units=self.config_dict['nb_units'])(x_preds)
+        x_preds = tf.keras.layers.Dense(units=self.config_dict['nb_labels'])(x_preds)
+        preds_one_from_preds = Activation('softmax')(x_preds)
+        
+        # Features module
+        feature_enc1 = tf.keras.layers.GRU(
+            self.config_dict['nb_units'], return_sequences=True)
+        feature_enc2 = tf.keras.layers.GRU(
+            self.config_dict['nb_labels'], return_sequences=True)
+
+        x_feats = feature_enc1(input_features)
+        x_feats = feature_enc2(x_feats)
+        preds_seq_from_feats = Activation('softmax')(x_feats)
+
+        model = Model(inputs=[input_features, input_preds], outputs=[preds_seq_from_feats, preds_one_from_preds])
         model.summary()
 
         return model
