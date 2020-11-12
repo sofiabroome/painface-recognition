@@ -12,6 +12,8 @@ import wandb
 import time
 import os
 
+import test_and_eval
+
 from wandb.keras import WandbCallback
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -110,9 +112,39 @@ def get_sparse_pain_loss(y=None, preds=None, k_fraction=0.15):
     label_index = tf.argmax(y[0,0,:])  # Take first (video-level label)
     k_preds, indices = tf.math.top_k(preds[:,:,label_index], k)
     k_y = tf.cast(tf.gather_nd(y[:,:,label_index], tf.expand_dims(indices, axis=2), batch_dims=1), tf.float32)
-    # mil = tf.reduce_sum( 1/k * tf.reduce_sum(tf.multiply(tf.math.log(k_preds), k_y), axis=1))
-    mil = tf.reduce_sum( tf.cast(1/k,dtype=tf.float32) * tf.reduce_sum(tf.multiply(k_preds, k_y), axis=1))
-    return -mil
+    mil = tf.reduce_sum( tf.cast(1/k,dtype=tf.float32) * tf.reduce_sum(tf.multiply(tf.math.log(k_preds), k_y), axis=1))
+    # import ipdb; ipdb.set_trace()
+    tv_nopain = 1.0 * tf.reduce_sum(tf.cast(y[:,0,0],dtype=tf.float32) * batch_calc_TV_norm(preds[:,:,0]))
+    tv_pain = 1.0 * tf.reduce_sum(tf.cast(y[:,0,1],dtype=tf.float32) * batch_calc_TV_norm(preds[:,:,1]))
+
+    # print('tv pain, ', tv_pain)
+    # print('tv no pain, ', tv_nopain)
+    # print('mil', mil)
+
+    total_loss = tv_nopain + tv_pain - mil
+    # total_loss = -mil
+    
+    return total_loss
+
+def batch_calc_TV_norm(batch_vectors, p=3, q=3):
+    """"
+    Calculates the Total Variational Norm by summing the differences of the values
+    in between the different positions in the mask.
+    p=3 and q=3 are defaults from the paper.
+    """
+    val = 0
+    batch_size = batch_vectors.shape[0]
+    vector_length = batch_vectors.shape[1]
+    vals = []
+    for vector_index in range(batch_size):
+        vector = batch_vectors[vector_index]
+        for u in range(1, vector_length - 1):
+            val += tf.abs(vector[u - 1] - vector[u]) ** p
+            val += tf.abs(vector[u + 1] - vector[u]) ** p
+        val = val ** (1 / p)
+        val = val ** q
+        vals.append(val)
+    return tf.convert_to_tensor(vals, dtype=tf.float32)
 
 
 def video_level_train(config_dict, train_dataset, val_dataset=None):
@@ -120,10 +152,6 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
     Train a simple model on features on video-level, since we have sparse
     pain behavior in the LPS data.
     """
-    # if config_dict['video_features_model'] == 'video_level_preds_mil_attn':
-    #     loss_fn = get_sparse_pain_loss()
-    # else:
-    #     loss_fn = tf.keras.losses.BinaryCrossentropy()
     loss_fn = tf.keras.losses.BinaryCrossentropy()
     train_acc_metric = tf.keras.metrics.BinaryAccuracy()
     val_acc_metric = tf.keras.metrics.BinaryAccuracy()
@@ -137,16 +165,22 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
     val_steps = len([sample for sample in val_dataset])
     epochs_not_improved = 0
 
-    # @tf.function
+    @tf.function
     def train_step(x, preds, y):
         with tf.GradientTape() as tape:
-            preds = model([x, preds], training=True)
             # print(preds.shape)
             if config_dict['video_loss'] == 'cross_entropy':
+                preds = model([x, preds], training=True)
                 y = y[:, 0, :]
                 loss = loss_fn(y, preds)
             if config_dict['video_loss'] == 'mil':
-                loss = get_sparse_pain_loss(y, preds, config_dict['k_mil_loss'])
+                # preds_seq, preds_one = model([x, preds], training=True)
+                preds_seq = model([x, preds], training=True)
+                # y_one = y[:, 0, :]
+                # ce_loss = loss_fn(y_one, preds_one)
+                sparse_loss = get_sparse_pain_loss(y, preds_seq, config_dict['k_mil_loss'])
+                # loss = ce_loss + sparse_loss
+                loss = sparse_loss
         grads = tape.gradient(loss, model.trainable_weights)
         optimizer.apply_gradients(zip(grads, model.trainable_weights))
         train_acc_metric.update_state(y, preds)
@@ -154,12 +188,23 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
 
     @tf.function
     def validation_step(x, preds, y):
-        preds = model([x, preds], training=False)
         if config_dict['video_loss'] == 'cross_entropy':
+            preds = model([x, preds], training=False)
             y = y[:, 0, :]
             loss = loss_fn(y, preds)
         if config_dict['video_loss'] == 'mil':
-            loss = get_sparse_pain_loss(y, preds, config_dict['k_mil_loss'])
+            # preds_seq, preds_one = model([x, preds], training=True)
+            preds_seq = model([x, preds], training=True)
+            # y_one = y[:, 0, :]
+            # ce_loss = loss_fn(y_one, preds_one)
+            sparse_loss = get_sparse_pain_loss(y, preds_seq, config_dict['k_mil_loss'])
+            # loss = ce_loss + sparse_loss
+            loss = sparse_loss
+            preds_mil = test_and_eval.evaluate_sparse_pain(y, preds_seq, config_dict['k_mil_loss'])
+            # preds = 1/2 * (preds_one + preds_mil)
+            preds = preds_mil
+            # import ipdb; ipdb.set_trace()
+            y = y[:, 0, :]
         val_acc_metric.update_state(y, preds)
         return loss
 
@@ -219,9 +264,11 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
 
             if val_acc > val_acc_old:
                 print('The validation acc improved, saving checkpoint...')
+                epochs_not_improved = 0
                 model.save_weights(best_ckpt_path)
                 val_acc_old = val_acc
             else:
+                print('The validation acc did not improve, incrementing the early-stopping counter...')
                 epochs_not_improved += 1
                 if epochs_not_improved == config_dict['video_early_stopping']:
                     break
@@ -275,7 +322,8 @@ def low_level_train(model, ckpt_path, last_ckpt_path, optimizer,
                     break
                 # step_start_time = time.time()
                 pbar.update(1)
-                x_batch_train, y_batch_train = sample
+                # x_batch_train, y_batch_train = sample
+                x_batch_train, y_batch_train, paths = sample
                 loss_value = train_step(x_batch_train, y_batch_train)
                 # step_time = time.time() - step_start_time
                 # print('Step time: %.2f' % step_time)
@@ -304,7 +352,8 @@ def low_level_train(model, ckpt_path, last_ckpt_path, optimizer,
                         break
                     pbar.update(1)
                     # step_start_time = time.time()
-                    x_batch_val, y_batch_val = sample
+                    # x_batch_val, y_batch_val = sample
+                    x_batch_val, y_batch_val, paths = sample
                     loss_value = validation_step(x_batch_val, y_batch_val)
                     # step_time = time.time() - step_start_time
                     # print('Step time: %.2f' % step_time)
@@ -343,6 +392,7 @@ def save_features(model, config_dict, steps, dataset):
         # The result per frame is 4x4x32.
         features = tf.keras.layers.TimeDistributed(
             tf.keras.layers.MaxPool2D())(features)
+        # The result per frame is 1x32.
         features = tf.keras.layers.TimeDistributed(
             tf.keras.layers.GlobalAveragePooling2D())(features)
         return predictions, features
@@ -363,7 +413,7 @@ def save_features(model, config_dict, steps, dataset):
             to_save_dict['y'] = y_batch_train
             features_to_save.append(to_save_dict)
     features_to_save = np.asarray(features_to_save)
-    np.savez_compressed(config_dict['checkpoint'][:13] + '_saved_features', features_to_save)
+    np.savez_compressed(config_dict['checkpoint'][:18] + '_saved_features', features_to_save)
 
 
 def val_split(X_train, y_train, val_fraction, batch_size, round_to_batch=True):
