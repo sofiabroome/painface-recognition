@@ -70,14 +70,13 @@ def run():
                             steps=test_steps, dataset=test_dataset)
 
     if config_dict['save_features_per_video']:
-        features = np.load(config_dict['checkpoint'][:13] + '_saved_features.npz',
+        features = np.load(config_dict['checkpoint'][:18] + '_saved_features.npz',
                            allow_pickle=True)
         dh.prepare_video_features(features)
 
     if config_dict['train_video_level_features']:
         train_dataset = dh.features_to_dataset(train_subjects)
         val_dataset = dh.features_to_dataset(val_subjects)
-        test_dataset = dh.features_to_dataset(test_subjects)
         # dataset = dataset.prefetch(2)
         print('Training on loaded features...')
         # samples = [sample for sample in dataset]
@@ -87,8 +86,8 @@ def run():
             val_dataset=val_dataset)
 
     if config_dict['do_evaluate']:
-        if config_dict['train_video_level_features']:
-
+        if config_dict['video_level_mode']:
+            test_dataset = dh.features_to_dataset(test_subjects)
             test_paths = [sample[3].numpy().tolist() for sample in test_dataset]
             test_steps = len(test_paths)
             test_paths = np.array(test_paths, dtype=object)
@@ -130,10 +129,10 @@ if __name__ == '__main__':
     if config_dict['val_mode'] == 'subject':
         val_subjects = re.split('/', args.val_subjects)
 
-    wandb.init(project='pfr', config=config_dict)
 
     config_dict['job_identifier'] = args.job_identifier
     print('Job identifier: ', args.job_identifier)
+    wandb.init(project='pfr', config=config_dict)
 
     all_subjects_df = pd.read_csv(args.subjects_overview)
 

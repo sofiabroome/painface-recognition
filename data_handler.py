@@ -146,7 +146,7 @@ class DataHandler:
             assert labels.shape[0] == f_shape[0]
             yield feats, preds, labels, video_id
 
-    def prepare_video_features(self, features):
+    def prepare_video_features(self, features, zero_pad=False):
         save_folder = self.config_dict['data_path'] + self.config_dict['save_video_features_folder']
         pad_length = self.config_dict['video_pad_length']
         if not os.path.exists(save_folder):
@@ -174,16 +174,12 @@ class DataHandler:
                     same_video_paths = []
 
                 if video_id != old_video_id:
-
-                    same_video_features = zero_pad_list(same_video_features, pad_length)
-                    same_video_preds = zero_pad_list(same_video_preds, pad_length)
-                    same_video_labels = zero_pad_list(same_video_labels, pad_length)
-                    # same_video_paths = zero_pad_list(same_video_paths, pad_length)
-
                     feats, preds, labels, paths = prepare_fplp(same_video_features,
                                                                same_video_preds,
                                                                same_video_labels,
-                                                               same_video_paths)
+                                                               same_video_paths,
+                                                               pad_length=pad_length,
+                                                               zero_pad=zero_pad)
 
                     length = feats.shape[0]
                     subject = old_video_id[0]
@@ -192,11 +188,11 @@ class DataHandler:
                     to_save_dict = put_in_dict(feats, preds, labels, paths, length, subject)
                     if old_video_id in dict_of_dicts:
                         print('Already had one for: ', old_video_id)
-                        # continue
+                        continue
                         print(labels, '\n')
                         dict_to_merge_with = dict_of_dicts[old_video_id]
                         merged_dict, length = mergesort_features_into_dict(
-                            old_video_id, dict_to_merge_with, to_save_dict, pad_length)
+                            old_video_id, dict_to_merge_with, to_save_dict, pad_length, zero_pad)
                         dict_of_dicts[old_video_id] = merged_dict
                     else:
                         dict_of_dicts[old_video_id] = to_save_dict
@@ -214,15 +210,12 @@ class DataHandler:
                 same_video_paths.append(path)
 
         # Finally also use the last one (video ID doesn't change)
-        same_video_features = zero_pad_list(same_video_features, pad_length)
-        same_video_preds = zero_pad_list(same_video_preds, pad_length)
-        same_video_labels = zero_pad_list(same_video_labels, pad_length)
-        # same_video_paths = zero_pad_list(same_video_paths, pad_length)
-
         feats, preds, labels, paths = prepare_fplp(same_video_features,
                                                    same_video_preds,
                                                    same_video_labels,
-                                                   same_video_paths)
+                                                   same_video_paths,
+                                                   pad_length=pad_length,
+                                                   zero_pad=zero_pad)
         length = feats.shape[0]
         subject = video_id[0]
         print('\n Saving last video_id:', video_id)
@@ -232,11 +225,11 @@ class DataHandler:
 
         if video_id in dict_of_dicts:
             print('Already had one for: ', video_id)
-            print(labels, '\n')
-            dict_to_merge_with = dict_of_dicts[video_id]
-            merged_dict, length = mergesort_features_into_dict(
-                video_id, dict_to_merge_with, to_save_dict, pad_length)
-            dict_of_dicts[video_id] = merged_dict
+            # print(labels, '\n')
+            # dict_to_merge_with = dict_of_dicts[video_id]
+            # merged_dict, length = mergesort_features_into_dict(
+            #     video_id, dict_to_merge_with, to_save_dict, pad_length, zero_pad)
+            # dict_of_dicts[video_id] = merged_dict
         else:
             dict_of_dicts[video_id] = to_save_dict
 
@@ -1375,14 +1368,22 @@ def put_in_dict(feats, preds, labels, paths, length, subject):
     return to_save_dict
 
 
-def prepare_fplp(same_video_features, same_video_preds, same_video_labels, same_video_paths):
+def prepare_fplp(same_video_features, same_video_preds, same_video_labels, same_video_paths,
+                 pad_length, zero_pad=False):
     """
     :param same_video_features: [np.array]
     :param same_video_preds: [np.array]
     :param same_video_labels: [np.array]
     :param same_video_paths: [str]
+    :param pad_length: int
+    :param zero_pad: bool
     :return: (np.array, np.array, np.array, np.array)
     """
+    if zero_pad:
+        same_video_feats = zero_pad_list(same_video_feats, pad_length)
+        same_video_preds = zero_pad_list(same_video_preds, pad_length)
+        same_video_labels = zero_pad_list(same_video_labels, pad_length)
+
     feats = np.array(same_video_features)
     f_shape = feats.shape
     if len(f_shape) == 3:
@@ -1396,7 +1397,7 @@ def prepare_fplp(same_video_features, same_video_preds, same_video_labels, same_
     return feats, preds, labels, paths
 
 
-def mergesort_features_into_dict(video_id, d1, d2, pad_length):
+def mergesort_features_into_dict(video_id, d1, d2, pad_length, zero_pad):
     """
     Both dicts have keys: features, preds, labels, paths, length, subject.
     Need to mergesort them using the paths.
@@ -1433,14 +1434,12 @@ def mergesort_features_into_dict(video_id, d1, d2, pad_length):
         same_video_labels.append(data['labels'][ind])
         same_video_paths.append(data['paths'][ind])
 
-    same_video_feats = zero_pad_list(same_video_feats, pad_length)
-    same_video_preds = zero_pad_list(same_video_preds, pad_length)
-    same_video_labels = zero_pad_list(same_video_labels, pad_length)
-
     feats, preds, labels, paths = prepare_fplp(same_video_features=same_video_feats,
                                                same_video_preds=same_video_preds,
                                                same_video_labels=same_video_labels,
-                                               same_video_paths=same_video_paths)
+                                               same_video_paths=same_video_paths,
+                                               pad_length=pad_length,
+                                               zero_pad=zero_pad)
 
     length = len(same_video_feats)
     subject = video_id[0]
