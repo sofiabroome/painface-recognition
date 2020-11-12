@@ -28,8 +28,8 @@ def run():
         print(sample_ind)
         tf.compat.v1.global_variables_initializer()
 
-        if sample_ind > 1:
-            break
+        # if sample_ind > 5:
+        #     break
 
         video_id = 'clip_' + str(sample_ind)
 
@@ -81,12 +81,12 @@ def run():
                     tf.abs(mask_clip))
                 tv = config_dict['lambda_2'] * mask.calc_TV_norm(
                     mask_clip, config_dict)
-                loss = l1 + tv + class_loss
-                # loss = class_loss
+                # loss = l1 + tv + class_loss
+                loss = class_loss
             gradients = tape.gradient(loss, mask_var)
             optimizer.apply_gradients(zip([gradients], [mask_var]))
-            return gradients, [loss, l1, tv, class_loss], mask_var
-            # return gradients, [loss, class_loss], mask_var
+            # return gradients, [loss, l1, tv, class_loss], mask_var
+            return gradients, [loss, class_loss], mask_var
 
 
         print('\nmask_var', mask_var)
@@ -101,18 +101,20 @@ def run():
             grads, losses, mask_update = train_step(input_var, label)
             print('grads numpy', grads.numpy())
             print('\n mask after update: ', mask_update.numpy())
-            loss_value, l1value, tvvalue, classlossvalue = losses
-            wandb.log({'total_loss': loss_value.numpy()})
-            wandb.log({'l1_loss': l1value.numpy()})
-            wandb.log({'tv_loss': tvvalue.numpy()})
-            wandb.log({'class_loss': classlossvalue.numpy()})
 
-            # loss_value, classlossvalue = losses
+            # loss_value, l1value, tvvalue, classlossvalue = losses
             # wandb.log({'total_loss': loss_value.numpy()})
+            # wandb.log({'l1_loss': l1value.numpy()})
+            # wandb.log({'tv_loss': tvvalue.numpy()})
             # wandb.log({'class_loss': classlossvalue.numpy()})
+            # print("Total loss: {}, class score: {}, l1: {}, TV-norm: {}".format(
+            #     loss_value, classlossvalue, l1value, tvvalue))
 
-            print("Total loss: {}, class score: {}, l1: {}, TV-norm: {}".format(
-                loss_value, classlossvalue, l1value, tvvalue))
+            loss_value, classlossvalue = losses
+            wandb.log({'total_loss': loss_value.numpy()})
+            wandb.log({'class_loss': classlossvalue.numpy()})
+            print("Total loss: {}, class score: {}".format(
+                loss_value, classlossvalue))
 
             if abs(old_loss - loss_value) < eta:
                 break
@@ -123,7 +125,8 @@ def run():
         save_path = os.path.join(
             config_dict['output_folder'],
             str(config_dict['job_identifier']),
-            str(random.randint(1, 10000)) + '_' + str(true_class) + video_id + 'g_' +
+            video_id + '_' + str(true_class) + 'g_' +
+            # str(random.randint(1, 10000)) + '_' + str(true_class) + video_id + 'g_' +
             str(np.argmax(preds)) +
             '_cs%5.4f' % true_class_score +
             'gs%5.4f' % guessed_score,
@@ -203,12 +206,8 @@ if __name__ == '__main__':
 
     all_subjects_df = pd.read_csv(args.subjects_overview)
 
-    # data_df = pd.read_csv('../data/lps/random_clips_lps/'
-    #                       'jpg_128_128_2fps/test_clip_frames.csv')
-    data_df = pd.read_csv('../data/pf/jpg_128_128_16fps_OF_magnitude_cv2/horse_3.csv')
-    # data_df = pd.read_csv('../data/lps/random_clips_lps/'
-    #                       'jpg_128_128_16fps_OF_magnitude_2fpsrate/'
-    #                       'test_clip_frames.csv')
+    data_df = pd.read_csv(config_dict['data_df_path'])
+
     dataset = make_df_for_testclips.get_dataset_from_df(
         df=data_df,
         data_columns=['pain'],
