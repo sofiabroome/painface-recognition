@@ -252,9 +252,16 @@ def evaluate_on_video_level(config_dict, model, model_path, test_dataset,
 
     @tf.function
     def test_step(x, preds, y):
-        preds = model([x, preds], training=False)
+        if config_dict['video_loss'] == 'cross_entropy':
+            preds = model([x, preds], training=False)
         if config_dict['video_loss'] == 'mil':
-            preds = evaluate_sparse_pain(y, preds, config_dict['k_mil_loss']) 
+            # preds_seq, preds_one = model([x, preds], training=True)
+            preds_seq = model([x, preds], training=True)
+            # y_one = y[:, 0, :]
+            preds_mil = evaluate_sparse_pain(y, preds_seq, config_dict['k_mil_loss'])
+            # preds = 1/2 * (preds_one + preds_mil)
+            preds = preds_mil
+            # import ipdb; ipdb.set_trace()
         y = y[:, 0, :]
         test_acc_metric.update_state(y, preds)
         return preds, y
@@ -272,11 +279,16 @@ def evaluate_on_video_level(config_dict, model, model_path, test_dataset,
             all_y.append(y)
     all_preds = make_array(all_preds)
     all_y = make_array(all_y)
-    cm = confusion_matrix(np.argmax(all_y, axis=1), np.argmax(all_preds, axis=1))
+    cm = confusion_matrix(tf.argmax(all_y, axis=1), tf.argmax(all_preds, axis=1))
+    equality = tf.math.equal(tf.argmax(all_preds, axis=1), tf.argmax(all_y, axis=1))
+    accuracy = tf.math.reduce_mean(tf.cast(equality, tf.float32))
     print('\n Confusion matrix: \n', cm)
     test_acc = test_acc_metric.result()
     wandb.log({'test_acc': test_acc})
-    print("Test acc: %.4f" % (float(test_acc),))
+    print("Test acc keras metric: %.4f" % (float(test_acc),))
+    test_acc = accuracy
+    wandb.log({'test_acc_manual': test_acc})
+    print("Test acc manual: %.4f" % (float(test_acc),))
 
 
 def make_array(list_of_tensors):
@@ -290,6 +302,7 @@ def evaluate_sparse_pain(y=None, preds=None, k_fraction=0.15):
     for label_index in range(2):
         k_preds, indices = tf.math.top_k(preds[:,:,label_index], k)
         k_y = tf.cast(tf.gather_nd(y[:,:,label_index], tf.expand_dims(indices, axis=2), batch_dims=1), tf.float32)
+        # classwise_k_max_mean = -tf.cast(1/k,dtype=tf.float32) * tf.reduce_sum(tf.math.log(k_preds), axis=1)
         classwise_k_max_mean = tf.cast(1/k,dtype=tf.float32) * tf.reduce_sum(k_preds, axis=1)
         class_mil_scores.append(classwise_k_max_mean)
     class_mil_scores = tf.convert_to_tensor(class_mil_scores, dtype=tf.float32)
@@ -324,14 +337,14 @@ def run_evaluation(config_dict, model, model_path,
 
     y_test = np.reshape(y_batches, (nb_batches*config_dict['batch_size'],
                         config_dict['nb_labels']))
-    # confidence_thresholds = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.98, 0.99]
-    # for confthresh in confidence_thresholds:
-    #     print('\n CONFTHRESH: ', confthresh)
-    #     majvotes = get_per_video_vote(
-    #         y_pred=y_preds, y_paths=y_paths, ground_truth=y_test,
-    #         confidence_threshold=confthresh)
+    confidence_thresholds = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.98, 0.99]
+    for confthresh in confidence_thresholds:
+        print('\n CONFTHRESH: ', confthresh)
+        majvotes = get_per_video_vote(
+            y_pred=y_preds, y_paths=y_paths, ground_truth=y_test,
+            confidence_threshold=confthresh)
 
-    #     compute_video_level_accuracy(majvotes)
+        compute_video_level_accuracy(majvotes)
 
     # Take argmax of the probabilities.
     y_preds_argmax = np.argmax(y_preds, axis=1)
