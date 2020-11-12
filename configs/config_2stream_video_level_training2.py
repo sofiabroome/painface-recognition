@@ -9,8 +9,11 @@ config_dict = {
     'fine_tune': False,
     'save_features': False,
     'save_features_per_video': False,
+    'video_level_mode': True,
     'train_video_level_features': True,
     'do_evaluate': True,
+    'val_mode': 'subject',  # subject | fraction | no_val
+    'train_mode': 'low_level',  # keras | low_level
     # Data
     'data_path': data_path,
     'clip_list_pf': 'metadata/videos_overview_missingremoved.csv',
@@ -21,17 +24,20 @@ config_dict = {
     'lps_of_path': data_path + 'lps/jpg_128_128_16fps_OF_magnitude_cv2_2fpsrate/',
     'pixel_mean': pixel_means.pf_rgb['mean'],
     'pixel_std': pixel_means.pf_rgb['std'],
-    'checkpoint': 'models/124805_best_model_2stream_5d_add.ckpt',
-    'save_video_features_folder': 'lps/video_level_features_320dim_zeropad_noresample/',
-    'train_video_features_folder': 'lps/video_level_features_320dim_zeropad/',
-    'val_video_features_folder': 'lps/video_level_features_320dim_zeropad_noresample/',
-    'test_video_features_folder': 'lps/video_level_features_320dim_zeropad_noresample/',
+    'checkpoint': 'models/124805_last_model_2stream_5d_add.ckpt',
+    'save_video_features_folder': 'lps/video_level_features_320dim_noresample/',
+    # 'train_video_features_folder': 'lps/video_level_features_320dim_resample/',
+    # 'val_video_features_folder': 'lps/video_level_features_320dim_noresample/',
+    # 'test_video_features_folder': 'lps/video_level_features_320dim_noresample/',
     # 'train_video_features_folder': 'lps/video_level_features_320dim_test/',
     # 'val_video_features_folder': 'lps/video_level_features_320dim_noresample/',
     # 'test_video_features_folder': 'lps/video_level_features_320dim_noresample/',
     # 'train_video_features_folder': 'lps/video_level_features_320dim_test/',
     # 'val_video_features_folder': 'lps/video_level_features_320dim_test/',
     # 'test_video_features_folder': 'lps/video_level_features_320dim_test/',
+    'train_video_features_folder': 'lps/video_level_features_320dim_zeropad_resample/',
+    'val_video_features_folder': 'lps/video_level_features_320dim_zeropad_noresample/',
+    'test_video_features_folder': 'lps/video_level_features_320dim_zeropad_noresample/',
     # Model
     'model': '2stream_5d_add',
     'rgb_period': 1,  # Set to 10 if simonyan-like model
@@ -49,10 +55,10 @@ config_dict = {
     'return_last_clstm' : True,
     # Model for video level features
     # 'video_features_model' : 'video_level_preds_attn_network',
-    'video_features_model' : 'video_fc_model',
-    'video_loss' : 'cross_entropy',
-    # 'video_features_model' : 'video_level_preds_mil_attn',
-    # 'video_loss' : 'mil',
+    # 'video_features_model' : 'video_fc_model',
+    # 'video_loss' : 'cross_entropy',
+    'video_features_model' : 'video_level_preds_mil_attn',
+    'video_loss' : 'mil',
     'nb_layers' : 1,
     'nb_units' : 32,
     'video_batch_size' : 3,
@@ -80,7 +86,6 @@ config_dict = {
     'nb_workers': 1,
     'batch_size': 8,
     'nb_input_dims': 5,
-    'val_mode': 'subject',  # subject | fraction | no_val
     'val_fraction_value': 0.0,
     'monitor': 'val_binary_accuracy',
     'monitor_mode': 'max',
@@ -88,7 +93,6 @@ config_dict = {
     'aug_flip': 0,
     'aug_crop': 0,
     'aug_light': 0,
-    'train_mode': 'low_level',  # keras | low_level
     'print_loss_every': 300,
     'resample_start_fraction_of_seq_length': 0.5,
     # Temporal mask things
