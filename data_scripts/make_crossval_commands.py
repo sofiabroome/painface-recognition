@@ -108,11 +108,11 @@ def main():
 
 if __name__=='__main__':
 
-    dataset_str = 'pf'
-    # dataset_str = 'lps'
+    # dataset_str = 'pf'
+    dataset_str = 'lps'
     # dataset_str = 'all'
 
-    nb_reps = 3
+    nb_reps = 5
 
     model = '2stream'
     # model = 'clstm1'
@@ -121,6 +121,8 @@ if __name__=='__main__':
         config_file = 'configs/config_2stream_{}.py'.format(dataset_str)
     if model == 'clstm1':
         config_file = 'configs/config_clstm.py'
-    job_name = 'configs_to_run_{}_{}_crossval'.format(model, dataset_str)
+    config_file = 'configs/config_2stream_video_level_training2.py'
+    job_name = 'configs_to_run_{}_{}_videofeats2_crossval'.format(model, dataset_str)
+    # job_name = 'configs_to_run_{}_{}_crossval'.format(model, dataset_str)
     main()
 
