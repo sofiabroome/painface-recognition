@@ -108,17 +108,26 @@ def keras_train(model, ckpt_path, config_dict, train_steps, val_steps,
 
 
 def get_sparse_pain_loss(y=None, preds=None, k_fraction=0.15,
-                         tv_weight_pain=10, tv_weight_nopain=100):
+                         tv_weight_pain=10, tv_weight_nopain=100, batch_size=3):
+    import ipdb; ipdb.set_trace()
+    seq_lengths = [[i for i in range(y.shape[1])
+                    if (y[b, i, 0] == 0 and y[b, i, 1] == 0)][0]
+                   for b in range(batch_size)]
     k = tf.cast(tf.math.ceil(k_fraction * y.shape[1]), dtype=tf.int32)
-    label_index = tf.argmax(y[0,0,:])  # Take first (video-level label)
+    batch_k = [tf.cast(tf.math.ceil(k_fraction * seqlength), dtype=tf.int32) for seqlength in seq_lengths]
+    label_index = tf.argmax(y[0, 0, :])  # Take first (video-level label)
+    label_indices = [tf.argmax(y[b, 0, :]) for b in range(batch_size)]
+    k_preds, indices = tf.math.top_k(preds[:,:,label_index], k)
     k_preds, indices = tf.math.top_k(preds[:,:,label_index], k)
     k_y = tf.cast(tf.gather_nd(y[:,:,label_index], tf.expand_dims(indices, axis=2), batch_dims=1), tf.float32)
     mil = tf.reduce_sum( tf.cast(1/k,dtype=tf.float32) * tf.reduce_sum(tf.multiply(tf.math.log(k_preds), k_y), axis=1))
     # import ipdb; ipdb.set_trace()
-    indicator_nopain = tf.cast(y[:,0,0],dtype=tf.float32)
-    indicator_pain = tf.cast(y[:,0,1],dtype=tf.float32)
-    tv_nopain = tv_weight_nopain * tf.reduce_sum(indicator_nopain * batch_calc_TV_norm(preds[:,:,0]))
-    tv_pain = tv_weight_pain * tf.reduce_sum(indicator_pain * batch_calc_TV_norm(preds[:,:,1]))
+    batch_indicator_nopain = tf.cast(y[:, 0, 0],dtype=tf.float32)
+    batch_indicator_pain = tf.cast(y[:, 0, 1],dtype=tf.float32)
+    tv_nopain = tv_weight_nopain * tf.reduce_sum(
+        batch_indicator_nopain * batch_calc_TV_norm(preds[:, :, 0]))
+    tv_pain = tv_weight_pain * tf.reduce_sum(
+        batch_indicator_pain * batch_calc_TV_norm(preds[:, :, 1]))
 
     # print('tv pain, ', tv_pain)
     # print('tv no pain, ', tv_nopain)
@@ -168,7 +177,7 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
     val_steps = len([sample for sample in val_dataset])
     epochs_not_improved = 0
 
-    @tf.function
+    # @tf.function
     def train_step(x, preds, y):
         with tf.GradientTape() as tape:
             # print(preds.shape)
@@ -191,7 +200,7 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
         train_acc_metric.update_state(y, preds)
         return grads, loss
 
-    @tf.function
+    # @tf.function
     def validation_step(x, preds, y):
         if config_dict['video_loss'] == 'cross_entropy':
             preds = model([x, preds], training=False)
@@ -227,6 +236,7 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
                 step_start_time = time.time()
                 pbar.update(1)
                 feats_batch, preds_batch, labels_batch, video_id = sample
+                print('\n Video ID: ', video_id)
                 grads, loss_value = train_step(feats_batch, preds_batch, labels_batch)
                 step_time = time.time() - step_start_time
                 # print('Step time: %.2f' % step_time)
