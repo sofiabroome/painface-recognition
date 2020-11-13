@@ -4,13 +4,16 @@ data_path = '/local_storage/users/sbroome/painface-recognition/'
 
 config_dict = {
     # Program components
-    'get_raw_sequence_data': False,
+    'get_raw_sequence_data': True,
     'inference_only': True,
     'fine_tune': False,
-    'save_features': False,
-    'save_features_per_video': True,
-    'train_video_level_features': True,
+    'save_features': True,
+    'save_features_per_video': False,
+    'video_level_mode': False,
+    'train_video_level_features': False,
     'do_evaluate': True,
+    'val_mode': 'subject',  # subject | fraction | no_val
+    'train_mode': 'low_level',  # keras | low_level
     # Data
     'data_path': data_path,
     'clip_list_pf': 'metadata/videos_overview_missingremoved.csv',
@@ -21,7 +24,7 @@ config_dict = {
     'lps_of_path': data_path + 'lps/jpg_128_128_16fps_OF_magnitude_cv2_2fpsrate/',
     'pixel_mean': pixel_means.pf_rgb['mean'],
     'pixel_std': pixel_means.pf_rgb['std'],
-    'checkpoint': 'models/124805_best_model_2stream_5d_add.ckpt',
+    'checkpoint': 'models/124805_last_model_2stream_5d_add.ckpt',
     # Model
     'model': '2stream_5d_add',
     'rgb_period': 1,  # Set to 10 if simonyan-like model
@@ -65,7 +68,6 @@ config_dict = {
     'nb_workers': 1,
     'batch_size': 8,
     'nb_input_dims': 5,
-    'val_mode': 'subject',  # subject | fraction | no_val
     'val_fraction_value': 0.0,
     'monitor': 'val_binary_accuracy',
     'monitor_mode': 'max',
@@ -73,7 +75,6 @@ config_dict = {
     'aug_flip': 0,
     'aug_crop': 0,
     'aug_light': 0,
-    'train_mode': 'low_level',  # keras | low_level
     'print_loss_every': 1,
     'resample_start_fraction_of_seq_length': 0.5,
     # Temporal mask things

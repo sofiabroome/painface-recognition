@@ -1,5 +1,6 @@
 from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score
 import tensorflow as tf
+import pandas as pd
 import numpy as np
 import data_handler
 import subprocess
@@ -244,6 +245,8 @@ def compute_video_level_accuracy(majvotes):
 def evaluate_on_video_level(config_dict, model, model_path, test_dataset,
                             test_steps):
 
+    path_to_csv_test = config_dict['data_path'] + config_dict['test_video_lengths_folder'] + 'summary.csv'
+    df_video_lengths_test = pd.read_csv(path_to_csv_test)
     test_acc_metric = tf.keras.metrics.BinaryAccuracy()
     model = model.model
     if config_dict['inference_only']:
@@ -252,17 +255,17 @@ def evaluate_on_video_level(config_dict, model, model_path, test_dataset,
         model.load_weights(model_path)
 
     # @tf.function
-    def test_step(x, preds, y):
+    def test_step(x, preds, y, lengths):
         if config_dict['video_loss'] == 'cross_entropy':
             preds = model([x, preds], training=False)
         if config_dict['video_loss'] == 'mil':
             preds_seq = model([x, preds], training=True)
-            preds_mil = evaluate_sparse_pain(y, preds_seq, config_dict)
+            preds_mil = evaluate_sparse_pain(y, preds_seq, lengths, config_dict)
             preds = preds_mil
         if config_dict['video_loss'] == 'mil_ce':
             preds_seq, preds_one = model([x, preds], training=True)
             preds_one = tf.keras.layers.Activation('softmax')(preds_one)
-            preds_mil = evaluate_sparse_pain(y, preds_seq, config_dict)
+            preds_mil = evaluate_sparse_pain(y, preds_seq, lengths, config_dict)
             preds = 1/2 * (preds_one + preds_mil)
         y = y[:, 0, :]
         test_acc_metric.update_state(y, preds)
@@ -275,16 +278,29 @@ def evaluate_on_video_level(config_dict, model, model_path, test_dataset,
                 break
             pbar.update(1)
             # step_start_time = time.time()
-            feats_batch, preds_batch, labels_batch, _ = sample
-            preds, y = test_step(feats_batch, preds_batch, labels_batch)
+            feats_batch, preds_batch, labels_batch, video_id = sample
+            lengths_batch = train.get_nb_clips_per_video(video_id, df_video_lengths_test)
+            # print('\n Video ID: ', video_id)
+            preds, y = test_step(feats_batch, preds_batch, labels_batch, lengths_batch)
             all_preds.append(preds)
             all_y.append(y)
     all_preds = make_array(all_preds)
     all_y = make_array(all_y)
-    cm = confusion_matrix(tf.argmax(all_y, axis=1), tf.argmax(all_preds, axis=1))
-    equality = tf.math.equal(tf.argmax(all_preds, axis=1), tf.argmax(all_y, axis=1))
+    y_test = tf.argmax(all_y, axis=1)
+    y_pred = tf.argmax(all_preds, axis=1)
+    cm = confusion_matrix(y_test, y_pred)
+    equality = tf.math.equal(y_pred, y_test)
     accuracy = tf.math.reduce_mean(tf.cast(equality, tf.float32))
     print('\n Confusion matrix: \n', cm)
+    cr = classification_report(y_test, y_pred,
+                               target_names=config_dict['target_names'],
+                               digits=NB_DECIMALS)
+    print(cr)
+    cr = classification_report(y_test, y_pred,
+                               target_names=config_dict['target_names'],
+                               digits=NB_DECIMALS,
+                               output_dict=True)
+    wandb.log({'test f1-score' : cr['macro avg']['f1-score']})
     test_acc = test_acc_metric.result()
     wandb.log({'test_acc': test_acc})
     print("Test acc keras metric: %.4f" % (float(test_acc),))
@@ -298,9 +314,9 @@ def make_array(list_of_tensors):
     return np.concatenate(list_of_arrays)
 
 
-def evaluate_sparse_pain(y_batch, preds_batch, config_dict):
+def evaluate_sparse_pain(y_batch, preds_batch, lengths_batch, config_dict):
     batch_size = y_batch.shape[0]  # last batch may be smaller
-    kmax_scores = train.get_k_max_scores_per_class(y_batch, preds_batch, batch_size, config_dict)
+    kmax_scores = train.get_k_max_scores_per_class(y_batch, preds_batch, lengths_batch, batch_size, config_dict)
     batch_class_distribution = tf.keras.layers.Activation('softmax')(kmax_scores)
     return batch_class_distribution
 

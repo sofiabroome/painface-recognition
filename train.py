@@ -1,11 +1,12 @@
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, Callback
-from tensorflow.keras.optimizers import Adam, Adagrad, Adadelta
+from tensorflow.keras.optimizers import Adam, Adagrad, Adadelta, RMSprop
 from tensorflow.keras.optimizers import SGD
 import tensorflow as tf
 from tqdm import tqdm
 import matplotlib
 matplotlib.use('agg')
 import matplotlib.pyplot as plt
+import pandas as pd
 import numpy as np
 import models
 import wandb
@@ -106,18 +107,20 @@ def keras_train(model, ckpt_path, config_dict, train_steps, val_steps,
 
     plot_training(binacc_test_history, binacc_train_history, config_dict)
 
-def get_k_max_scores_per_class(y_batch, preds_batch, batch_size, config_dict):
+def get_k_max_scores_per_class(y_batch, preds_batch, lengths_batch, batch_size, config_dict):
     kmax_scores = []
     for sample_index in range(batch_size):
         sample_class_kmax_scores = []
-        padded_indices = [i for i in range(y_batch.shape[1]) if
-                          (y_batch[sample_index, i, 0] == 0 and y_batch[sample_index, i, 1] == 0)]
+        seq_length = lengths_batch[sample_index]
+        # padded_indices = [i for i in range(y_batch.shape[1]) if
+        #                   (y_batch[sample_index, i, 0] == 0 and y_batch[sample_index, i, 1] == 0)]
 
-        if len(padded_indices) == 0:
-            seq_length = config_dict['video_pad_length']
-        else:
-            seq_length = padded_indices[0]
-
+        # if len(padded_indices) == 0:
+        #     seq_length = config_dict['video_pad_length']
+        # else:
+        #     seq_length = padded_indices[0]
+        # print(seq_length)
+        
         k = tf.cast(tf.math.ceil(config_dict['k_mil_fraction'] * seq_length), dtype=tf.int32)
         # print('\n', k, seq_length)
         for class_index in range(config_dict['nb_labels']):
@@ -131,7 +134,7 @@ def get_k_max_scores_per_class(y_batch, preds_batch, batch_size, config_dict):
     return kmax_scores
 
 
-def get_sparse_pain_loss(y_batch, preds_batch, config_dict):
+def get_sparse_pain_loss(y_batch, preds_batch, lengths_batch, config_dict):
     batch_size = y_batch.shape[0]  # last batch may be smaller
     # seq_lengths = [[i for i in range(y_batch.shape[1]) if (y_batch[b, i, 0] == 0 and y_batch[b, i, 1] == 0)][0]
     #                for b in range(batch_size)]
@@ -148,7 +151,7 @@ def get_sparse_pain_loss(y_batch, preds_batch, config_dict):
         # return mils/config_dict['video_batch_size']
         return mils/batch_size
 
-    kmax_scores = get_k_max_scores_per_class(y_batch, preds_batch, batch_size, config_dict)
+    kmax_scores = get_k_max_scores_per_class(y_batch, preds_batch, lengths_batch, batch_size, config_dict)
     mil = get_mil_loss(kmax_scores)
     batch_indicator_nopain = tf.cast(y_batch[:, 0, 0], dtype=tf.float32)
     batch_indicator_pain = tf.cast(y_batch[:, 0, 1], dtype=tf.float32)
@@ -187,6 +190,16 @@ def batch_calc_TV_norm(batch_vectors, p=3, q=3):
     return tf.convert_to_tensor(vals, dtype=tf.float32)
 
 
+def get_nb_clips_per_video(batch_video_id, df):
+    nb_in_batch = batch_video_id.shape[0]
+    nb_clips_batch = []
+    for video_ind in range(nb_in_batch):
+        video_id = batch_video_id[video_ind].numpy().decode("utf-8")
+        nb_clips = df.loc[df['video_id'] == video_id]['length'].values
+        nb_clips_batch.append(nb_clips[0])
+    return nb_clips_batch
+
+
 def video_level_train(config_dict, train_dataset, val_dataset=None):
     """
     Train a simple model on features on video-level, since we have sparse
@@ -198,15 +211,21 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
     val_acc_old = -1
     model = models.MyModel(config_dict=config_dict).model
     optimizer = Adam(lr=config_dict['lr'])
+    # optimizer = RMSprop(lr=config_dict['lr'])
     last_ckpt_path = create_last_model_path(config_dict)
     best_ckpt_path = create_last_model_path(config_dict)
+
+    path_to_csv_train = config_dict['data_path'] + config_dict['train_video_lengths_folder'] + 'summary.csv'
+    df_video_lengths_train = pd.read_csv(path_to_csv_train)
+    path_to_csv_val = config_dict['data_path'] + config_dict['val_video_lengths_folder'] + 'summary.csv'
+    df_video_lengths_val = pd.read_csv(path_to_csv_val)
 
     train_steps = len([sample for sample in train_dataset])
     val_steps = len([sample for sample in val_dataset])
     epochs_not_improved = 0
 
     # @tf.function
-    def train_step(x, preds, y):
+    def train_step(x, preds, y, lengths):
         with tf.GradientTape() as tape:
             # print(preds.shape)
             if config_dict['video_loss'] == 'cross_entropy':
@@ -215,13 +234,13 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
                 loss = loss_fn(y, preds)
             if config_dict['video_loss'] == 'mil':
                 preds_seq = model([x, preds], training=True)
-                sparse_loss = get_sparse_pain_loss(y, preds_seq, config_dict)
+                sparse_loss = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
                 loss = sparse_loss
             if config_dict['video_loss'] == 'mil_ce':
                 preds_seq, preds_one = model([x, preds], training=True)
                 y_one = y[:, 0, :]
                 ce_loss = loss_fn(y_one, preds_one)
-                sparse_loss = get_sparse_pain_loss(y, preds_seq, config_dict)
+                sparse_loss = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
                 loss = ce_loss + sparse_loss
         grads = tape.gradient(loss, model.trainable_weights)
         optimizer.apply_gradients(zip(grads, model.trainable_weights))
@@ -229,16 +248,16 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
         return grads, loss
 
     # @tf.function
-    def validation_step(x, preds, y):
+    def validation_step(x, preds, y, lengths):
         if config_dict['video_loss'] == 'cross_entropy':
             preds = model([x, preds], training=False)
             y = y[:, 0, :]
             loss = loss_fn(y, preds)
         if config_dict['video_loss'] == 'mil':
             preds_seq = model([x, preds], training=True)
-            sparse_loss = get_sparse_pain_loss(y, preds_seq, config_dict)
+            sparse_loss = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
             loss = sparse_loss
-            preds_mil = test_and_eval.evaluate_sparse_pain(y, preds_seq, config_dict)
+            preds_mil = test_and_eval.evaluate_sparse_pain(y, preds_seq, lengths, config_dict)
             preds = preds_mil
             y = y[:, 0, :]
         if config_dict['video_loss'] == 'mil_ce':
@@ -246,9 +265,9 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
             preds_one = tf.keras.layers.Activation('softmax')(preds_one)
             y_one = y[:, 0, :]
             ce_loss = loss_fn(y_one, preds_one)
-            sparse_loss = get_sparse_pain_loss(y, preds_seq, config_dict)
+            sparse_loss = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
             loss = ce_loss + sparse_loss
-            preds_mil = test_and_eval.evaluate_sparse_pain(y, preds_seq, config_dict)
+            preds_mil = test_and_eval.evaluate_sparse_pain(y, preds_seq, lengths, config_dict)
             preds = 1/2 * (preds_one + preds_mil)
             y = y[:, 0, :]
         val_acc_metric.update_state(y, preds)
@@ -266,8 +285,12 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
                 step_start_time = time.time()
                 pbar.update(1)
                 feats_batch, preds_batch, labels_batch, video_id = sample
-                print('\n Video ID: ', video_id)
-                grads, loss_value = train_step(feats_batch, preds_batch, labels_batch)
+                
+                lengths_batch = get_nb_clips_per_video(video_id, df_video_lengths_train)
+
+                # print('\n Video ID: ', video_id)
+                grads, loss_value = train_step(
+                    feats_batch, preds_batch, labels_batch, lengths_batch)
                 step_time = time.time() - step_start_time
                 # print('Step time: %.2f' % step_time)
                 wandb.log({'train_loss': loss_value.numpy()})
@@ -299,8 +322,11 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
                         break
                     pbar.update(1)
                     # step_start_time = time.time()
-                    feats_batch, preds_batch, labels_batch, _ = sample
-                    loss_value = validation_step(feats_batch, preds_batch, labels_batch)
+                    feats_batch, preds_batch, labels_batch, video_id = sample
+                    lengths_batch = get_nb_clips_per_video(video_id, df_video_lengths_val)
+                    # print('\n Video ID: ', video_id)
+                    loss_value = validation_step(
+                        feats_batch, preds_batch, labels_batch, lengths_batch)
                     # step_time = time.time() - step_start_time
                     # print('Step time: %.2f' % step_time)
 
@@ -437,11 +463,12 @@ def save_features(model, config_dict, steps, dataset):
         predictions, features = model(x, training=False)
         # Downsample further with one MP layer, strides and kernel 2x2
         # The result per frame is 4x4x32.
-        features = tf.keras.layers.TimeDistributed(
-            tf.keras.layers.MaxPool2D())(features)
-        # The result per frame is 1x32.
-        features = tf.keras.layers.TimeDistributed(
-            tf.keras.layers.GlobalAveragePooling2D())(features)
+        # features = tf.keras.layers.TimeDistributed(
+        #     tf.keras.layers.MaxPool2D())(features)
+        # # The result per frame is 1x32.
+        # features = tf.keras.layers.TimeDistributed(
+        #     tf.keras.layers.GlobalAveragePooling2D())(features)
+        features = tf.keras.layers.Flatten()(features)
         return predictions, features
 
     features_to_save = []
@@ -460,7 +487,7 @@ def save_features(model, config_dict, steps, dataset):
             to_save_dict['y'] = y_batch_train
             features_to_save.append(to_save_dict)
     features_to_save = np.asarray(features_to_save)
-    np.savez_compressed(config_dict['checkpoint'][:18] + '_saved_features', features_to_save)
+    np.savez_compressed(config_dict['checkpoint'][:18] + '_saved_features_20480dims', features_to_save)
 
 
 def val_split(X_train, y_train, val_fraction, batch_size, round_to_batch=True):
