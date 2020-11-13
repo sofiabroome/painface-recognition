@@ -41,6 +41,8 @@ class MyModel:
                     self.model = self.video_level_mil_feats_preds()
                 if self.video_features_model == 'video_fc_model':
                     self.model = self.video_fc_model()
+                if self.video_features_model == 'video_conv_seq_model':
+                    self.model = self.video_conv_seq_model()
 
         if self.name == 'conv2d_timedist_lstm':
             print("Conv2d-lstm model timedist")
@@ -581,6 +583,7 @@ class MyModel:
         x = gru(input_features)
         x = tf.keras.layers.Flatten()(x)
         x = tf.keras.layers.Dense(units=self.config_dict['nb_labels'])(x)
+        x = Activation('softmax')(x)
 
         model = Model(inputs=[input_features, input_preds], outputs=[x])
         model.summary()
@@ -590,22 +593,57 @@ class MyModel:
     def video_fc_model(self):
         input_features = Input(shape=(self.config_dict['video_pad_length'], 320))
         input_preds = Input(shape=(self.config_dict['video_pad_length'], 2))
-        x_preds = tf.keras.layers.Flatten()(input_preds)
-        # x_feats = tf.keras.layers.Flatten()(input_features)
+        # x_preds = tf.keras.layers.Flatten()(input_preds)
+        x_feats = tf.keras.layers.Flatten()(input_features)
         # x = tf.keras.layers.concatenate([x_preds, x_feats], axis=1)
         # x = tf.keras.layers.GlobalAveragePooling1D()(input_features)
-        x = tf.keras.layers.Dense(units=self.config_dict['nb_units'])(x_preds)
+
+        x = tf.keras.layers.Dense(units=self.config_dict['nb_units'])(x_feats)
         x = tf.keras.layers.Dense(units=self.config_dict['nb_labels'])(x)
+        x = Activation('softmax')(x)
 
         model = Model(inputs=[input_features, input_preds], outputs=[x])
         model.summary()
 
         return model
 
+
+    def video_conv_seq_model(self):
+        # input_features = Input(shape=(self.config_dict['video_pad_length'], 320))
+        # input_preds = Input(shape=(self.config_dict['video_pad_length'], 2))
+        input_features = Input(shape=(None, 320))
+        input_preds = Input(shape=(None, 2))
+
+        enc1_feats = tf.keras.layers.Conv1D(filters=self.config_dict['nb_units'],
+                                            kernel_size=self.config_dict['kernel_size'],
+                                            padding='same')
+        enc2_feats = tf.keras.layers.Conv1D(filters=self.config_dict['nb_labels'],
+                                            kernel_size=self.config_dict['kernel_size'],
+                                            padding='same')
+        # enc2_feats = tf.keras.layers.Conv1D(self.config_dict['nb_labels'])
+        x_feats = enc1_feats(input_features)
+        x_feats = enc2_feats(x_feats)
+        # x_feats = enc2_feats(x_feats)
+        # x_feats = tf.keras.layers.Flatten()(x_feats)
+        # x_feats = tf.keras.layers.Flatten()(input_features)
+        # x = tf.keras.layers.concatenate([x_preds, x_feats], axis=1)
+        # x = tf.keras.layers.GlobalAveragePooling1D()(input_features)
+
+        # x = tf.keras.layers.Dense(units=self.config_dict['nb_units'])(x_feats)
+        # x = tf.keras.layers.Dense(units=self.config_dict['nb_labels'])(x_feats)
+        # x = Activation('softmax')(x)
+
+        model = Model(inputs=[input_features, input_preds], outputs=[x_feats])
+        model.summary()
+
+        return model
+
     def video_level_mil_feats(self):
 
-        input_features = Input(shape=(self.config_dict['video_pad_length'], 320))
-        input_preds = Input(shape=(self.config_dict['video_pad_length'], 2))
+        input_features = Input(shape=(None, 320))
+        input_preds = Input(shape=(None, 2))
+        # input_features = Input(shape=(self.config_dict['video_pad_length'], 320))
+        # input_preds = Input(shape=(self.config_dict['video_pad_length'], 2))
 
         feature_enc1 = tf.keras.layers.GRU(
             self.config_dict['nb_units'], return_sequences=True)
@@ -656,19 +694,22 @@ class MyModel:
 
         feature_enc1 = tf.keras.layers.GRU(
             self.config_dict['nb_units'], return_sequences=True)
+        feature_enc2 = tf.keras.layers.GRU(
+            self.config_dict['nb_labels'], return_sequences=True)
+
+        x = feature_enc1(input_features)
+        x = feature_enc2(x)
         # feature_enc2 = tf.keras.layers.GRU(
         #     self.config_dict['nb_labels'], return_sequences=True)
-        # preds_enc = tf.keras.layers.GRU(
-        #     self.config_dict['nb_labels'], return_sequences=True)
         preds_enc = tf.keras.layers.GRU(
-            self.config_dict['nb_units'], return_sequences=True)
-        x = feature_enc1(input_features)
-        # x = feature_enc2(x)
+            self.config_dict['nb_labels'], return_sequences=True)
+        # preds_enc = tf.keras.layers.GRU(
+        #     self.config_dict['nb_units'], return_sequences=True)
         preds = preds_enc(input_preds)
         x = tf.keras.layers.multiply([x, preds])
-        x = tf.keras.layers.GlobalMaxPooling1D()(x)
+        # x = tf.keras.layers.GlobalMaxPooling1D()(x)
         # x = tf.keras.layers.GlobalAveragePooling1D()(x)
-        x = tf.keras.layers.Dense(units=self.config_dict['nb_labels'])(x)
+        # x = tf.keras.layers.Dense(units=self.config_dict['nb_labels'])(x)
 
         model = Model(inputs=[input_features, input_preds], outputs=[x])
         model.summary()
