@@ -4,13 +4,13 @@ data_path = '/local_storage/users/sbroome/painface-recognition/'
 
 config_dict = {
     # Program components
-    'get_raw_sequence_data': True,
+    'get_raw_sequence_data': False,
     'inference_only': True,
     'fine_tune': False,
-    'save_features': True,
-    'save_features_per_video': False,
-    'video_level_mode': False,
-    'train_video_level_features': False,
+    'save_features': False,
+    'save_features_per_video': True,
+    'video_level_mode': True,
+    'train_video_level_features': True,
     'do_evaluate': True,
     'val_mode': 'subject',  # subject | fraction | no_val
     'train_mode': 'low_level',  # keras | low_level
@@ -25,6 +25,10 @@ config_dict = {
     'pixel_mean': pixel_means.pf_rgb['mean'],
     'pixel_std': pixel_means.pf_rgb['std'],
     'checkpoint': 'models/124805_last_model_2stream_5d_add.ckpt',
+    'save_video_features_folder': 'lps/video_level_features_20480dim_resample_2/',
+    'train_video_features_folder': 'lps/video_level_features_20480dim_resample/',
+    'val_video_features_folder': 'lps/video_level_features_20480dim_noresample/',
+    'test_video_features_folder': 'lps/video_level_features_20480dim_noresample/',
     # Model
     'model': '2stream_5d_add',
     'rgb_period': 1,  # Set to 10 if simonyan-like model
@@ -42,10 +46,11 @@ config_dict = {
     'return_last_clstm' : True,
     # Model for video level features
     'video_features_model' : 'video_level_network',
+    'feature_dim': 20480,
     'nb_layers' : 1,
     'nb_units' : 8,
     'video_batch_size' : 3,
-    'video_pad_length' : 150,
+    'video_pad_length' : 144,
     'video_nb_epochs': 2,
     'video_early_stopping': 50,
     'shuffle_buffer': 150,
