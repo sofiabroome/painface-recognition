@@ -120,12 +120,14 @@ def get_k_max_scores_per_class(y_batch, preds_batch, lengths_batch, batch_size, 
         # else:
         #     seq_length = padded_indices[0]
         # print(seq_length)
+        # print(preds_batch.shape)
         
-        k = tf.cast(tf.math.ceil(config_dict['k_mil_fraction'] * seq_length), dtype=tf.int32)
+        k = tf.cast(tf.math.ceil(config_dict['k_mil_fraction'] * tf.cast(seq_length, dtype=tf.float32)), dtype=tf.int32)
         # print('\n', k, seq_length)
         for class_index in range(config_dict['nb_labels']):
             # Just need label index because the other would be zeroed out.
-            preds_nopad = preds_batch[sample_index, :, class_index][:seq_length]
+            # preds_nopad = preds_batch[sample_index, :, class_index][:seq_length]
+            preds_nopad = preds_batch[sample_index, :, class_index]
             k_preds, indices = tf.math.top_k(preds_nopad, k)
             sample_class_kmax_score = tf.cast(1/k, dtype=tf.float32) * tf.reduce_sum(k_preds)
             sample_class_kmax_scores.append(sample_class_kmax_score)
@@ -149,23 +151,30 @@ def get_sparse_pain_loss(y_batch, preds_batch, lengths_batch, config_dict):
             mil = tf.math.log(kmax_distribution[sample_index, label_index])
             mils += mil
         # return mils/config_dict['video_batch_size']
-        return mils/batch_size
+        # return mils/batch_size
+        return mils
 
     kmax_scores = get_k_max_scores_per_class(y_batch, preds_batch, lengths_batch, batch_size, config_dict)
+    # import ipdb; ipdb.set_trace()
     mil = get_mil_loss(kmax_scores)
-    batch_indicator_nopain = tf.cast(y_batch[:, 0, 0], dtype=tf.float32)
-    batch_indicator_pain = tf.cast(y_batch[:, 0, 1], dtype=tf.float32)
-    tv_nopain = config_dict['tv_weight_nopain'] * tf.reduce_sum(
-        batch_indicator_nopain * batch_calc_TV_norm(preds_batch[:, :, 0]))
-    tv_pain = config_dict['tv_weight_pain'] * tf.reduce_sum(
-        batch_indicator_pain * batch_calc_TV_norm(preds_batch[:, :, 1]))
+    # wandb.log({'mil': mil})
+    # batch_indicator_nopain = tf.cast(y_batch[:, 0, 0], dtype=tf.float32)
+    # batch_indicator_pain = tf.cast(y_batch[:, 0, 1], dtype=tf.float32)
+    # tv_nopain = config_dict['tv_weight_nopain'] * tf.reduce_sum(
+    #     batch_indicator_nopain * batch_calc_TV_norm(preds_batch[:, :, 0]))
+    # tv_pain = config_dict['tv_weight_pain'] * tf.reduce_sum(
+    #     batch_indicator_pain * batch_calc_TV_norm(preds_batch[:, :, 1]))
+
+    
+    # wandb.log({'tv_nopain': tv_nopain})
+    # wandb.log({'tv_pain': tv_pain})
 
     # print('tv pain, ', tv_pain)
     # print('tv no pain, ', tv_nopain)
     # print('mil', mil)
 
-    total_loss = tv_nopain + tv_pain - mil
-    # total_loss = -mil
+   #  total_loss = tv_nopain + tv_pain - mil
+    total_loss = -mil
 
     return total_loss
 
@@ -197,8 +206,7 @@ def get_nb_clips_per_video(batch_video_id, df):
         video_id = batch_video_id[video_ind].numpy().decode("utf-8")
         nb_clips = df.loc[df['video_id'] == video_id]['length'].values
         nb_clips_batch.append(nb_clips[0])
-    return nb_clips_batch
-
+    return tf.convert_to_tensor(nb_clips_batch, dtype=tf.uint8)
 
 def video_level_train(config_dict, train_dataset, val_dataset=None):
     """
@@ -210,8 +218,15 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
     val_acc_metric = tf.keras.metrics.BinaryAccuracy()
     val_acc_old = -1
     model = models.MyModel(config_dict=config_dict).model
-    optimizer = Adam(lr=config_dict['lr'])
+    lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
+        config_dict['lr'],
+        decay_steps=40,
+        decay_rate=0.96,
+        staircase=True)
+    # optimizer = Adam(learning_rate=lr_schedule)
+    # optimizer = Adam(lr=config_dict['lr'])
     # optimizer = RMSprop(lr=config_dict['lr'])
+    optimizer = RMSprop(learning_rate=lr_schedule)
     last_ckpt_path = create_last_model_path(config_dict)
     best_ckpt_path = create_last_model_path(config_dict)
 
@@ -224,8 +239,15 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
     val_steps = len([sample for sample in val_dataset])
     epochs_not_improved = 0
 
-    # @tf.function
+    @tf.function(input_signature=(tf.TensorSpec(shape=[config_dict['video_batch_size'], None, 20480], dtype=tf.float32),
+                                  tf.TensorSpec(shape=[config_dict['video_batch_size'], None, 2], dtype=tf.float32),
+                                  tf.TensorSpec(shape=[config_dict['video_batch_size'], None, 2], dtype=tf.uint8),
+                                  tf.TensorSpec(shape=[config_dict['video_batch_size'],], dtype=tf.uint8)))
     def train_step(x, preds, y, lengths):
+        # print(x)
+        # print(preds)
+        # print(y)
+        # print(lengths)
         with tf.GradientTape() as tape:
             # print(preds.shape)
             if config_dict['video_loss'] == 'cross_entropy':
@@ -236,11 +258,17 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
                 preds_seq = model([x, preds], training=True)
                 sparse_loss = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
                 loss = sparse_loss
+                preds_mil = test_and_eval.evaluate_sparse_pain(y, preds_seq, lengths, config_dict)
+                preds = preds_mil
+                y = y[:, 0, :]
             if config_dict['video_loss'] == 'mil_ce':
                 preds_seq, preds_one = model([x, preds], training=True)
                 y_one = y[:, 0, :]
                 ce_loss = loss_fn(y_one, preds_one)
                 sparse_loss = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
+                preds_mil = test_and_eval.evaluate_sparse_pain(y, preds_seq, lengths, config_dict)
+                preds = preds_mil
+                y = y[:, 0, :]
                 loss = ce_loss + sparse_loss
         grads = tape.gradient(loss, model.trainable_weights)
         optimizer.apply_gradients(zip(grads, model.trainable_weights))
@@ -248,6 +276,10 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
         return grads, loss
 
     # @tf.function
+    @tf.function(input_signature=(tf.TensorSpec(shape=[config_dict['video_batch_size'], None, 20480], dtype=tf.float32),
+                                  tf.TensorSpec(shape=[config_dict['video_batch_size'], None, 2], dtype=tf.float32),
+                                  tf.TensorSpec(shape=[config_dict['video_batch_size'], None, 2], dtype=tf.uint8),
+                                  tf.TensorSpec(shape=[config_dict['video_batch_size'],], dtype=tf.uint8)))
     def validation_step(x, preds, y, lengths):
         if config_dict['video_loss'] == 'cross_entropy':
             preds = model([x, preds], training=False)
@@ -303,7 +335,7 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
                     print("Seen so far: %d samples" %
                           ((step + 1) * config_dict['batch_size']))
                     print('\n GRADS:')
-                    print([grad.numpy() for grad in grads])
+                    print([grad.numpy() for grad in grads][0])
                     print('\n Video ID: ', video_id)
                     print(feats_batch.shape, preds_batch.shape, labels_batch.shape)
 
