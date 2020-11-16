@@ -102,7 +102,7 @@ class DataHandler:
         print('Shuffling dataset...')
         dataset = dataset.shuffle(
             self.config_dict['shuffle_buffer'], reshuffle_each_iteration=True)
-        dataset = dataset.padded_batch(self.config_dict['video_batch_size'])
+        dataset = dataset.padded_batch(self.config_dict['video_batch_size'], drop_remainder=True)
         return dataset
 
     def generate_features(self,
@@ -188,8 +188,9 @@ class DataHandler:
                     to_save_dict = put_in_dict(feats, preds, labels, paths, length, subject)
                     if old_video_id in dict_of_dicts:
                         print('Already had one for: ', old_video_id)
-                        continue
-                        print(labels, '\n')
+                        print('Saving with resampling.\n')
+                        # continue
+                        # print(labels, '\n')
                         dict_to_merge_with = dict_of_dicts[old_video_id]
                         merged_dict, length = mergesort_features_into_dict(
                             old_video_id, dict_to_merge_with, to_save_dict, pad_length, zero_pad)
@@ -225,11 +226,11 @@ class DataHandler:
 
         if video_id in dict_of_dicts:
             print('Already had one for: ', video_id)
-            # print(labels, '\n')
-            # dict_to_merge_with = dict_of_dicts[video_id]
-            # merged_dict, length = mergesort_features_into_dict(
-            #     video_id, dict_to_merge_with, to_save_dict, pad_length, zero_pad)
-            # dict_of_dicts[video_id] = merged_dict
+            print('Saving with resampling.\n')
+            dict_to_merge_with = dict_of_dicts[video_id]
+            merged_dict, length = mergesort_features_into_dict(
+                video_id, dict_to_merge_with, to_save_dict, pad_length, zero_pad)
+            dict_of_dicts[video_id] = merged_dict
         else:
             dict_of_dicts[video_id] = to_save_dict
 
