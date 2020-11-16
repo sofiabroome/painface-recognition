@@ -70,8 +70,8 @@ def run():
                             steps=test_steps, dataset=test_dataset)
 
     if config_dict['save_features_per_video']:
-        features = np.load(config_dict['checkpoint'][:18] + '_saved_features.npz',
-                           allow_pickle=True)
+        f_path = config_dict['data_path'] + 'lps/' + config_dict['checkpoint'][7:18] + '_saved_features_20480dims.npz'
+        features = np.load(f_path, allow_pickle=True)
         dh.prepare_video_features(features)
 
     if config_dict['train_video_level_features']:
