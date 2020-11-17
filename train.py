@@ -208,7 +208,8 @@ def get_nb_clips_per_video(batch_video_id, df):
         nb_clips_batch.append(nb_clips[0])
     return tf.convert_to_tensor(nb_clips_batch, dtype=tf.uint8)
 
-def video_level_train(config_dict, train_dataset, val_dataset=None):
+
+def video_level_train(model, config_dict, train_dataset, val_dataset=None):
     """
     Train a simple model on features on video-level, since we have sparse
     pain behavior in the LPS data.
@@ -217,15 +218,12 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
     train_acc_metric = tf.keras.metrics.BinaryAccuracy()
     val_acc_metric = tf.keras.metrics.BinaryAccuracy()
     val_acc_old = -1
-    model = models.MyModel(config_dict=config_dict).model
     lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
         config_dict['lr'],
         decay_steps=40,
         decay_rate=0.96,
         staircase=True)
     # optimizer = Adam(learning_rate=lr_schedule)
-    # optimizer = Adam(lr=config_dict['lr'])
-    # optimizer = RMSprop(lr=config_dict['lr'])
     optimizer = RMSprop(learning_rate=lr_schedule)
     last_ckpt_path = create_last_model_path(config_dict)
     best_ckpt_path = create_last_model_path(config_dict)
@@ -244,12 +242,7 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
                                   tf.TensorSpec(shape=[config_dict['video_batch_size'], None, 2], dtype=tf.uint8),
                                   tf.TensorSpec(shape=[config_dict['video_batch_size'],], dtype=tf.uint8)))
     def train_step(x, preds, y, lengths):
-        # print(x)
-        # print(preds)
-        # print(y)
-        # print(lengths)
         with tf.GradientTape() as tape:
-            # print(preds.shape)
             if config_dict['video_loss'] == 'cross_entropy':
                 preds = model([x, preds], training=True)
                 y = y[:, 0, :]
@@ -271,11 +264,11 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
                 y = y[:, 0, :]
                 loss = ce_loss + sparse_loss
         grads = tape.gradient(loss, model.trainable_weights)
+        grads_names = [tw.name for tw in model.trainable_weights]
         optimizer.apply_gradients(zip(grads, model.trainable_weights))
         train_acc_metric.update_state(y, preds)
-        return grads, loss, tv_p, tv_np, mil
+        return grads, grads_names, loss, tv_p, tv_np, mil
 
-    # @tf.function
     @tf.function(input_signature=(tf.TensorSpec(shape=[config_dict['video_batch_size'], None, 20480], dtype=tf.float32),
                                   tf.TensorSpec(shape=[config_dict['video_batch_size'], None, 2], dtype=tf.float32),
                                   tf.TensorSpec(shape=[config_dict['video_batch_size'], None, 2], dtype=tf.uint8),
@@ -287,7 +280,7 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
             loss = loss_fn(y, preds)
         if config_dict['video_loss'] == 'mil':
             preds_seq = model([x, preds], training=True)
-            sparse_loss, tv_p, tv_np, mil  = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
+            sparse_loss, tv_p, tv_np, mil = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
             loss = sparse_loss
             preds_mil = test_and_eval.evaluate_sparse_pain(y, preds_seq, lengths, config_dict)
             preds = preds_mil
@@ -314,21 +307,24 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
             for step, sample in enumerate(train_dataset):
                 # if step > train_steps:
                 #     break
-                step_start_time = time.time()
+                # step_start_time = time.time()
                 pbar.update(1)
                 feats_batch, preds_batch, labels_batch, video_id = sample
                 
                 lengths_batch = get_nb_clips_per_video(video_id, df_video_lengths_train)
 
                 # print('\n Video ID: ', video_id)
-                grads, loss_value, tv_p, tv_np, mil = train_step(
+                grads, grads_names, loss_value, tv_p, tv_np, mil = train_step(
                     feats_batch, preds_batch, labels_batch, lengths_batch)
-                step_time = time.time() - step_start_time
+                # import ipdb; ipdb.set_trace()
+                # step_time = time.time() - step_start_time
                 # print('Step time: %.2f' % step_time)
                 wandb.log({'train_loss': loss_value.numpy()})
                 wandb.log({'tv_nopain': tv_np.numpy()})
                 wandb.log({'tv_pain': tv_p.numpy()})
                 wandb.log({'mil': mil.numpy()})
+                for ind, g in enumerate(grads):
+                    wandb.log({grads_names[ind]: wandb.Histogram(g)})
 
                 if step % config_dict['print_loss_every'] == 0:
                     print(
@@ -496,7 +492,7 @@ def save_features(model, config_dict, steps, dataset):
     if config_dict['inference_only']:
         model.load_weights(config_dict['checkpoint']).expect_partial()
 
-    @tf.function
+    # @tf.function
     def get_features_step(x):
         predictions, features = model(x, training=False)
         # Downsample further with one MP layer, strides and kernel 2x2

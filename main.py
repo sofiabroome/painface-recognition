@@ -82,6 +82,7 @@ def run():
         print('Training on loaded features...')
         # samples = [sample for sample in dataset]
         best_model_path = train.video_level_train(
+            model=model.model,
             config_dict=config_dict,
             train_dataset=train_dataset,
             val_dataset=val_dataset)

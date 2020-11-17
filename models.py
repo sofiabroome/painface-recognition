@@ -710,8 +710,8 @@ class MyModel:
         x = feature_enc2(x)
         # feature_enc2 = tf.keras.layers.GRU(
         #     self.config_dict['nb_labels'], return_sequences=True)
-        preds_enc_1 = tf.keras.layers.GRU(
-            self.config_dict['nb_units_1'], return_sequences=True)
+        # preds_enc_1 = tf.keras.layers.GRU(
+        #     self.config_dict['nb_units_1'], return_sequences=True)
         preds_enc_2 = tf.keras.layers.GRU(
             self.config_dict['nb_labels'], return_sequences=True)
         # preds = preds_enc_1(input_preds)
