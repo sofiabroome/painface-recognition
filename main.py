@@ -77,7 +77,8 @@ def run():
     if config_dict['train_video_level_features']:
         train_dataset = dh.features_to_dataset(train_subjects, split='train')
         val_dataset = dh.features_to_dataset(val_subjects, split='val')
-        # dataset = dataset.prefetch(2)
+        train_dataset = train_dataset.prefetch(2)
+        val_dataset = val_dataset.prefetch(2)
         print('Training on loaded features...')
         # samples = [sample for sample in dataset]
         best_model_path = train.video_level_train(

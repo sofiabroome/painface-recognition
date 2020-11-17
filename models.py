@@ -579,8 +579,11 @@ class MyModel:
         input_features = Input(shape=(None, self.config_dict['feature_dim']))
         input_preds = Input(shape=(None, 2))
         gru = tf.keras.layers.GRU(
-            self.config_dict['nb_units'], return_sequences=False)
+            self.config_dict['nb_units_1'], return_sequences=True)
+        gru_2 = tf.keras.layers.GRU(
+            self.config_dict['nb_labels'], return_sequences=False)
         x = gru(input_features)
+        x = gru_2(x)
         x = tf.keras.layers.Flatten()(x)
         x = tf.keras.layers.Dense(units=self.config_dict['nb_labels'])(x)
         x = Activation('softmax')(x)
@@ -598,7 +601,7 @@ class MyModel:
         # x = tf.keras.layers.concatenate([x_preds, x_feats], axis=1)
         # x = tf.keras.layers.GlobalAveragePooling1D()(input_features)
 
-        x = tf.keras.layers.Dense(units=self.config_dict['nb_units'])(x_feats)
+        x = tf.keras.layers.Dense(units=self.config_dict['nb_units_1'])(x_feats)
         x = tf.keras.layers.Dense(units=self.config_dict['nb_labels'])(x)
         x = Activation('softmax')(x)
 
@@ -623,7 +626,11 @@ class MyModel:
         enc3_rnn = tf.keras.layers.GRU(self.config_dict['nb_labels'], return_sequences=True)
         # enc2_feats = tf.keras.layers.Conv1D(self.config_dict['nb_labels'])
         x_feats = enc1_feats(input_features)
+        x_feats = Dropout(self.config_dict['dropout_2'])(x_feats)
         x_feats = enc2_feats(x_feats)
+        # x_feats = tf.keras.layers.Activation('relu')(x_feats)
+        # x_feats = tf.keras.layers.BatchNormalization()(x_feats)
+        # x_feats = tf.keras.layers.multiply([x_feats, input_preds])
         # x_feats = enc3_rnn(x_feats)
         # x_feats = enc2_feats(x_feats)
         # x_feats = tf.keras.layers.Flatten()(x_feats)
@@ -631,7 +638,7 @@ class MyModel:
         # x = tf.keras.layers.concatenate([x_preds, x_feats], axis=1)
         # x = tf.keras.layers.GlobalAveragePooling1D()(input_features)
 
-        # x = tf.keras.layers.Dense(units=self.config_dict['nb_units'])(x_feats)
+        # x = tf.keras.layers.Dense(units=self.config_dict['nb_units_1'])(x_feats)
         # x = tf.keras.layers.Dense(units=self.config_dict['nb_labels'])(x_feats)
         # x = Activation('softmax')(x)
 
@@ -648,14 +655,14 @@ class MyModel:
         # input_preds = Input(shape=(self.config_dict['video_pad_length'], 2))
 
         feature_enc1 = tf.keras.layers.GRU(
-            self.config_dict['nb_units'], return_sequences=True)
+            self.config_dict['nb_units_1'], return_sequences=True)
         feature_enc2 = tf.keras.layers.GRU(
             self.config_dict['nb_labels'], return_sequences=True)
 
         x_feats = feature_enc1(input_features)
         x_feats = feature_enc2(x_feats)
-        # preds_seq_from_feats = Activation('softmax')(x_feats)
-        preds_seq_from_feats = x_feats
+        preds_seq_from_feats = Activation('softmax')(x_feats)
+        # preds_seq_from_feats = x_feats
 
         model = Model(inputs=[input_features, input_preds], outputs=[preds_seq_from_feats])
         model.summary()
@@ -668,14 +675,14 @@ class MyModel:
         input_preds = Input(shape=(self.config_dict['video_pad_length'], 2))
         # Preds module
         x_preds = tf.keras.layers.Flatten()(input_preds)
-        x_preds = tf.keras.layers.Dense(units=self.config_dict['nb_units'])(x_preds)
+        x_preds = tf.keras.layers.Dense(units=self.config_dict['nb_units_1'])(x_preds)
         x_preds = tf.keras.layers.Dense(units=self.config_dict['nb_labels'])(x_preds)
         # preds_one_from_preds = Activation('softmax')(x_preds)
         preds_one_from_preds = x_preds
 
         # Features module
         feature_enc1 = tf.keras.layers.GRU(
-            self.config_dict['nb_units'], return_sequences=True)
+            self.config_dict['nb_units_1'], return_sequences=True)
         feature_enc2 = tf.keras.layers.GRU(
             self.config_dict['nb_labels'], return_sequences=True)
 

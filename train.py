@@ -155,48 +155,48 @@ def get_sparse_pain_loss(y_batch, preds_batch, lengths_batch, config_dict):
         return mils
 
     kmax_scores = get_k_max_scores_per_class(y_batch, preds_batch, lengths_batch, batch_size, config_dict)
-    # import ipdb; ipdb.set_trace()
     mil = get_mil_loss(kmax_scores)
-    # wandb.log({'mil': mil})
-    # batch_indicator_nopain = tf.cast(y_batch[:, 0, 0], dtype=tf.float32)
-    # batch_indicator_pain = tf.cast(y_batch[:, 0, 1], dtype=tf.float32)
-    # tv_nopain = config_dict['tv_weight_nopain'] * tf.reduce_sum(
-    #     batch_indicator_nopain * batch_calc_TV_norm(preds_batch[:, :, 0]))
-    # tv_pain = config_dict['tv_weight_pain'] * tf.reduce_sum(
-    #     batch_indicator_pain * batch_calc_TV_norm(preds_batch[:, :, 1]))
-
-    
-    # wandb.log({'tv_nopain': tv_nopain})
-    # wandb.log({'tv_pain': tv_pain})
-
+    batch_indicator_nopain = tf.cast(y_batch[:, 0, 0], dtype=tf.float32)
+    batch_indicator_pain = tf.cast(y_batch[:, 0, 1], dtype=tf.float32)
+    tv_nopain = config_dict['tv_weight_nopain'] * tf.reduce_sum(
+        batch_indicator_nopain * batch_calc_TV_norm(preds_batch[:, :, 0],
+                                                    lengths_batch))
+    tv_pain = config_dict['tv_weight_pain'] * tf.reduce_sum(
+        batch_indicator_pain * batch_calc_TV_norm(preds_batch[:, :, 1],
+                                                  lengths_batch))
     # print('tv pain, ', tv_pain)
     # print('tv no pain, ', tv_nopain)
     # print('mil', mil)
 
-   #  total_loss = tv_nopain + tv_pain - mil
-    total_loss = -mil
+    total_loss = tv_nopain + tv_pain - mil
+    # total_loss = -mil
 
-    return total_loss
+    return total_loss, tv_pain, tv_nopain, mil
 
-def batch_calc_TV_norm(batch_vectors, p=3, q=3):
+def batch_calc_TV_norm(batch_vectors, lengths_batch, p=3, q=3):
     """"
     Calculates the Total Variational Norm by summing the differences of the values
     in between the different positions in the mask.
     p=3 and q=3 are defaults from the paper.
     """
-    val = 0
+    val = tf.cast(0, dtype=tf.float32)
+    # import ipdb; ipdb.set_trace()
     batch_size = batch_vectors.shape[0]
-    vector_length = batch_vectors.shape[1]
-    vals = []
-    for vector_index in range(batch_size):
+    # vals = []
+    vals = tf.TensorArray(tf.float32, size=batch_size)
+    for vector_index in tf.range(batch_size):
         vector = batch_vectors[vector_index]
-        for u in range(1, vector_length - 1):
+        vector_length = tf.cast(lengths_batch[vector_index], dtype=tf.int32)
+        for u in tf.range(1, vector_length - 1):
             val += tf.abs(vector[u - 1] - vector[u]) ** p
             val += tf.abs(vector[u + 1] - vector[u]) ** p
         val = val ** (1 / p)
         val = val ** q
-        vals.append(val)
-    return tf.convert_to_tensor(vals, dtype=tf.float32)
+        # vals.append(val)
+        vals = vals.write(vector_index, val)
+    # return tf.convert_to_tensor(vals, dtype=tf.float32)
+    return vals.stack()
+    # return vals
 
 
 def get_nb_clips_per_video(batch_video_id, df):
@@ -256,7 +256,7 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
                 loss = loss_fn(y, preds)
             if config_dict['video_loss'] == 'mil':
                 preds_seq = model([x, preds], training=True)
-                sparse_loss = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
+                sparse_loss, tv_p, tv_np, mil = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
                 loss = sparse_loss
                 preds_mil = test_and_eval.evaluate_sparse_pain(y, preds_seq, lengths, config_dict)
                 preds = preds_mil
@@ -265,7 +265,7 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
                 preds_seq, preds_one = model([x, preds], training=True)
                 y_one = y[:, 0, :]
                 ce_loss = loss_fn(y_one, preds_one)
-                sparse_loss = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
+                sparse_loss, tv_p, tv_np, mil  = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
                 preds_mil = test_and_eval.evaluate_sparse_pain(y, preds_seq, lengths, config_dict)
                 preds = preds_mil
                 y = y[:, 0, :]
@@ -273,7 +273,7 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
         grads = tape.gradient(loss, model.trainable_weights)
         optimizer.apply_gradients(zip(grads, model.trainable_weights))
         train_acc_metric.update_state(y, preds)
-        return grads, loss
+        return grads, loss, tv_p, tv_np, mil
 
     # @tf.function
     @tf.function(input_signature=(tf.TensorSpec(shape=[config_dict['video_batch_size'], None, 20480], dtype=tf.float32),
@@ -287,7 +287,7 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
             loss = loss_fn(y, preds)
         if config_dict['video_loss'] == 'mil':
             preds_seq = model([x, preds], training=True)
-            sparse_loss = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
+            sparse_loss, tv_p, tv_np, mil  = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
             loss = sparse_loss
             preds_mil = test_and_eval.evaluate_sparse_pain(y, preds_seq, lengths, config_dict)
             preds = preds_mil
@@ -297,13 +297,13 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
             preds_one = tf.keras.layers.Activation('softmax')(preds_one)
             y_one = y[:, 0, :]
             ce_loss = loss_fn(y_one, preds_one)
-            sparse_loss = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
+            sparse_loss, tv_p, tv_np, mil  = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
             loss = ce_loss + sparse_loss
             preds_mil = test_and_eval.evaluate_sparse_pain(y, preds_seq, lengths, config_dict)
             preds = 1/2 * (preds_one + preds_mil)
             y = y[:, 0, :]
         val_acc_metric.update_state(y, preds)
-        return loss
+        return loss, tv_p, tv_np, mil
 
     for epoch in range(config_dict['video_nb_epochs']):
         print('\nStart of epoch %d' % (epoch,))
@@ -321,11 +321,14 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
                 lengths_batch = get_nb_clips_per_video(video_id, df_video_lengths_train)
 
                 # print('\n Video ID: ', video_id)
-                grads, loss_value = train_step(
+                grads, loss_value, tv_p, tv_np, mil = train_step(
                     feats_batch, preds_batch, labels_batch, lengths_batch)
                 step_time = time.time() - step_start_time
                 # print('Step time: %.2f' % step_time)
                 wandb.log({'train_loss': loss_value.numpy()})
+                wandb.log({'tv_nopain': tv_np.numpy()})
+                wandb.log({'tv_pain': tv_p.numpy()})
+                wandb.log({'mil': mil.numpy()})
 
                 if step % config_dict['print_loss_every'] == 0:
                     print(
@@ -357,12 +360,15 @@ def video_level_train(config_dict, train_dataset, val_dataset=None):
                     feats_batch, preds_batch, labels_batch, video_id = sample
                     lengths_batch = get_nb_clips_per_video(video_id, df_video_lengths_val)
                     # print('\n Video ID: ', video_id)
-                    loss_value = validation_step(
+                    loss_value, tv_p, tv_np, mil = validation_step(
                         feats_batch, preds_batch, labels_batch, lengths_batch)
                     # step_time = time.time() - step_start_time
                     # print('Step time: %.2f' % step_time)
 
             wandb.log({'val_loss': loss_value.numpy()})
+            wandb.log({'val_tv_nopain': tv_np.numpy()})
+            wandb.log({'val_tv_pain': tv_p.numpy()})
+            wandb.log({'val_mil': mil.numpy()})
             val_acc = val_acc_metric.result()
             wandb.log({'val_acc': val_acc})
             print("Validation acc: %.4f" % (float(val_acc),))
