@@ -272,7 +272,8 @@ class MyModel:
         dense = Dense(self.nb_labels)(merged_flat)
 
         if self.nb_labels == 2:
-            output = Activation('sigmoid')(dense)
+            # output = Activation('sigmoid')(dense)
+            output = Activation('softmax')(dense)
         else:
             output = Activation('softmax')(dense)
 
@@ -619,17 +620,19 @@ class MyModel:
 
         enc1_feats = tf.keras.layers.Conv1D(filters=self.config_dict['nb_units_1'],
                                             kernel_size=self.config_dict['kernel_size'],
-                                            padding='same')
+                                            padding='same',
+                                            activation='relu')
         enc2_feats = tf.keras.layers.Conv1D(filters=self.config_dict['nb_labels'],
                                             kernel_size=self.config_dict['kernel_size'],
-                                            padding='same')
+                                            padding='same',
+                                            activation='relu')
         enc3_rnn = tf.keras.layers.GRU(self.config_dict['nb_labels'], return_sequences=True)
         # enc2_feats = tf.keras.layers.Conv1D(self.config_dict['nb_labels'])
         x_feats = enc1_feats(input_features)
+        x_feats = tf.keras.layers.BatchNormalization()(x_feats)
         x_feats = Dropout(self.config_dict['dropout_2'])(x_feats)
         x_feats = enc2_feats(x_feats)
         # x_feats = tf.keras.layers.Activation('relu')(x_feats)
-        # x_feats = tf.keras.layers.BatchNormalization()(x_feats)
         # x_feats = tf.keras.layers.multiply([x_feats, input_preds])
         # x_feats = enc3_rnn(x_feats)
         # x_feats = enc2_feats(x_feats)
@@ -698,25 +701,33 @@ class MyModel:
 
     def video_level_preds_attn_network(self):
 
-        input_features = Input(shape=(None, self.config_dict['feature_dim']))
-        input_preds = Input(shape=(None, 2))
+        # input_features = Input(shape=(None, self.config_dict['feature_dim']))
+        # input_preds = Input(shape=(None, 2))
+        input_features = Input(shape=(self.config_dict['video_pad_length'], self.config_dict['feature_dim']))
+        input_preds = Input(shape=(self.config_dict['video_pad_length'], 2))
 
         feature_enc1 = tf.keras.layers.GRU(
-            self.config_dict['nb_units_2'], return_sequences=True)
+            self.config_dict['nb_units_1'], return_sequences=True)
+        # feature_enc11 = tf.keras.layers.GRU(
+        #     self.config_dict['nb_units_2'], return_sequences=True)
         feature_enc2 = tf.keras.layers.GRU(
             self.config_dict['nb_labels'], return_sequences=True)
 
         x = feature_enc1(input_features)
+        x = tf.keras.layers.BatchNormalization()(x)
+        # x = feature_enc11(x)
+        # x = tf.keras.layers.BatchNormalization()(x)
         x = feature_enc2(x)
         # feature_enc2 = tf.keras.layers.GRU(
         #     self.config_dict['nb_labels'], return_sequences=True)
         # preds_enc_1 = tf.keras.layers.GRU(
         #     self.config_dict['nb_units_1'], return_sequences=True)
-        preds_enc_2 = tf.keras.layers.GRU(
-            self.config_dict['nb_labels'], return_sequences=True)
+        # preds_enc_2 = tf.keras.layers.GRU(
+        #     self.config_dict['nb_labels'], return_sequences=True)
         # preds = preds_enc_1(input_preds)
-        preds = preds_enc_2(input_preds)
-        x = tf.keras.layers.multiply([x, preds])
+        # preds = preds_enc_2(input_preds)
+        # x = tf.keras.layers.multiply([x, preds])
+        x = tf.keras.layers.BatchNormalization()(x)
         # x = tf.keras.layers.GlobalMaxPooling1D()(x)
         # x = tf.keras.layers.GlobalAveragePooling1D()(x)
         # x = tf.keras.layers.Dense(units=self.config_dict['nb_labels'])(x)

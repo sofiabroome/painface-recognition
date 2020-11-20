@@ -93,7 +93,7 @@ class DataHandler:
         dataset = tf.data.Dataset.from_generator(
             lambda: self.generate_features(subject_codes=subj_codes,
                                            split=split),
-            output_types=(tf.float32, tf.float32, tf.uint8, tf.string),
+            output_types=(tf.float32, tf.float32, tf.int32, tf.string),
             output_shapes=(tf.TensorShape([None, None]),
                            tf.TensorShape([None, 2]),
                            tf.TensorShape([None, 2]),
