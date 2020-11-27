@@ -114,7 +114,6 @@ def get_k_max_scores_per_class(y_batch, preds_batch, lengths_batch, batch_size, 
     for sample_index in range(batch_size):
         sample_class_kmax_scores = []
         seq_length = lengths_batch[sample_index]
-        
         k = tf.cast(tf.math.ceil(config_dict['k_mil_fraction'] * tf.cast(seq_length, dtype=tf.float32)), dtype=tf.int32)
         # print('\n', k, seq_length)
         for class_index in range(config_dict['nb_labels']):
@@ -312,9 +311,26 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
         val_acc_metric.update_state(y, preds)
         return loss, tv_p, tv_np, mil
 
+    k_mil_drop = config_dict['k_mil_fraction_start'] - config_dict['k_mil_fraction_end']
+    nb_decrements = k_mil_drop/config_dict['k_mil_fraction_decrement_step']
+    k_mil_decreasing_nb_decrements_counter = 0
+    k_mil_decreasing_epoch_counter = 0
+    config_dict['k_mil_fraction'] = config_dict['k_mil_fraction_start']
+
     for epoch in range(config_dict['video_nb_epochs']):
         print('\nStart of epoch %d' % (epoch,))
         wandb.log({'epoch': epoch})
+
+        if (k_mil_decreasing_nb_decrements_counter < nb_decrements) and \
+            (k_mil_decreasing_epoch_counter == config_dict['k_mil_fraction_nb_epochs_to_decrease']):
+            config_dict['k_mil_fraction'] -= config_dict['k_mil_fraction_decrement_step']
+            k_mil_decreasing_epoch_counter = 0
+            k_mil_decreasing_nb_decrements_counter += 1
+
+        k_mil_decreasing_epoch_counter += 1
+
+        print('\nk-MIL fraction after every-epoch update: {}'.format(config_dict['k_mil_fraction']))
+        
         start_time = time.time()
 
         with tqdm(total=train_steps) as pbar:
@@ -334,12 +350,12 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
                 wandb.log({'tv_nopain': tv_np.numpy()})
                 wandb.log({'tv_pain': tv_p.numpy()})
                 wandb.log({'mil': mil.numpy()})
-                for ind, g in enumerate(grads):
-                    wandb.log({'grad_' + grads_names[ind].numpy().decode("utf-8"): wandb.Histogram(g.numpy())})
-                for ind, tw in enumerate(trainable_weights):
-                    wandb.log({'param_' + grads_names[ind].numpy().decode("utf-8"): wandb.Histogram(tw.numpy())})
-
                 if step % config_dict['print_loss_every'] == 0:
+                    for ind, g in enumerate(grads):
+                        wandb.log({'grad_' + grads_names[ind].numpy().decode("utf-8"): wandb.Histogram(g.numpy())})
+                    for ind, tw in enumerate(trainable_weights):
+                        wandb.log({'param_' + grads_names[ind].numpy().decode("utf-8"): wandb.Histogram(tw.numpy())})
+
                     print(
                         "Training loss (for one batch) at step %d: %.4f"
                         % (step, float(loss_value.numpy()))
