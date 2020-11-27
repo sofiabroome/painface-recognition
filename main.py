@@ -72,7 +72,7 @@ def run():
     if config_dict['save_features_per_video']:
         f_path = config_dict['data_path'] + 'lps/' + config_dict['checkpoint'][7:18] + '_saved_features_20480dims.npz'
         features = np.load(f_path, allow_pickle=True)
-        dh.prepare_video_features(features)
+        dh.prepare_video_features(features, zero_pad=True)
 
     if config_dict['train_video_level_features']:
         train_dataset = dh.features_to_dataset(train_subjects, split='train')

@@ -234,12 +234,14 @@ def compute_video_level_accuracy(majvotes):
     for mil_threshold in mil_thresholds:
         print('\nNb correctly classified by MIL vote, threshold {}: {} out of {} videos'.format(
             mil_threshold, nb_correct_mil[mil_threshold], total))
-        acc_mil = nb_correct_mil[mil_threshold]/total
-        wandb.log({'video mil accuracy {}'.format(mil_threshold): acc_mil})
-        print('Video level mil accuracy: ', acc_mil)
-    acc = nb_correct/total
-    wandb.log({'video level accuracy by majority vote': acc})
-    print('Video level accuracy by majority vote: ', acc)
+        if not total == 0:
+            acc_mil = nb_correct_mil[mil_threshold]/total
+            wandb.log({'video mil accuracy {}'.format(mil_threshold): acc_mil})
+            print('Video level mil accuracy: ', acc_mil)
+    if not total == 0:
+        acc = nb_correct/total
+        wandb.log({'video level accuracy by majority vote': acc})
+        print('Video level accuracy by majority vote: ', acc)
 
 
 def evaluate_on_video_level(config_dict, model, model_path, test_dataset,
@@ -260,10 +262,12 @@ def evaluate_on_video_level(config_dict, model, model_path, test_dataset,
             preds = model([x, preds], training=False)
         if config_dict['video_loss'] == 'mil':
             preds_seq = model([x, preds], training=True)
+            preds_seq = train.mask_out_padding_predictions(preds_seq, y, config_dict)
             preds_mil = evaluate_sparse_pain(y, preds_seq, lengths, config_dict)
             preds = preds_mil
         if config_dict['video_loss'] == 'mil_ce':
             preds_seq, preds_one = model([x, preds], training=True)
+            preds_seq = train.mask_out_padding_predictions(preds_seq, y, config_dict)
             preds_one = tf.keras.layers.Activation('softmax')(preds_one)
             preds_mil = evaluate_sparse_pain(y, preds_seq, lengths, config_dict)
             preds = 1/2 * (preds_one + preds_mil)
