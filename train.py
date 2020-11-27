@@ -503,6 +503,8 @@ def low_level_train(model, ckpt_path, last_ckpt_path, optimizer,
             if val_acc > val_acc_old:
                 print('The validation acc improved, saving checkpoint...')
                 model.save_weights(ckpt_path)
+                print('Resetting epochs not improved.')
+                epochs_not_improved = 0
                 val_acc_old = val_acc
             else:
                 epochs_not_improved += 1
