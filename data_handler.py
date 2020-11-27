@@ -95,6 +95,20 @@ class DataHandler:
         x = [clip, flow_clip]
         return x, label
 
+    def process_clips_paths(self, x, label, paths=None):
+        clip = []
+        flow_clip = []
+        for i in range(self.seq_length):
+            frame = self.process_image(x[0,i], standardize=True)
+            flow = self.process_image(x[1,i], standardize=False)
+            clip.append(frame)
+            flow_clip.append(flow)
+        x = [clip, flow_clip]
+        if paths is not None:
+            return x, label, paths
+        else:
+            return x, label
+
     def get_dataset(self, sequence_dfs, train):
         """
         From frame paths to tf.data.Dataset consisting of sequences.
@@ -108,7 +122,10 @@ class DataHandler:
                 if self.config_dict['save_features']:
                     dataset = tf.data.Dataset.from_generator(
                         lambda: self.prepare_2stream_image_generator_5D_with_paths(sequence_dfs, train),
-                        output_types=(tf.float32, tf.uint8, tf.string))
+                        output_types=(tf.string, tf.uint8, tf.string))
+                    dataset = dataset.map(self.process_clips_paths, num_parallel_calls=AUTOTUNE)
+                    dataset = dataset.prefetch(AUTOTUNE)
+                    dataset = dataset.batch(self.batch_size)
                 else:
                     dataset = tf.data.Dataset.from_generator(
                         lambda: self.prepare_2stream_image_generator_5D(sequence_dfs, train),
@@ -586,7 +603,6 @@ class DataHandler:
         :return: np.ndarray, np.ndarray, np.ndarray, np.ndarray
         """
         while True:
-            batch_index = 0
             for sequence_df in sequence_dfs:
 
                 X_seq_list = []
@@ -597,44 +613,31 @@ class DataHandler:
                 for seq_index, row in sequence_df.iterrows():
 
                     if (seq_index % self.config_dict['rgb_period']) == 0:
-                        x = self.get_image(row['path'])
+                        # x = self.get_image(row['path'])
+                        x = row['path']
                         y = row['pain']
                         X_seq_list.append(x)
                         y_seq_list.append(y)
                         path_seq_list.append(row['path'])  # Only save one (last) path per seq
 
                     if (seq_index % self.config_dict['flow_period']) == 0:
-                        flow = self.get_flow(row['of_path'])
+                        # flow = self.get_flow(row['of_path'])
+                        flow = row['of_path']
                         if self.config_dict['rgb_period'] > 1:
                             # We only want the first two channels of the flow
                             flow = np.take(flow, [0, 1], axis=2)  # Simonyan type input
                         flow_seq_list.append(flow)
 
-                if batch_index == 0:
-                    X_batch_list = []
-                    y_batch_list = []
-                    flow_batch_list = []
-                    path_batch_list = []
-
                 # *We only have per-clip labels, so the pain levels should not differ.
                 assert (len(set(y_seq_list)) == 1)
 
-                X_batch_list.append(X_seq_list)
-                flow_batch_list.append(flow_seq_list)
-                y_batch_list.append(y_seq_list[0])  # *only need one
-                path_batch_list.append(path_seq_list[0])  # *only need one
-                batch_index += 1
-
-                if batch_index % self.batch_size == 0 and not batch_index == 0:
-                    X_array = np.array(X_batch_list, dtype=np.float32)
-                    y_array = np.array(y_batch_list, dtype=np.uint8)
-                    flow_array = np.array(flow_batch_list, dtype=np.float32)
-                    path_array = np.array(path_batch_list)
-                    if self.nb_labels == 2:
-                        y_array = tf.keras.utils.to_categorical(y_array, num_classes=self.nb_labels)
-                    y_array = np.reshape(y_array, (self.batch_size, self.nb_labels))
-                    batch_index = 0
-                    yield [X_array, flow_array], y_array, path_array
+                X_array = np.array(X_seq_list, dtype=np.dtype('U'))
+                y_array = np.array(y_seq_list[0], dtype=np.uint8)
+                flow_array = np.array(flow_seq_list, dtype=np.dtype('U'))
+                path_array = np.array(path_seq_list)
+                if self.nb_labels == 2:
+                    y_array = tf.keras.utils.to_categorical(y_array, num_classes=self.nb_labels)
+                yield [X_array, flow_array], y_array, path_array
 
     def get_sequences_from_frame_df(self, df):
         """
