@@ -4,13 +4,13 @@ data_path = '/local_storage/users/sbroome/painface-recognition/'
 
 config_dict = {
     # Program components
-    'get_raw_sequence_data': False,
+    'get_raw_sequence_data': True,
     'inference_only': True,
     'fine_tune': False,
-    'save_features': False,
+    'save_features': True,
     'save_features_per_video': False,
-    'video_level_mode': True,
-    'train_video_level_features': True,
+    'video_level_mode': False,
+    'train_video_level_features': False,
     'do_evaluate': True,
     'val_mode': 'subject',  # subject | fraction | no_val
     'train_mode': 'low_level',  # keras | low_level
@@ -24,8 +24,9 @@ config_dict = {
     'lps_of_path': data_path + 'lps/jpg_128_128_16fps_OF_magnitude_cv2_2fpsrate/',
     'pixel_mean': pixel_means.pf_rgb['mean'],
     'pixel_std': pixel_means.pf_rgb['std'],
-    # 'checkpoint': 'models/124805_best_model_2stream_5d_add.ckpt',
-    'checkpoint': 'models/127575_last_model_video_level_preds_mil_attn.ckpt',
+    # 'checkpoint': 'models/124805_last_model_2stream_5d_add.ckpt',
+    'checkpoint': 'models/130425_best_model_2stream_5d_add.ckpt',
+    # 'checkpoint': 'models/127575_last_model_video_level_preds_mil_attn.ckpt',
     'save_video_features_folder': 'lps/video_level_features_320dim_zeropad_noresample/',
     # 'train_video_features_folder': 'lps/video_level_features_320dim_resample/',
     # 'val_video_features_folder': 'lps/video_level_features_320dim_noresample/',
@@ -80,8 +81,8 @@ config_dict = {
     # Training
     'optimizer': 'adadelta',
     'lr': 0.001,
-    'nb_epochs': 2,
-    'early_stopping': 15,
+    'nb_epochs': 80,
+    'early_stopping': 80,
     'round_to_batch': True,
     'seq_length': 10,
     'seq_stride': 10,

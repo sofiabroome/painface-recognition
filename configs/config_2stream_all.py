@@ -21,8 +21,8 @@ config_dict = {
     'lps_rgb_path': data_path + 'lps/jpg_128_128_2fps/',
     'pf_of_path': data_path + 'pf/jpg_128_128_16fps_OF_magnitude_cv2/',
     'lps_of_path': data_path + 'lps/jpg_128_128_16fps_OF_magnitude_cv2_2fpsrate/',
-    'pixel_mean': pixel_means.pf_rgb['mean'],
-    'pixel_std': pixel_means.pf_rgb['std'],
+    'pixel_mean': pixel_means.imagenet['mean'],
+    'pixel_std': pixel_means.imagenet['std'],
     'checkpoint': 'models/124805_last_model_2stream_5d_add.ckpt',
     # Model
     'model': '2stream_5d_add',
@@ -50,7 +50,7 @@ config_dict = {
     'shuffle_buffer': 150,
     # Training
     'nb_epochs': 200,
-    'early_stopping': 30,
+    'early_stopping': 50,
     'optimizer': 'adadelta',
     'lr': 0.001,
     'round_to_batch': True,
@@ -67,7 +67,7 @@ config_dict = {
     'aug_flip': 1,
     'aug_crop': 0,
     'aug_light': 0,
-    'print_loss_every': 5000,
+    'print_loss_every':5000,
     'resample_start_fraction_of_seq_length': 0.5,
     # Parameters for functional API C-LSTM
     'kernel_regularizer' : None,
