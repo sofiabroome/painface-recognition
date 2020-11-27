@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 
 
 DEFAULT_NPLOAD_STR = 'arr_0'
+AUTOTUNE = tf.data.experimental.AUTOTUNE
 
 
 class DataHandler:
@@ -45,6 +46,62 @@ class DataHandler:
         self.pixel_mean = config_dict['pixel_mean']
         self.pixel_std = config_dict['pixel_std']
 
+    def batch_augment(self, x_batch, label_batch):
+        clips = []
+        flow_clips = []
+        for b in range(self.batch_size):
+            if tf.random.uniform((), minval=0, maxval=1) > 0.5:
+                print('Flipping!')
+                clip = [tf.image.flip_left_right(x_batch[b,0,i,:]) for i in range(self.seq_length)]
+                flow_clip = [tf.image.flip_left_right(x_batch[b,1,i,:]) for i in range(self.seq_length)]
+            else:
+                print('Not flipping!')
+                clip = [x_batch[b,0,i,:] for i in range(self.seq_length)]
+                flow_clip = [x_batch[b,1,i,:] for i in range(self.seq_length)]
+            clips.append(clip)
+            flow_clips.append(flow_clip)
+        x_batch = [clips, flow_clips]
+        return x_batch, label_batch
+
+    def augment(self, x, label):
+        if tf.random.uniform((), minval=0, maxval=1) > 0.5:
+            print('Flipping!')
+            clip = [tf.image.flip_left_right(x[0,i,:]) for i in range(self.seq_length)]
+            flow_clip = [tf.image.flip_left_right(x[1,i,:]) for i in range(self.seq_length)]
+        else:
+            print('Not flipping!')
+            clip = [x[0,i,:] for i in range(self.seq_length)]
+            flow_clip = [x[1,i,:] for i in range(self.seq_length)]
+        x = [clip, flow_clip]
+        return x, label
+
+    def process_image(self, path, standardize):
+        normalization_layer = tf.keras.layers.experimental.preprocessing.Rescaling(1./255)
+        frame = tf.io.read_file(path)
+        frame = tf.image.decode_jpeg(frame, channels=self.color_channels)
+        frame = normalization_layer(frame)
+        # frame = frame/255
+        if standardize:
+            frame = (frame - self.pixel_mean)/self.pixel_std
+        return frame
+
+    def process_clips(self, x, label):
+        clip = []
+        flow_clip = []
+        for i in range(self.seq_length):
+            frame = self.process_image(x[0,i], standardize=True)
+            flow = self.process_image(x[1,i], standardize=False)
+            clip.append(frame)
+            flow_clip.append(flow)
+        # clip = [tf.io.read_file(x[0,i]) for i in range(self.seq_length)]
+        # clip = [tf.image.decode_jpeg(clip[i], channels=self.color_channels)
+        #     for i in range(self.seq_length)]
+        # flow_clip = [tf.io.read_file(x[1,i]) for i in range(self.seq_length)]
+        # flow_clip = [tf.image.decode_jpeg(flow_clip[i], channels=self.color_channels)
+        #     for i in range(self.seq_length)]
+        x = [clip, flow_clip]
+        return x, label
+
     def get_dataset(self, sequence_dfs, train):
         """
         From frame paths to tf.data.Dataset consisting of sequences.
@@ -62,7 +119,15 @@ class DataHandler:
                 else:
                     dataset = tf.data.Dataset.from_generator(
                         lambda: self.prepare_2stream_image_generator_5D(sequence_dfs, train),
-                        output_types=(tf.float32, tf.uint8))
+                        output_types=(tf.string, tf.uint8))
+
+                    dataset = dataset.map(self.process_clips, num_parallel_calls=AUTOTUNE)
+                    
+                    if train and (self.aug_flip == 1):
+                        dataset = dataset.map(self.augment, num_parallel_calls=AUTOTUNE)
+                    dataset = dataset.prefetch(AUTOTUNE)
+                    dataset = dataset.batch(self.batch_size)
+
             else:
                 dataset = tf.data.Dataset.from_generator(
                     lambda: self.prepare_image_generator_5D(sequence_dfs, train),
@@ -188,8 +253,9 @@ class DataHandler:
                     to_save_dict = put_in_dict(feats, preds, labels, paths, length, subject)
                     if old_video_id in dict_of_dicts:
                         print('Already had one for: ', old_video_id)
-                        print('Saving with resampling.\n')
-                        # continue
+                        # print('Saving with resampling.\n')
+                        print('Saving without resampling.\n')
+                        continue
                         # print(labels, '\n')
                         dict_to_merge_with = dict_of_dicts[old_video_id]
                         merged_dict, length = mergesort_features_into_dict(
@@ -226,11 +292,12 @@ class DataHandler:
 
         if video_id in dict_of_dicts:
             print('Already had one for: ', video_id)
-            print('Saving with resampling.\n')
-            dict_to_merge_with = dict_of_dicts[video_id]
-            merged_dict, length = mergesort_features_into_dict(
-                video_id, dict_to_merge_with, to_save_dict, pad_length, zero_pad)
-            dict_of_dicts[video_id] = merged_dict
+            print('Saving without resampling.\n')
+            # print('Saving with resampling.\n')
+            # dict_to_merge_with = dict_of_dicts[video_id]
+            # merged_dict, length = mergesort_features_into_dict(
+            #     video_id, dict_to_merge_with, to_save_dict, pad_length, zero_pad)
+            # dict_of_dicts[video_id] = merged_dict
         else:
             dict_of_dicts[video_id] = to_save_dict
 
@@ -452,36 +519,36 @@ class DataHandler:
 
                 batch_index += 1
 
-                if train and (self.aug_flip == 1):
-                    # Flip both RGB and flow
-                    X_flipped = self.flip_image(x)
-                    flow_flipped = self.flip_image(flow)
-                    # Append to the respective batch lists
-                    X_batch_list.append(X_flipped)
-                    y_batch_list.append(y)
-                    flow_batch_list.append(flow_flipped)
-                    batch_index += 1
+                # if train and (self.aug_flip == 1):
+                #     # Flip both RGB and flow
+                #     X_flipped = self.flip_image(x)
+                #     flow_flipped = self.flip_image(flow)
+                #     # Append to the respective batch lists
+                #     X_batch_list.append(X_flipped)
+                #     y_batch_list.append(y)
+                #     flow_batch_list.append(flow_flipped)
+                #     batch_index += 1
 
-                if train and (self.aug_crop == 1):
-                    crop_size = 99
-                    # Flip both RGB and flow
-                    X_cropped = self.random_crop_resize_single_image(x, crop_size, crop_size)
-                    flow_cropped = self.random_crop_resize_single_image(flow, crop_size, crop_size)
-                    # Append to the respective batch lists
-                    X_batch_list.append(X_cropped)
-                    y_batch_list.append(y)
-                    flow_batch_list.append(flow_cropped)
-                    batch_index += 1
+                # if train and (self.aug_crop == 1):
+                #     crop_size = 99
+                #     # Flip both RGB and flow
+                #     X_cropped = self.random_crop_resize_single_image(x, crop_size, crop_size)
+                #     flow_cropped = self.random_crop_resize_single_image(flow, crop_size, crop_size)
+                #     # Append to the respective batch lists
+                #     X_batch_list.append(X_cropped)
+                #     y_batch_list.append(y)
+                #     flow_batch_list.append(flow_cropped)
+                #     batch_index += 1
 
-                if train and (self.aug_light == 1):
-                    # Flip both RGB and flow
-                    X_shaded = self.add_gaussian_noise_to_single_image(x)
-                    flow_shaded = self.add_gaussian_noise_to_single_image(flow)
-                    # Append to the respective batch lists
-                    X_batch_list.append(X_shaded)
-                    y_batch_list.append(y)
-                    flow_batch_list.append(flow_shaded)
-                    batch_index += 1
+                # if train and (self.aug_light == 1):
+                #     # Flip both RGB and flow
+                #     X_shaded = self.add_gaussian_noise_to_single_image(x)
+                #     flow_shaded = self.add_gaussian_noise_to_single_image(flow)
+                #     # Append to the respective batch lists
+                #     X_batch_list.append(X_shaded)
+                #     y_batch_list.append(y)
+                #     flow_batch_list.append(flow_shaded)
+                #     batch_index += 1
 
                 if batch_index % self.batch_size == 0 and not batch_index == 0:
                     X_array = np.array(X_batch_list, dtype=np.float32)
@@ -510,7 +577,6 @@ class DataHandler:
                 print('Shuffling the order of sequences.')
                 random.shuffle(sequence_dfs)
 
-            batch_index = 0
             for sequence_df in sequence_dfs:
 
                 X_seq_list = []
@@ -520,87 +586,34 @@ class DataHandler:
                 for seq_index, row in sequence_df.iterrows():
 
                     if (seq_index % self.config_dict['rgb_period']) == 0:
-                        x = self.get_image(row['path'])
+                        x = row['path']
                         y = row['pain']
                         X_seq_list.append(x)
                         y_seq_list.append(y)
 
                     if (seq_index % self.config_dict['flow_period']) == 0:
-                        flow = self.get_flow(row['of_path'])
+                        flow = row['of_path']
                         if self.config_dict['rgb_period'] > 1:
                             # We only want the first two channels of the flow
                             flow = np.take(flow, [0, 1], axis=2)  # Simonyan type input
                         flow_seq_list.append(flow)
 
-                if batch_index == 0:
-                    X_batch_list = []
-                    y_batch_list = []
-                    flow_batch_list = []
-
                 # *We only have per-clip labels, so the pain levels should not differ.
                 assert (len(set(y_seq_list)) == 1)
                 if self.config_dict['rgb_period'] > 1:
+                    #TODO deprecated. move this to tf.dataset.map preprocessing instead.
                     flow_seq_list = np.array(flow_seq_list)
                     flow_seq_list = np.reshape(np.array(flow_seq_list),
                                                (-1, self.image_size[0], self.image_size[1]))
                     X_seq_list = np.reshape(np.array(X_seq_list),
                                             (self.image_size[0], self.image_size[1], -1))
 
-                X_batch_list.append(X_seq_list)
-                flow_batch_list.append(flow_seq_list)
-                y_batch_list.append(y_seq_list[0])  # *only need one
-                batch_index += 1
-
-                if train and (self.aug_flip == 1):
-                    # Flip both RGB and flow arrays
-                    X_seq_list_flipped = self.flip_images(X_seq_list)
-                    flow_seq_list_flipped = self.flip_images(flow_seq_list)
-                    # Append to the respective batch lists
-                    X_batch_list.append(X_seq_list_flipped)
-                    y_batch_list.append(y_seq_list[0])
-                    flow_batch_list.append(flow_seq_list_flipped)
-                    batch_index += 1
-
-                if train and (self.aug_crop == 1):
-                    crop_size = 99
-                    # Flip both RGB and flow arrays
-                    X_seq_list_cropped = self.random_crop_resize(X_seq_list,
-                                                                 crop_size, crop_size)
-                    flow_seq_list_cropped = self.random_crop_resize(flow_seq_list,
-                                                                    crop_size, crop_size)
-                    # Append to the respective batch lists
-                    X_batch_list.append(X_seq_list_cropped)
-                    y_batch_list.append(y_seq_list[0])
-                    flow_batch_list.append(flow_seq_list_cropped)
-                    batch_index += 1
-
-                if train and (self.aug_light == 1):
-                    # Flip both RGB and flow arrays
-                    X_seq_list_shaded = self.add_gaussian_noise(X_seq_list)
-                    flow_seq_list_shaded = self.add_gaussian_noise(flow_seq_list)
-                    # Append to the respective batch lists
-                    X_batch_list.append(X_seq_list_shaded)
-                    y_batch_list.append(y_seq_list[0])
-                    flow_batch_list.append(flow_seq_list_shaded)
-                    batch_index += 1
-
-                    # if train:
-                    #     plot_augmentation(train, val, test, evaluate, 1, X_seq_list,
-                    #         X_seq_list_flipped, X_seq_list_cropped, X_seq_list_shaded,
-                    #         seq_index, batch_index, window_index)
-                    #     plot_augmentation(train, val, test, evaluate, 0, flow_seq_list,
-                    #         flow_seq_list_flipped, flow_seq_list_cropped, flow_seq_list_shaded,
-                    #         seq_index, batch_index, window_index)
-
-                if batch_index % self.batch_size == 0 and not batch_index == 0:
-                    X_array = np.array(X_batch_list, dtype=np.float32)
-                    y_array = np.array(y_batch_list, dtype=np.uint8)
-                    flow_array = np.array(flow_batch_list, dtype=np.float32)
-                    if self.nb_labels == 2:
-                        y_array = tf.keras.utils.to_categorical(y_array, num_classes=self.nb_labels)
-                    y_array = np.reshape(y_array, (self.batch_size, self.nb_labels))
-                    batch_index = 0
-                    yield [X_array, flow_array], y_array
+                X_array = np.array(X_seq_list, dtype=np.dtype('U'))
+                flow_array = np.array(flow_seq_list, dtype=np.dtype('U'))
+                y_array = np.array(y_seq_list[0], dtype=np.uint8)
+                if self.nb_labels == 2:
+                    y_array = tf.keras.utils.to_categorical(y_array, num_classes=self.nb_labels)
+                yield [X_array, flow_array], y_array
 
     def prepare_2stream_image_generator_5D_with_paths(self, sequence_dfs, train):
         """
@@ -867,25 +880,25 @@ class DataHandler:
                 y_batch_list.append(y_seq_list[0])
                 batch_index += 1
 
-                if train and (self.aug_flip == 1):
-                    X_seq_list_flipped = self.flip_images(X_seq_list)
-                    X_batch_list.append(X_seq_list_flipped)
-                    y_batch_list.append(y_seq_list[0])
-                    batch_index += 1
+                # if train and (self.aug_flip == 1):
+                #     X_seq_list_flipped = self.flip_images(X_seq_list)
+                #     X_batch_list.append(X_seq_list_flipped)
+                #     y_batch_list.append(y_seq_list[0])
+                #     batch_index += 1
 
-                if train and (self.aug_crop == 1):
-                    crop_size = 99
-                    X_seq_list_cropped = self.random_crop_resize(X_seq_list,
-                                                                 crop_size, crop_size)
-                    X_batch_list.append(X_seq_list_cropped)
-                    y_batch_list.append(y_seq_list[0])
-                    batch_index += 1
+                # if train and (self.aug_crop == 1):
+                #     crop_size = 99
+                #     X_seq_list_cropped = self.random_crop_resize(X_seq_list,
+                #                                                  crop_size, crop_size)
+                #     X_batch_list.append(X_seq_list_cropped)
+                #     y_batch_list.append(y_seq_list[0])
+                #     batch_index += 1
 
-                if train and (self.aug_light == 1):
-                    X_seq_list_shaded = self.add_gaussian_noise(X_seq_list)
-                    X_batch_list.append(X_seq_list_shaded)
-                    y_batch_list.append(y_seq_list[0])
-                    batch_index += 1
+                # if train and (self.aug_light == 1):
+                #     X_seq_list_shaded = self.add_gaussian_noise(X_seq_list)
+                #     X_batch_list.append(X_seq_list_shaded)
+                #     y_batch_list.append(y_seq_list[0])
+                #     batch_index += 1
 
                 # if train:
                 #     plot_augmentation(train, val, test, evaluate, 1, X_seq_list,
@@ -951,18 +964,6 @@ class DataHandler:
             path, (self.image_size[0], self.image_size[1], self.color_channels),
             standardize=False)
         return flow
-
-    def flip_images(self, images):
-        flipped = []
-        for img in images:
-            flipped_img = self.flip_image(img)
-            flipped.append(flipped_img)
-        flipped_array = np.array(flipped, dtype=np.float32)
-        return flipped_array
-
-    @tf.function
-    def flip_image(self, image):
-        return tf.image.flip_left_right(image)
 
     def add_gaussian_noise(self, images):
         """
@@ -1381,7 +1382,7 @@ def prepare_fplp(same_video_features, same_video_preds, same_video_labels, same_
     :return: (np.array, np.array, np.array, np.array)
     """
     if zero_pad:
-        same_video_feats = zero_pad_list(same_video_feats, pad_length)
+        same_video_features = zero_pad_list(same_video_features, pad_length)
         same_video_preds = zero_pad_list(same_video_preds, pad_length)
         same_video_labels = zero_pad_list(same_video_labels, pad_length)
 
