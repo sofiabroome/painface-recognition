@@ -252,11 +252,13 @@ class MyModel:
         # rgb_model = self.clstm(channels=3, top_layer=False, bn=True)
         input_array = Input(shape=(None, self.config_dict['seq_length'],
                             self.input_shape[0], self.input_shape[1], 3))
-        encoded_image = rgb_model(input_array[0, :])
+        encoded_image = rgb_model(input_array[:, 0, :])
+        # encoded_image = rgb_model(input_array[0, :])
 
         of_model = self.convolutional_LSTM(channels=3, top_layer=False)
         # of_model = self.clstm(channels=3, top_layer=False, bn=True)
-        encoded_of = of_model(input_array[1, :])
+        encoded_of = of_model(input_array[:, 1, :])
+        # encoded_of = of_model(input_array[1, :])
 
         if fusion == 'add':
             merged = tf.keras.layers.add([encoded_image, encoded_of])
@@ -714,6 +716,7 @@ class MyModel:
             self.config_dict['nb_labels'], return_sequences=True)
 
         x = feature_enc1(input_features)
+        x = Dropout(self.config_dict['dropout_2'])(x)
         x = tf.keras.layers.BatchNormalization()(x)
         # x = feature_enc11(x)
         # x = tf.keras.layers.BatchNormalization()(x)
