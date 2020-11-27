@@ -76,3 +76,49 @@ def write_file(file_name, list_to_write):
         for string in list_to_write:
             f.write(string+'\n');
 
+
+def plot_augmentation(train, val, test, rgb, X_seq_list, flipped, cropped, shaded,
+                      seq_index, batch_index, window_index):
+    rows = 4
+    cols = 10
+    f, axarr = plt.subplots(rows, cols, figsize=(20, 10))
+    for i in range(0, rows):
+        for j in range(0, cols):
+            axarr[i, j].set_xticks([])
+            axarr[i, j].set_yticks([])
+            if i == 0:
+                im = X_seq_list[j]
+                im /= 255
+                axarr[i, j].imshow(im)
+            elif i == 1:
+                im = flipped[j]
+                im /= 255
+                axarr[i, j].imshow(im)
+            elif i == 2:
+                im = cropped[j]
+                im /= 255
+                axarr[i, j].imshow(im)
+            else:
+                im = shaded[j]
+                im /= 255
+                axarr[i, j].imshow(im)
+    plt.tick_params(axis='both', which='both', bottom='off', left='off')
+    f.subplots_adjust(wspace=0, hspace=0)
+    plt.subplots_adjust(wspace=0, hspace=0)
+    if train:
+        partition = 1
+    elif val:
+        partition = 2
+    elif test:
+        partition = 3
+    else:
+        partition = 4
+    plt.savefig('seq_{}_batch_{}_wi_{}_part_{}_rgb_{}.png'.format(
+        seq_index,
+        batch_index,
+        window_index,
+        partition,
+        rgb))
+    plt.close()
+
+

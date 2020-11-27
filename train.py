@@ -114,21 +114,10 @@ def get_k_max_scores_per_class(y_batch, preds_batch, lengths_batch, batch_size, 
     for sample_index in range(batch_size):
         sample_class_kmax_scores = []
         seq_length = lengths_batch[sample_index]
-        # padded_indices = [i for i in range(y_batch.shape[1]) if
-        #                   (y_batch[sample_index, i, 0] == 0 and y_batch[sample_index, i, 1] == 0)]
-
-        # if len(padded_indices) == 0:
-        #     seq_length = config_dict['video_pad_length']
-        # else:
-        #     seq_length = padded_indices[0]
-        # print(seq_length)
-        # print(preds_batch.shape)
         
         k = tf.cast(tf.math.ceil(config_dict['k_mil_fraction'] * tf.cast(seq_length, dtype=tf.float32)), dtype=tf.int32)
         # print('\n', k, seq_length)
         for class_index in range(config_dict['nb_labels']):
-            # Just need label index because the other would be zeroed out.
-            # preds_nopad = preds_batch[sample_index, :, class_index][:seq_length]
             preds_nopad = preds_batch[sample_index, :, class_index]
             k_preds, indices = tf.math.top_k(preds_nopad, k)
             sample_class_kmax_score = tf.cast(1/k, dtype=tf.float32) * tf.reduce_sum(k_preds)
@@ -140,20 +129,14 @@ def get_k_max_scores_per_class(y_batch, preds_batch, lengths_batch, batch_size, 
 
 def get_sparse_pain_loss(y_batch, preds_batch, lengths_batch, config_dict):
     batch_size = y_batch.shape[0]  # last batch may be smaller
-    # seq_lengths = [[i for i in range(y_batch.shape[1]) if (y_batch[b, i, 0] == 0 and y_batch[b, i, 1] == 0)][0]
-    #                for b in range(batch_size)]
-    # print(seq_lengths)
 
     def get_mil_loss(kmax_scores):
         kmax_distribution = tf.keras.layers.Activation('softmax')(kmax_scores)
         mils = 0
-        # for sample_index in range(config_dict['video_batch_size']):
         for sample_index in range(batch_size):
             label_index = tf.argmax(y_batch[sample_index, 0, :])  # Take first (video-level label)
             mil = tf.math.log(kmax_distribution[sample_index, label_index])
             mils += mil
-        # return mils/config_dict['video_batch_size']
-        # return mils/batch_size
         return mils
 
     kmax_scores = get_k_max_scores_per_class(y_batch, preds_batch, lengths_batch, batch_size, config_dict)
@@ -261,10 +244,12 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
     val_steps = len([sample for sample in val_dataset])
     epochs_not_improved = 0
 
-    @tf.function(input_signature=(tf.TensorSpec(shape=[config_dict['video_batch_size'], config_dict['video_pad_length'], config_dict['feature_dim']], dtype=tf.float32),
-                                  tf.TensorSpec(shape=[config_dict['video_batch_size'], config_dict['video_pad_length'], 2], dtype=tf.float32),
-                                  tf.TensorSpec(shape=[config_dict['video_batch_size'], config_dict['video_pad_length'], 2], dtype=tf.int32),
-                                  tf.TensorSpec(shape=[config_dict['video_batch_size'],], dtype=tf.int32)))
+    @tf.function(input_signature=(
+        tf.TensorSpec(shape=[config_dict['video_batch_size'], config_dict['video_pad_length'],
+            config_dict['feature_dim']], dtype=tf.float32),
+        tf.TensorSpec(shape=[config_dict['video_batch_size'], config_dict['video_pad_length'], 2], dtype=tf.float32),
+        tf.TensorSpec(shape=[config_dict['video_batch_size'], config_dict['video_pad_length'], 2], dtype=tf.int32),
+        tf.TensorSpec(shape=[config_dict['video_batch_size'],], dtype=tf.int32)))
     def train_step(x, preds, y, lengths):
         with tf.GradientTape() as tape:
             if config_dict['video_loss'] == 'cross_entropy':
@@ -294,10 +279,12 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
         train_acc_metric.update_state(y, preds)
         return grads, model.trainable_weights, grads_names, loss, tv_p, tv_np, mil
 
-    @tf.function(input_signature=(tf.TensorSpec(shape=[config_dict['video_batch_size'], config_dict['video_pad_length'], config_dict['feature_dim']], dtype=tf.float32),
-                                  tf.TensorSpec(shape=[config_dict['video_batch_size'], config_dict['video_pad_length'], 2], dtype=tf.float32),
-                                  tf.TensorSpec(shape=[config_dict['video_batch_size'], config_dict['video_pad_length'], 2], dtype=tf.int32),
-                                  tf.TensorSpec(shape=[config_dict['video_batch_size'],], dtype=tf.int32)))
+    @tf.function(input_signature=(
+        tf.TensorSpec(shape=[config_dict['video_batch_size'], config_dict['video_pad_length'],
+            config_dict['feature_dim']], dtype=tf.float32),
+        tf.TensorSpec(shape=[config_dict['video_batch_size'], config_dict['video_pad_length'], 2], dtype=tf.float32),
+        tf.TensorSpec(shape=[config_dict['video_batch_size'], config_dict['video_pad_length'], 2], dtype=tf.int32),
+        tf.TensorSpec(shape=[config_dict['video_batch_size'],], dtype=tf.int32)))
     def validation_step(x, preds, y, lengths):
         if config_dict['video_loss'] == 'cross_entropy':
             preds = model([x, preds], training=False)
@@ -524,7 +511,7 @@ def save_features(model, config_dict, steps, dataset):
     if config_dict['inference_only']:
         model.load_weights(config_dict['checkpoint']).expect_partial()
 
-    # @tf.function
+    @tf.function
     def get_features_step(x):
         predictions, features = model(x, training=False)
         # Downsample further with one MP layer, strides and kernel 2x2

@@ -80,7 +80,6 @@ class DataHandler:
         frame = tf.io.read_file(path)
         frame = tf.image.decode_jpeg(frame, channels=self.color_channels)
         frame = normalization_layer(frame)
-        # frame = frame/255
         if standardize:
             frame = (frame - self.pixel_mean)/self.pixel_std
         return frame
@@ -93,12 +92,6 @@ class DataHandler:
             flow = self.process_image(x[1,i], standardize=False)
             clip.append(frame)
             flow_clip.append(flow)
-        # clip = [tf.io.read_file(x[0,i]) for i in range(self.seq_length)]
-        # clip = [tf.image.decode_jpeg(clip[i], channels=self.color_channels)
-        #     for i in range(self.seq_length)]
-        # flow_clip = [tf.io.read_file(x[1,i]) for i in range(self.seq_length)]
-        # flow_clip = [tf.image.decode_jpeg(flow_clip[i], channels=self.color_channels)
-        #     for i in range(self.seq_length)]
         x = [clip, flow_clip]
         return x, label
 
@@ -519,37 +512,6 @@ class DataHandler:
 
                 batch_index += 1
 
-                # if train and (self.aug_flip == 1):
-                #     # Flip both RGB and flow
-                #     X_flipped = self.flip_image(x)
-                #     flow_flipped = self.flip_image(flow)
-                #     # Append to the respective batch lists
-                #     X_batch_list.append(X_flipped)
-                #     y_batch_list.append(y)
-                #     flow_batch_list.append(flow_flipped)
-                #     batch_index += 1
-
-                # if train and (self.aug_crop == 1):
-                #     crop_size = 99
-                #     # Flip both RGB and flow
-                #     X_cropped = self.random_crop_resize_single_image(x, crop_size, crop_size)
-                #     flow_cropped = self.random_crop_resize_single_image(flow, crop_size, crop_size)
-                #     # Append to the respective batch lists
-                #     X_batch_list.append(X_cropped)
-                #     y_batch_list.append(y)
-                #     flow_batch_list.append(flow_cropped)
-                #     batch_index += 1
-
-                # if train and (self.aug_light == 1):
-                #     # Flip both RGB and flow
-                #     X_shaded = self.add_gaussian_noise_to_single_image(x)
-                #     flow_shaded = self.add_gaussian_noise_to_single_image(flow)
-                #     # Append to the respective batch lists
-                #     X_batch_list.append(X_shaded)
-                #     y_batch_list.append(y)
-                #     flow_batch_list.append(flow_shaded)
-                #     batch_index += 1
-
                 if batch_index % self.batch_size == 0 and not batch_index == 0:
                     X_array = np.array(X_batch_list, dtype=np.float32)
                     y_array = np.array(y_batch_list, dtype=np.uint8)
@@ -879,31 +841,6 @@ class DataHandler:
                 X_batch_list.append(X_seq_list)
                 y_batch_list.append(y_seq_list[0])
                 batch_index += 1
-
-                # if train and (self.aug_flip == 1):
-                #     X_seq_list_flipped = self.flip_images(X_seq_list)
-                #     X_batch_list.append(X_seq_list_flipped)
-                #     y_batch_list.append(y_seq_list[0])
-                #     batch_index += 1
-
-                # if train and (self.aug_crop == 1):
-                #     crop_size = 99
-                #     X_seq_list_cropped = self.random_crop_resize(X_seq_list,
-                #                                                  crop_size, crop_size)
-                #     X_batch_list.append(X_seq_list_cropped)
-                #     y_batch_list.append(y_seq_list[0])
-                #     batch_index += 1
-
-                # if train and (self.aug_light == 1):
-                #     X_seq_list_shaded = self.add_gaussian_noise(X_seq_list)
-                #     X_batch_list.append(X_seq_list_shaded)
-                #     y_batch_list.append(y_seq_list[0])
-                #     batch_index += 1
-
-                # if train:
-                #     plot_augmentation(train, val, test, evaluate, 1, X_seq_list,
-                #         X_seq_list_flipped, X_seq_list_cropped, X_seq_list_shaded,
-                #         seq_index, batch_index, window_index)
 
                 if batch_index % self.batch_size == 0 and not batch_index == 0:
                     X_array = np.array(X_batch_list, dtype=np.float32)
@@ -1250,51 +1187,6 @@ class DataHandler:
         if surplus != 0:
             data_list = data_list[:-surplus]
         return data_list
-
-
-def plot_augmentation(train, val, test, rgb, X_seq_list, flipped, cropped, shaded,
-                      seq_index, batch_index, window_index):
-    rows = 4
-    cols = 10
-    f, axarr = plt.subplots(rows, cols, figsize=(20, 10))
-    for i in range(0, rows):
-        for j in range(0, cols):
-            axarr[i, j].set_xticks([])
-            axarr[i, j].set_yticks([])
-            if i == 0:
-                im = X_seq_list[j]
-                im /= 255
-                axarr[i, j].imshow(im)
-            elif i == 1:
-                im = flipped[j]
-                im /= 255
-                axarr[i, j].imshow(im)
-            elif i == 2:
-                im = cropped[j]
-                im /= 255
-                axarr[i, j].imshow(im)
-            else:
-                im = shaded[j]
-                im /= 255
-                axarr[i, j].imshow(im)
-    plt.tick_params(axis='both', which='both', bottom='off', left='off')
-    f.subplots_adjust(wspace=0, hspace=0)
-    plt.subplots_adjust(wspace=0, hspace=0)
-    if train:
-        partition = 1
-    elif val:
-        partition = 2
-    elif test:
-        partition = 3
-    else:
-        partition = 4
-    plt.savefig('seq_{}_batch_{}_wi_{}_part_{}_rgb_{}.png'.format(
-        seq_index,
-        batch_index,
-        window_index,
-        partition,
-        rgb))
-    plt.close()
 
 
 def get_video_id_stem_from_path(path):
