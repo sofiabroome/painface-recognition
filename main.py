@@ -135,6 +135,7 @@ if __name__ == '__main__':
     config_dict['job_identifier'] = args.job_identifier
     print('Job identifier: ', args.job_identifier)
     wandb.init(project='pfr', config=config_dict)
+    wandb.save('models.py')
 
     all_subjects_df = pd.read_csv(args.subjects_overview)
 
