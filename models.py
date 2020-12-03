@@ -599,12 +599,12 @@ class MyModel:
     def video_fc_model(self):
         input_features = Input(shape=(self.config_dict['video_pad_length'], self.config_dict['feature_dim']))
         input_preds = Input(shape=(self.config_dict['video_pad_length'], 2))
-        # x_preds = tf.keras.layers.Flatten()(input_preds)
-        x_feats = tf.keras.layers.Flatten()(input_features)
+        x_preds = tf.keras.layers.Flatten()(input_preds)
+        # x_feats = tf.keras.layers.Flatten()(input_features)
         # x = tf.keras.layers.concatenate([x_preds, x_feats], axis=1)
         # x = tf.keras.layers.GlobalAveragePooling1D()(input_features)
 
-        x = tf.keras.layers.Dense(units=self.config_dict['nb_units_1'])(x_feats)
+        x = tf.keras.layers.Dense(units=self.config_dict['nb_units_2'])(x_preds)
         x = tf.keras.layers.Dense(units=self.config_dict['nb_labels'])(x)
         x = Activation('softmax')(x)
 
@@ -703,11 +703,10 @@ class MyModel:
 
     def video_level_preds_attn_network(self):
 
-        # input_features = Input(shape=(None, self.config_dict['feature_dim']))
-        # input_preds = Input(shape=(None, 2))
         input_features = Input(shape=(self.config_dict['video_pad_length'], self.config_dict['feature_dim']))
         input_preds = Input(shape=(self.config_dict['video_pad_length'], 2))
-
+        
+        # FEATURES
         feature_enc1 = tf.keras.layers.GRU(
             self.config_dict['nb_units_1'], return_sequences=True)
         # feature_enc11 = tf.keras.layers.GRU(
@@ -717,19 +716,20 @@ class MyModel:
 
         x = feature_enc1(input_features)
         x = Dropout(self.config_dict['dropout_2'])(x)
-        x = tf.keras.layers.BatchNormalization()(x)
         # x = feature_enc11(x)
-        # x = tf.keras.layers.BatchNormalization()(x)
         x = feature_enc2(x)
-        # feature_enc2 = tf.keras.layers.GRU(
-        #     self.config_dict['nb_labels'], return_sequences=True)
+        
+        # PREDS
         # preds_enc_1 = tf.keras.layers.GRU(
-        #     self.config_dict['nb_units_1'], return_sequences=True)
-        # preds_enc_2 = tf.keras.layers.GRU(
-        #     self.config_dict['nb_labels'], return_sequences=True)
+        #     self.config_dict['nb_units_2'], return_sequences=True)
+        preds_enc_2 = tf.keras.layers.GRU(
+            self.config_dict['nb_labels'], return_sequences=True)
+
         # preds = preds_enc_1(input_preds)
-        # preds = preds_enc_2(input_preds)
-        # x = tf.keras.layers.multiply([x, preds])
+        preds = preds_enc_2(input_preds)
+
+        x = tf.keras.layers.multiply([x, preds])
+
         x = tf.keras.layers.BatchNormalization()(x)
         # x = tf.keras.layers.GlobalMaxPooling1D()(x)
         # x = tf.keras.layers.GlobalAveragePooling1D()(x)
