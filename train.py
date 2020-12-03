@@ -276,7 +276,10 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
         grads_names = [tw.name for tw in model.trainable_weights]
         optimizer.apply_gradients(zip(grads, model.trainable_weights))
         train_acc_metric.update_state(y, preds)
-        return grads, model.trainable_weights, grads_names, loss, tv_p, tv_np, mil
+        if 'mil' in config_dict['video_loss']:
+            return grads, model.trainable_weights, grads_names, loss, tv_p, tv_np, mil
+        else:
+            return grads, model.trainable_weights, grads_names, loss
 
     @tf.function(input_signature=(
         tf.TensorSpec(shape=[config_dict['video_batch_size'], config_dict['video_pad_length'],
@@ -309,7 +312,10 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
             preds = 1/2 * (preds_one + preds_mil)
             y = y[:, 0, :]
         val_acc_metric.update_state(y, preds)
-        return loss, tv_p, tv_np, mil
+        if 'mil' in config_dict['video_loss']:
+            return loss, tv_p, tv_np, mil
+        else:
+            return loss
 
     k_mil_drop = config_dict['k_mil_fraction_start'] - config_dict['k_mil_fraction_end']
     nb_decrements = k_mil_drop/config_dict['k_mil_fraction_decrement_step']
@@ -342,14 +348,20 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
                 lengths_batch = get_nb_clips_per_video(video_id, df_video_lengths_train)
 
                 # print('\n Video ID: ', video_id)
-                grads, trainable_weights, grads_names, loss_value, tv_p, tv_np, mil = train_step(
-                    feats_batch, preds_batch, labels_batch, lengths_batch)
+
+                if 'mil' in config_dict['video_loss']:
+                    grads, trainable_weights, grads_names, loss_value, tv_p, tv_np, mil = train_step(
+                        feats_batch, preds_batch, labels_batch, lengths_batch)
+                    wandb.log({'tv_nopain': tv_np.numpy()})
+                    wandb.log({'tv_pain': tv_p.numpy()})
+                    wandb.log({'mil': mil.numpy()})
+                else:
+                    grads, trainable_weights, grads_names, loss_value = train_step(
+                        feats_batch, preds_batch, labels_batch, lengths_batch)
+
                 # step_time = time.time() - step_start_time
                 # print('Step time: %.2f' % step_time)
                 wandb.log({'train_loss': loss_value.numpy()})
-                wandb.log({'tv_nopain': tv_np.numpy()})
-                wandb.log({'tv_pain': tv_p.numpy()})
-                wandb.log({'mil': mil.numpy()})
                 if step % config_dict['print_loss_every'] == 0:
                     for ind, g in enumerate(grads):
                         wandb.log({'grad_' + grads_names[ind].numpy().decode("utf-8"): wandb.Histogram(g.numpy())})
@@ -385,15 +397,21 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
                     feats_batch, preds_batch, labels_batch, video_id = sample
                     lengths_batch = get_nb_clips_per_video(video_id, df_video_lengths_val)
                     # print('\n Video ID: ', video_id)
-                    loss_value, tv_p, tv_np, mil = validation_step(
-                        feats_batch, preds_batch, labels_batch, lengths_batch)
+                    if 'mil' in config_dict['video_loss']:
+                        loss_value, tv_p, tv_np, mil = validation_step(
+                            feats_batch, preds_batch, labels_batch, lengths_batch)
+                    else:
+                        loss_value = validation_step(
+                            feats_batch, preds_batch, labels_batch, lengths_batch)
+
                     # step_time = time.time() - step_start_time
                     # print('Step time: %.2f' % step_time)
 
             wandb.log({'val_loss': loss_value.numpy()})
-            wandb.log({'val_tv_nopain': tv_np.numpy()})
-            wandb.log({'val_tv_pain': tv_p.numpy()})
-            wandb.log({'val_mil': mil.numpy()})
+            if 'mil' in config_dict['video_loss']:
+                wandb.log({'val_tv_nopain': tv_np.numpy()})
+                wandb.log({'val_tv_pain': tv_p.numpy()})
+                wandb.log({'val_mil': mil.numpy()})
             val_acc = val_acc_metric.result()
             wandb.log({'val_acc': val_acc})
             print("Validation acc: %.4f" % (float(val_acc),))
