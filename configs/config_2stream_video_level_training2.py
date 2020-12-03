@@ -27,9 +27,12 @@ config_dict = {
     # 'checkpoint': 'models/124805_last_model_2stream_5d_add.ckpt',
     'checkpoint': 'models/130425_best_model_2stream_5d_add.ckpt',
     'save_video_features_folder': 'lps/video_level_features_320dim_noresample/',
-    'train_video_features_folder': 'lps/video_level_features_130425bestmodel_20480dim_zeropad_noresample/',
-    'val_video_features_folder': 'lps/video_level_features_130425bestmodel_20480dim_zeropad_noresample/',
-    'test_video_features_folder': 'lps/video_level_features_130425bestmodel_20480dim_zeropad_noresample/',
+    'train_video_features_folder': 'lps/video_level_features_132766bestmodel_20480dim_zeropad_noresample/',
+    'val_video_features_folder': 'lps/video_level_features_132766bestmodel_20480dim_zeropad_noresample/',
+    'test_video_features_folder': 'lps/video_level_features_132766bestmodel_20480dim_zeropad_noresample/',
+    # 'train_video_features_folder': 'lps/video_level_features_130425bestmodel_20480dim_zeropad_noresample/',
+    # 'val_video_features_folder': 'lps/video_level_features_130425bestmodel_20480dim_zeropad_noresample/',
+    # 'test_video_features_folder': 'lps/video_level_features_130425bestmodel_20480dim_zeropad_noresample/',
     # 'train_video_features_folder': 'lps/video_level_features_20480dim_noresample/',
     # 'val_video_features_folder': 'lps/video_level_features_20480dim_noresample/',
     # 'test_video_features_folder': 'lps/video_level_features_20480dim_noresample/',
@@ -84,7 +87,11 @@ config_dict = {
     'video_nb_epochs': 200,
     'video_early_stopping': 100,
     'shuffle_buffer': 150,
-    'k_mil_fraction': 0.05,
+    'k_mil_fraction': -1,  # This is to be updated using below params
+    'k_mil_fraction_start': 0.5,
+    'k_mil_fraction_end': 0.05,
+    'k_mil_fraction_decrement_step': 0.05,
+    'k_mil_fraction_nb_epochs_to_decrease': 1,
     'tv_weight_pain': 0.0001,
     'tv_weight_nopain': 0.001,
     # Parameters for functional API C-LSTM
@@ -113,7 +120,7 @@ config_dict = {
     'aug_flip': 0,
     'aug_crop': 0,
     'aug_light': 0,
-    'print_loss_every': 100,
+    'print_loss_every': 100000,
     'resample_start_fraction_of_seq_length': 0.5,
     # Temporal mask things
     'normalization_mode': 'sequence',  # 'frame' | 'sequence'

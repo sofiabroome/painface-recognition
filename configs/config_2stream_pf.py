@@ -23,7 +23,7 @@ config_dict = {
     'lps_of_path': data_path + 'lps/jpg_128_128_16fps_OF_magnitude_cv2_2fpsrate/',
     'pixel_mean': pixel_means.pf_rgb['mean'],
     'pixel_std': pixel_means.pf_rgb['std'],
-    'checkpoint': 'models/124805_last_model_2stream_5d_add.ckpt',
+    'checkpoint': 'models/132766_best_model_2stream_5d_add.ckpt',
     # Model
     'model': '2stream_5d_add',
     'rgb_period': 1,  # Set to 10 if simonyan-like model
@@ -47,8 +47,8 @@ config_dict = {
     'video_early_stopping': 15,
     'shuffle_buffer': 150,
     # Training
-    'nb_epochs': 1,
-    'early_stopping': 30,
+    'nb_epochs': 200,
+    'early_stopping': 50,
     'optimizer': 'adadelta',
     'lr': 0.001,
     'round_to_batch': True,
@@ -62,7 +62,7 @@ config_dict = {
     'monitor_mode': 'max',
     'data_type': 'rgb',
     'nb_lstm_layers': 4,
-    'aug_flip': 0,
+    'aug_flip': 1,
     'aug_crop': 0,
     'aug_light': 0,
     'print_loss_every': 5000,

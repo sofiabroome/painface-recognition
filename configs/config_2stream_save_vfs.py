@@ -11,7 +11,7 @@ config_dict = {
     'save_features_per_video': True,
     'video_level_mode': True,
     'train_video_level_features': False,
-    'do_evaluate': True,
+    'do_evaluate': False,
     'val_mode': 'subject',  # subject | fraction | no_val
     'train_mode': 'low_level',  # keras | low_level
     # Data
@@ -25,8 +25,9 @@ config_dict = {
     'pixel_mean': pixel_means.pf_rgb['mean'],
     'pixel_std': pixel_means.pf_rgb['std'],
     # 'checkpoint': 'models/124805_last_model_2stream_5d_add.ckpt',
-    'checkpoint': 'models/130425_best_model_2stream_5d_add.ckpt',
-    'save_video_features_folder': 'lps/video_level_features_130425bestmodel_20480dim_zeropad_noresample/',
+    # 'checkpoint': 'models/130425_best_model_2stream_5d_add.ckpt',
+    'checkpoint': 'models/132766_best_model_2stream_5d_add.ckpt',
+    'save_video_features_folder': 'lps/video_level_features_132766bestmodel_20480dim_zeropad_noresample/',
     'train_video_features_folder': 'lps/video_level_features_20480dim_resample/',
     'val_video_features_folder': 'lps/video_level_features_20480dim_noresample/',
     'test_video_features_folder': 'lps/video_level_features_20480dim_noresample/',

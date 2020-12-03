@@ -4,9 +4,9 @@ data_path = '/local_storage/users/sbroome/painface-recognition/'
 config_dict = {
     # Program components
     'get_raw_sequence_data': True,
-    'inference_only': False,
+    'inference_only': True,
     'fine_tune': False,
-    'save_features': False,
+    'save_features': True,
     'save_features_per_video': False,
     'video_level_mode': False,
     'train_video_level_features': False,
@@ -21,9 +21,9 @@ config_dict = {
     'lps_rgb_path': data_path + 'lps/jpg_128_128_2fps/',
     'pf_of_path': data_path + 'pf/jpg_128_128_16fps_OF_magnitude_cv2/',
     'lps_of_path': data_path + 'lps/jpg_128_128_16fps_OF_magnitude_cv2_2fpsrate/',
-    'pixel_mean': pixel_means.lps_rgb['mean'],
-    'pixel_std': pixel_means.lps_rgb['std'],
-    'checkpoint': 'models/124805_last_model_2stream_5d_add.ckpt',
+    'pixel_mean': pixel_means.pf_rgb['mean'],
+    'pixel_std': pixel_means.pf_rgb['std'],
+    'checkpoint': 'models/132766_best_model_2stream_5d_add.ckpt',
     # Model
     'model': '2stream_5d_add',
     'rgb_period': 1,  # Set to 10 if simonyan-like model
@@ -75,4 +75,4 @@ config_dict = {
     'pooling_method' : 'max',
     'return_sequences' : [True, True, True, True],
     'only_last_element_for_fc' : 'no',
-    'return_last_clstm' : False}
+    'return_last_clstm' : True}

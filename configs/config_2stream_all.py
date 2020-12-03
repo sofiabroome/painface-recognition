@@ -34,8 +34,6 @@ config_dict = {
     'nb_labels': 2,
     'target_names': ['NO_PAIN', 'PAIN'],
     'nb_lstm_units': 32,
-    'nb_dense_units': 32,
-    'nb_conv_filters': 16,
     'kernel_size': 5,
     'dropout_1': 0.25,
     'dropout_2': 0.5,
@@ -67,7 +65,7 @@ config_dict = {
     'aug_flip': 1,
     'aug_crop': 0,
     'aug_light': 0,
-    'print_loss_every':5000,
+    'print_loss_every': 5000,
     'resample_start_fraction_of_seq_length': 0.5,
     # Parameters for functional API C-LSTM
     'kernel_regularizer' : None,
