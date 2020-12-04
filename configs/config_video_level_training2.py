@@ -28,7 +28,7 @@ config_dict = {
     # 'checkpoint': 'models/124805_last_model_2stream_5d_add.ckpt',
     'checkpoint': 'models/130425_best_model_2stream_5d_add.ckpt',
     'save_video_features_folder': 'lps/video_level_features_320dim_noresample/',
-    'tfr_file': 'lps/tfrecords_video_level_features_132766bestmodel_20480dim_zeropad_noresample/lps_videofeats_132766best_flat.tfrecords',
+    'tfr_file': 'lps/tfrecords_video_level_features_132766bestmodel_20480dim_zeropad_noresample/lps_videofeats_132766best_flat',
     'train_video_features_folder': 'lps/video_level_features_132766bestmodel_20480dim_zeropad_noresample/',
     'val_video_features_folder': 'lps/video_level_features_132766bestmodel_20480dim_zeropad_noresample/',
     'test_video_features_folder': 'lps/video_level_features_132766bestmodel_20480dim_zeropad_noresample/',
