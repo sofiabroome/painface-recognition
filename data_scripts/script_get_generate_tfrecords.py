@@ -1,79 +1,74 @@
+import sys
+sys.path.append('..')
 import os
+import helpers
 import argparse
 
+import numpy as np
 import pandas as pd
 import tensorflow as tf
 
 import generate_tfrecords as gtfr
 
 
-def process_files_and_write(df, labels_df, split_folder, args):
+def process_files_and_write(df_summary, path_to_features, args, config_dict):
 
-    output_filename = split_folder[:-1] + '.tfrecords'
-    output_file = os.path.join(args.output_folder, output_filename)
-    print('Output file path: ', output_file)
-    writer = tf.python_io.TFRecordWriter(output_file)
+    default_array_str = 'arr_0'
+    subj_codes = ['A', 'B', 'H', 'I', 'J', 'K', 'N', 'S']
 
-    for ind, row in df.iterrows():
-        print('Index in df: ', ind, end='\r')
-        video_id = str(row['id'])
-        label = row['template'].replace('[','').replace(']','')
-        label_number = labels_df[label]
-        label_folder_path = split_folder + str(label_number) + '/' 
-        frames_folder_path = label_folder_path + video_id + '/'
-        video_buffer = gtfr.get_video_buffer(frames_folder_path,
-                                             start_frame=0,
-                                             end_frame=args.nb_frames)
-        example = gtfr.convert_to_sequential_example(video_id,
-                                                     video_buffer,
-                                                     label_number,
-                                                     args)
-        writer.write(example.SerializeToString())
+    for subj_code in subject_codes:
+        df = df_summary[(df_summary.subject == subj_code)]
 
-    writer.close()
+        output_filename = 'lps_videofeats_132766best_flat_{}.tfrecords'.format(subj_code)
+        output_file = os.path.join(args.output_folder, output_filename)
+        print('Output file path: ', output_file)
+        writer = tf.io.TFRecordWriter(output_file)
+
+        for ind, row in df.iterrows():
+            print('Index in df: ', ind, end='\r')
+            video_id = str(row['video_id'])
+            npz_path = path_to_features + video_id + '.npz'
+            loaded = np.load(npz_path, allow_pickle=True)[default_array_str].tolist()
+            feats = loaded['features']
+            f_shape = feats.shape
+            preds = np.array(loaded['preds'])
+            labels = np.array(loaded['labels'])
+
+            example = gtfr.convert_to_sequential_example(feats,
+                                                         preds,
+                                                         labels,
+                                                         video_id,
+                                                         args,
+                                                         config_dict)
+            writer.write(example.SerializeToString())
+
+        writer.close()
         
 
 def main():
-    train_json = '~/Downloads/something-something-v2-train.json'
-    val_json = '~/Downloads/something-something-v2-validation.json'
-    
-    test_json = '~/Downloads/something-something-v2-test.json'
-    
-    labels_json = '~/Downloads/something-something-v2-labels.json'
-    
-    labels_df = pd.read_json(labels_json, typ='series')
-
-    # SET VAL OR TRAIN
-
-    train_df = pd.read_json(train_json)
-    split_folder = 'train_128/'
-
-    # val_df = pd.read_json(val_json)
-    # split_folder = 'validation_128/'
-
     parser = argparse.ArgumentParser(
         description='Some parameters.')
     parser.add_argument(
         '--output-folder', nargs='?', type=str,
         help='Folder where to output the tfrecords file')
     parser.add_argument(
-        '--nb-frames', nargs='?', type=int,
-        help='The number of frames per sequence.')
-    parser.add_argument(
-        '--width', nargs='?', type=int,
-        help='Image width')
-    parser.add_argument(
-        '--height', nargs='?', type=int,
-        help='Image height')
+        '--config', nargs='?', type=str,
+        help='Config file')
     args = parser.parse_args()
     print(args)
 
     if not os.path.exists(args.output_folder):
         os.makedirs(args.output_folder)
     print('Saving results to %s' % args.output_folder)
+    config_dict_module = helpers.load_module(args.config)
+    config_dict = config_dict_module.config_dict
+
+    feature_folder = config_dict['train_video_features_folder']
+    path_to_features = config_dict['data_path'] + feature_folder
+    df_summary = pd.read_csv(path_to_features + 'summary.csv')
 
     # Run it!
-    process_files_and_write(train_df, labels_df, split_folder, args)
+    process_files_and_write(df_summary, path_to_features, args, config_dict)
 
 
 if __name__ == '__main__':
