@@ -16,7 +16,7 @@ def process_files_and_write(df_summary, path_to_features, args, config_dict):
     default_array_str = 'arr_0'
     subj_codes = ['A', 'B', 'H', 'I', 'J', 'K', 'N', 'S']
 
-    for subj_code in subject_codes:
+    for subj_code in subj_codes:
         df = df_summary[(df_summary.subject == subj_code)]
 
         output_filename = 'lps_videofeats_132766best_flat_{}.tfrecords'.format(subj_code)
@@ -29,10 +29,10 @@ def process_files_and_write(df_summary, path_to_features, args, config_dict):
             video_id = str(row['video_id'])
             npz_path = path_to_features + video_id + '.npz'
             loaded = np.load(npz_path, allow_pickle=True)[default_array_str].tolist()
-            feats = loaded['features']
+            feats = loaded['features'].astype(np.float32)
             f_shape = feats.shape
-            preds = np.array(loaded['preds'])
-            labels = np.array(loaded['labels'])
+            preds = np.array(loaded['preds']).astype(np.float32)
+            labels = np.array(loaded['labels']).astype(np.int32)
 
             example = gtfr.convert_to_sequential_example(feats,
                                                          preds,

@@ -1,13 +1,6 @@
 import tensorflow as tf
 
 
-def int64_features(value):
-    """Wrapper for inserting int64 features into Example proto."""
-    if not isinstance(value, list):
-        value = value.reshape(-1)
-        value = [value]
-    return tf.train.Feature(int64_list=tf.train.Int64List(value=value))
-
 def int64_feature(value):
     """Wrapper for inserting int64 features into Example proto."""
     if not isinstance(value, list):
@@ -21,11 +14,6 @@ def bytes_feature(value):
     if isinstance(value, type(tf.constant(0))):
         value = value.numpy() 
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
-
-
-def bytes_list_feature(values):
-    """Wrapper for inserting bytes features into Example proto."""
-    return tf.train.Feature(bytes_list=tf.train.BytesList(value=values))
 
 
 def convert_to_sequential_example(feats, preds, labels, video_id, args, config_dict):
