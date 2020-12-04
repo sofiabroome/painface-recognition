@@ -165,20 +165,32 @@ class DataHandler:
             code = self.all_subjects_df[
                 self.all_subjects_df['subject'] == subj]['code']
             subj_codes.append(code.values[0])
-        dataset = tf.data.Dataset.from_generator(
-            lambda: self.generate_features(subject_codes=subj_codes,
-                                           split=split),
-            output_types=(tf.float32, tf.float32, tf.int32, tf.string),
-            output_shapes=(tf.TensorShape([None, None]),
-                           tf.TensorShape([None, 2]),
-                           tf.TensorShape([None, 2]),
-                           tf.TensorShape([]))
-        )
+
+        if self.config_dict['tfrecords']:
+            # file_paths = [self.config_dict['data_path'] + self.config_dict['tfr_file']]
+            file_paths = self.config_dict['data_path'] + self.config_dict['tfr_file']
+            dataset = tf.data.TFRecordDataset(file_paths)
+            print(dataset)
+            dataset = dataset.map(parse_fn)
+            print(dataset)
+
+        else:
+            dataset = tf.data.Dataset.from_generator(
+                lambda: self.generate_features(subject_codes=subj_codes,
+                                               split=split),
+                output_types=(tf.float32, tf.float32, tf.int32, tf.string),
+                output_shapes=(tf.TensorShape([None, None]),
+                               tf.TensorShape([None, 2]),
+                               tf.TensorShape([None, 2]),
+                               tf.TensorShape([]))
+            )
         print('Shuffling dataset...')
         dataset = dataset.shuffle(
             self.config_dict['shuffle_buffer'], reshuffle_each_iteration=True)
-        dataset = dataset.padded_batch(self.config_dict['video_batch_size'], drop_remainder=True)
+        # dataset = dataset.padded_batch(self.config_dict['video_batch_size'], drop_remainder=True)
+        dataset = dataset.batch(self.config_dict['video_batch_size'])
         return dataset
+
 
     def generate_features(self,
                           subject_codes,
@@ -1343,3 +1355,41 @@ def mergesort_features_into_dict(video_id, d1, d2, pad_length, zero_pad):
     merged_dict = put_in_dict(feats, preds, labels, paths, length, subject)
 
     return merged_dict, length
+
+
+def parse_fn(proto):
+
+    # Define the tfrecord again. The sequence was saved as a string.
+    keys_to_features = {
+        'nb_clips': tf.io.FixedLenFeature([], tf.int64),
+        'height': tf.io.FixedLenFeature([], tf.int64),
+        'width': tf.io.FixedLenFeature([], tf.int64),
+        'features': tf.io.FixedLenFeature([], tf.string),
+        'preds': tf.io.FixedLenFeature([], tf.string),
+        'labels': tf.io.FixedLenFeature([], tf.string),
+        'video_id': tf.io.FixedLenFeature([], tf.string),
+    }
+
+    # Load one example
+    parsed_features = tf.io.parse_single_example(proto, keys_to_features)
+
+    video_ID = parsed_features['video_id']
+    feats = tf.io.parse_tensor(parsed_features['features'], out_type=tf.float64)
+    preds = tf.io.parse_tensor(parsed_features['preds'], out_type=tf.float64)
+    labels = tf.io.parse_tensor(parsed_features['labels'], out_type=tf.float64)
+
+    # feats = tf.ensure_shape(feats, [self.config_dict['video_pad_length'], self.config_dict['feature_dim']])
+    # preds = tf.ensure_shape(preds, [self.config_dict['video_pad_length'], self.config_dict['nb_labels']])
+    # labels = tf.ensure_shape(labels, [self.config_dict['video_pad_length'], self.config_dict['nb_labels']])
+
+    feats = tf.ensure_shape(feats, [144, 20480])
+    preds = tf.ensure_shape(preds, [144, 2])
+    labels = tf.ensure_shape(labels, [144, 2])
+
+    feats = tf.cast(feats, tf.float32)
+    preds = tf.cast(preds, tf.float32)
+    labels = tf.cast(labels, tf.int32)
+
+    return feats, preds, labels, video_ID
+
+
