@@ -167,12 +167,13 @@ class DataHandler:
             subj_codes.append(code.values[0])
 
         if self.config_dict['tfrecords']:
-            # file_paths = [self.config_dict['data_path'] + self.config_dict['tfr_file']]
-            file_paths = self.config_dict['data_path'] + self.config_dict['tfr_file']
-            dataset = tf.data.TFRecordDataset(file_paths)
-            print(dataset)
-            dataset = dataset.map(parse_fn)
-            print(dataset)
+            base_path = self.config_dict['data_path'] + self.config_dict['tfr_file']
+            file_paths = [(base_path + '_{}.tfrecords'.format(sc)) for sc in subj_codes]
+            dataset = tf.data.Dataset.from_tensor_slices(file_paths)
+            dataset = dataset.interleave(lambda x: tf.data.TFRecordDataset(x),
+                cycle_length=8, block_length=1, num_parallel_calls=tf.data.experimental.AUTOTUNE,
+                deterministic=False).cache()
+            dataset = dataset.map(parse_fn, num_parallel_calls=AUTOTUNE)
 
         else:
             dataset = tf.data.Dataset.from_generator(
@@ -187,8 +188,9 @@ class DataHandler:
         print('Shuffling dataset...')
         dataset = dataset.shuffle(
             self.config_dict['shuffle_buffer'], reshuffle_each_iteration=True)
-        # dataset = dataset.padded_batch(self.config_dict['video_batch_size'], drop_remainder=True)
-        dataset = dataset.batch(self.config_dict['video_batch_size'])
+        dataset = dataset.batch(self.config_dict['video_batch_size'], drop_remainder=True)
+        dataset = dataset.prefetch(AUTOTUNE)
+        print(dataset)
         return dataset
 
 
@@ -1374,9 +1376,9 @@ def parse_fn(proto):
     parsed_features = tf.io.parse_single_example(proto, keys_to_features)
 
     video_ID = parsed_features['video_id']
-    feats = tf.io.parse_tensor(parsed_features['features'], out_type=tf.float64)
-    preds = tf.io.parse_tensor(parsed_features['preds'], out_type=tf.float64)
-    labels = tf.io.parse_tensor(parsed_features['labels'], out_type=tf.float64)
+    feats = tf.io.parse_tensor(parsed_features['features'], out_type=tf.float32)
+    preds = tf.io.parse_tensor(parsed_features['preds'], out_type=tf.float32)
+    labels = tf.io.parse_tensor(parsed_features['labels'], out_type=tf.int32)
 
     # feats = tf.ensure_shape(feats, [self.config_dict['video_pad_length'], self.config_dict['feature_dim']])
     # preds = tf.ensure_shape(preds, [self.config_dict['video_pad_length'], self.config_dict['nb_labels']])
@@ -1386,9 +1388,9 @@ def parse_fn(proto):
     preds = tf.ensure_shape(preds, [144, 2])
     labels = tf.ensure_shape(labels, [144, 2])
 
-    feats = tf.cast(feats, tf.float32)
-    preds = tf.cast(preds, tf.float32)
-    labels = tf.cast(labels, tf.int32)
+    # feats = tf.cast(feats, tf.float32)
+    # preds = tf.cast(preds, tf.float32)
+    # labels = tf.cast(labels, tf.int32)
 
     return feats, preds, labels, video_ID
 
