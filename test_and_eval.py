@@ -256,17 +256,17 @@ def evaluate_on_video_level(config_dict, model, model_path, test_dataset,
     else:
         model.load_weights(model_path)
 
-    # @tf.function
+    @tf.function
     def test_step(x, preds, y, lengths):
         if config_dict['video_loss'] == 'cross_entropy':
             preds = model([x, preds], training=False)
         if config_dict['video_loss'] == 'mil':
-            preds_seq = model([x, preds], training=True)
+            preds_seq = model([x, preds], training=False)
             preds_seq = train.mask_out_padding_predictions(preds_seq, y, config_dict)
             preds_mil = evaluate_sparse_pain(y, preds_seq, lengths, config_dict)
             preds = preds_mil
         if config_dict['video_loss'] == 'mil_ce':
-            preds_seq, preds_one = model([x, preds], training=True)
+            preds_seq, preds_one = model([x, preds], training=False)
             preds_seq = train.mask_out_padding_predictions(preds_seq, y, config_dict)
             preds_one = tf.keras.layers.Activation('softmax')(preds_one)
             preds_mil = evaluate_sparse_pain(y, preds_seq, lengths, config_dict)

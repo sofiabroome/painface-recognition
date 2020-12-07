@@ -229,8 +229,8 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
         decay_steps=40,
         decay_rate=0.96,
         staircase=True)
-    # optimizer = Adam(learning_rate=lr_schedule)
-    optimizer = RMSprop(learning_rate=lr_schedule)
+    optimizer = Adam(learning_rate=lr_schedule)
+    # optimizer = RMSprop(learning_rate=lr_schedule)
     last_ckpt_path = create_last_model_path(config_dict)
     best_ckpt_path = create_last_model_path(config_dict)
 
@@ -293,7 +293,7 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
             y = y[:, 0, :]
             loss = loss_fn(y, preds)
         if config_dict['video_loss'] == 'mil':
-            preds_seq = model([x, preds], training=True)
+            preds_seq = model([x, preds], training=False)
             preds_seq = mask_out_padding_predictions(preds_seq, y, config_dict)
             sparse_loss, tv_p, tv_np, mil = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
             loss = sparse_loss
@@ -301,7 +301,7 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
             preds = preds_mil
             y = y[:, 0, :]
         if config_dict['video_loss'] == 'mil_ce':
-            preds_seq, preds_one = model([x, preds], training=True)
+            preds_seq, preds_one = model([x, preds], training=False)
             preds_seq = mask_out_padding_predictions(preds_seq, y, config_dict)
             preds_one = tf.keras.layers.Activation('softmax')(preds_one)
             y_one = y[:, 0, :]
