@@ -134,6 +134,7 @@ if __name__ == '__main__':
     print('Job identifier: ', args.job_identifier)
     wandb.init(project='pfr', config=config_dict)
     wandb.save('models.py')
+    wandb.save('train.py')
 
     all_subjects_df = pd.read_csv(args.subjects_overview)
 
