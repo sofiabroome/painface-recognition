@@ -257,10 +257,13 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
                 loss = loss_fn(y, preds)
             if config_dict['video_loss'] == 'mil':
                 preds_seqs = []
-                for i in range(5):
+                for i in range(config_dict['mc_dropout_samples']):
                     preds_seq = model([x, preds], training=True)
+                    preds_seq = mask_out_padding_predictions(preds_seq, y, config_dict)
                     preds_seqs.append(preds_seq)
-                preds_seq = mask_out_padding_predictions(preds_seq, y, config_dict)
+                preds_seq = tf.math.reduce_mean(preds_seqs, axis=0)
+                # preds_seq = model([x, preds], training=True)
+                # preds_seq = mask_out_padding_predictions(preds_seq, y, config_dict)
                 sparse_loss, tv_p, tv_np, mil = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
                 loss = sparse_loss
                 preds_mil = test_and_eval.evaluate_sparse_pain(y, preds_seq, lengths, config_dict)
