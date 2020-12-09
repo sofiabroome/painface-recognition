@@ -229,8 +229,8 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
         decay_steps=40,
         decay_rate=0.96,
         staircase=True)
-    optimizer = Adam(learning_rate=lr_schedule)
-    # optimizer = RMSprop(learning_rate=lr_schedule)
+    # optimizer = Adam(learning_rate=lr_schedule)
+    optimizer = RMSprop(learning_rate=lr_schedule)
     last_ckpt_path = create_last_model_path(config_dict)
     best_ckpt_path = create_last_model_path(config_dict)
 
@@ -256,7 +256,10 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
                 y = y[:, 0, :]
                 loss = loss_fn(y, preds)
             if config_dict['video_loss'] == 'mil':
-                preds_seq = model([x, preds], training=True)
+                preds_seqs = []
+                for i in range(5):
+                    preds_seq = model([x, preds], training=True)
+                    preds_seqs.append(preds_seq)
                 preds_seq = mask_out_padding_predictions(preds_seq, y, config_dict)
                 sparse_loss, tv_p, tv_np, mil = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
                 loss = sparse_loss
@@ -272,14 +275,17 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
                 preds = preds_mil
                 y = y[:, 0, :]
                 loss = ce_loss + sparse_loss
-        grads = tape.gradient(loss, model.trainable_weights)
+            l2_loss = config_dict['l2_weight'] * tf.reduce_sum([tf.nn.l2_loss(x) for x in model.trainable_weights if 'bias' not in x.name])
+            total_loss = loss + l2_loss
+        grads = tape.gradient(total_loss, model.trainable_weights)
+        grads = [grad if grad is not None else tf.zeros_like(var) for var, grad in zip(model.trainable_variables, grads)]
         grads_names = [tw.name for tw in model.trainable_weights]
         optimizer.apply_gradients(zip(grads, model.trainable_weights))
         train_acc_metric.update_state(y, preds)
         if 'mil' in config_dict['video_loss']:
-            return grads, model.trainable_weights, grads_names, loss, tv_p, tv_np, mil
+            return grads, model.trainable_weights, grads_names, total_loss, l2_loss, tv_p, tv_np, mil
         else:
-            return grads, model.trainable_weights, grads_names, loss
+            return grads, model.trainable_weights, grads_names, total_loss, l2_loss
 
     @tf.function(input_signature=(
         tf.TensorSpec(shape=[config_dict['video_batch_size'], config_dict['video_pad_length'],
@@ -350,18 +356,19 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
                 # print('\n Video ID: ', video_id)
 
                 if 'mil' in config_dict['video_loss']:
-                    grads, trainable_weights, grads_names, loss_value, tv_p, tv_np, mil = train_step(
+                    grads, trainable_weights, grads_names, loss_value, l2_loss, tv_p, tv_np, mil = train_step(
                         feats_batch, preds_batch, labels_batch, lengths_batch)
                     wandb.log({'tv_nopain': tv_np.numpy()})
                     wandb.log({'tv_pain': tv_p.numpy()})
                     wandb.log({'mil': mil.numpy()})
                 else:
-                    grads, trainable_weights, grads_names, loss_value = train_step(
+                    grads, trainable_weights, grads_names, loss_value, l2_loss = train_step(
                         feats_batch, preds_batch, labels_batch, lengths_batch)
 
                 # step_time = time.time() - step_start_time
                 # print('Step time: %.2f' % step_time)
                 wandb.log({'train_loss': loss_value.numpy()})
+                wandb.log({'l2_loss': l2_loss.numpy()})
                 if step % config_dict['print_loss_every'] == 0:
                     for ind, g in enumerate(grads):
                         wandb.log({'grad_' + grads_names[ind].numpy().decode("utf-8"): wandb.Histogram(g.numpy())})
