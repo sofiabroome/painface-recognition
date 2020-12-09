@@ -160,6 +160,8 @@ class DataHandler:
         return dataset
 
     def features_to_dataset(self, subjects, split):
+        bs = self.config_dict['video_batch_size_train'] if split == 'train' \
+            else self.config_dict['video_batch_size_test']
         subj_codes = []
         for subj in subjects:
             code = self.all_subjects_df[
@@ -188,7 +190,8 @@ class DataHandler:
         print('Shuffling dataset...')
         dataset = dataset.shuffle(
             self.config_dict['shuffle_buffer'], reshuffle_each_iteration=True)
-        dataset = dataset.batch(self.config_dict['video_batch_size'], drop_remainder=True)
+        print('Split: {}, batch size: {}'.format(split, bs))
+        dataset = dataset.batch(bs, drop_remainder=True)
         dataset = dataset.prefetch(AUTOTUNE)
         print(dataset)
         return dataset

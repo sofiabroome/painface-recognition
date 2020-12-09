@@ -182,18 +182,18 @@ def batch_calc_TV_norm(batch_vectors, y_batch, lengths_batch, config_dict, p=3, 
     return vals.stack()
 
 
-def mask_out_padding_predictions(preds_batch, y_batch, config_dict):
+def mask_out_padding_predictions(preds_batch, y_batch, batch_size, pad_length):
     zeros = tf.zeros_like(preds_batch)
 
-    mask_tensor = tf.TensorArray(tf.float32, size=config_dict['video_batch_size'])
+    mask_tensor = tf.TensorArray(tf.float32, size=batch_size)
 
     global one
     if one is None:  # Cannot recreate tf.Variables in each step.
-        one = tf.Variable(tf.ones([config_dict['video_pad_length'], 1]))
+        one = tf.Variable(tf.ones([pad_length, 1]))
 
-    for u in range(config_dict['video_batch_size']):
-        one.assign(tf.ones([config_dict['video_pad_length'], 1]))
-        indices = tf.where([(tf.reduce_sum(y_batch[u, i, :]) == 0) for i in range(config_dict['video_pad_length'])])
+    for u in range(batch_size):
+        one.assign(tf.ones([pad_length, 1]))
+        indices = tf.where([(tf.reduce_sum(y_batch[u, i, :]) == 0) for i in range(pad_length)])
         # Put zeros in the mask where the sum of the y-labels is 0
         mask = tf.compat.v1.scatter_nd_update(one, indices, tf.gather(zeros[0,:,0], indices))
         # Need mask for both classes: (pad_length x nb_labels)
@@ -244,11 +244,11 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
     epochs_not_improved = 0
 
     @tf.function(input_signature=(
-        tf.TensorSpec(shape=[config_dict['video_batch_size'], config_dict['video_pad_length'],
+        tf.TensorSpec(shape=[config_dict['video_batch_size_train'], config_dict['video_pad_length'],
             config_dict['feature_dim']], dtype=tf.float32),
-        tf.TensorSpec(shape=[config_dict['video_batch_size'], config_dict['video_pad_length'], 2], dtype=tf.float32),
-        tf.TensorSpec(shape=[config_dict['video_batch_size'], config_dict['video_pad_length'], 2], dtype=tf.int32),
-        tf.TensorSpec(shape=[config_dict['video_batch_size'],], dtype=tf.int32)))
+        tf.TensorSpec(shape=[config_dict['video_batch_size_train'], config_dict['video_pad_length'], 2], dtype=tf.float32),
+        tf.TensorSpec(shape=[config_dict['video_batch_size_train'], config_dict['video_pad_length'], 2], dtype=tf.int32),
+        tf.TensorSpec(shape=[config_dict['video_batch_size_train'],], dtype=tf.int32)))
     def train_step(x, preds, y, lengths):
         with tf.GradientTape() as tape:
             if config_dict['video_loss'] == 'cross_entropy':
@@ -259,11 +259,9 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
                 preds_seqs = []
                 for i in range(config_dict['mc_dropout_samples']):
                     preds_seq = model([x, preds], training=True)
-                    preds_seq = mask_out_padding_predictions(preds_seq, y, config_dict)
+                    preds_seq = mask_out_padding_predictions(preds_seq, y, config_dict['video_batch_size_train'], config_dict['video_pad_length'])
                     preds_seqs.append(preds_seq)
                 preds_seq = tf.math.reduce_mean(preds_seqs, axis=0)
-                # preds_seq = model([x, preds], training=True)
-                # preds_seq = mask_out_padding_predictions(preds_seq, y, config_dict)
                 sparse_loss, tv_p, tv_np, mil = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
                 loss = sparse_loss
                 preds_mil = test_and_eval.evaluate_sparse_pain(y, preds_seq, lengths, config_dict)
@@ -291,11 +289,11 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
             return grads, model.trainable_weights, grads_names, total_loss, l2_loss
 
     @tf.function(input_signature=(
-        tf.TensorSpec(shape=[config_dict['video_batch_size'], config_dict['video_pad_length'],
+        tf.TensorSpec(shape=[config_dict['video_batch_size_test'], config_dict['video_pad_length'],
             config_dict['feature_dim']], dtype=tf.float32),
-        tf.TensorSpec(shape=[config_dict['video_batch_size'], config_dict['video_pad_length'], 2], dtype=tf.float32),
-        tf.TensorSpec(shape=[config_dict['video_batch_size'], config_dict['video_pad_length'], 2], dtype=tf.int32),
-        tf.TensorSpec(shape=[config_dict['video_batch_size'],], dtype=tf.int32)))
+        tf.TensorSpec(shape=[config_dict['video_batch_size_test'], config_dict['video_pad_length'], 2], dtype=tf.float32),
+        tf.TensorSpec(shape=[config_dict['video_batch_size_test'], config_dict['video_pad_length'], 2], dtype=tf.int32),
+        tf.TensorSpec(shape=[config_dict['video_batch_size_test'],], dtype=tf.int32)))
     def validation_step(x, preds, y, lengths):
         if config_dict['video_loss'] == 'cross_entropy':
             preds = model([x, preds], training=False)
@@ -303,7 +301,7 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
             loss = loss_fn(y, preds)
         if config_dict['video_loss'] == 'mil':
             preds_seq = model([x, preds], training=False)
-            preds_seq = mask_out_padding_predictions(preds_seq, y, config_dict)
+            preds_seq = mask_out_padding_predictions(preds_seq, y, config_dict['video_batch_size_test'], config_dict['video_pad_length'])
             sparse_loss, tv_p, tv_np, mil = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
             loss = sparse_loss
             preds_mil = test_and_eval.evaluate_sparse_pain(y, preds_seq, lengths, config_dict)
@@ -311,7 +309,7 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
             y = y[:, 0, :]
         if config_dict['video_loss'] == 'mil_ce':
             preds_seq, preds_one = model([x, preds], training=False)
-            preds_seq = mask_out_padding_predictions(preds_seq, y, config_dict)
+            preds_seq = mask_out_padding_predictions(preds_seq, y, config_dict['video_batch_size_test'], config_dict['video_pad_length'])
             preds_one = tf.keras.layers.Activation('softmax')(preds_one)
             y_one = y[:, 0, :]
             ce_loss = loss_fn(y_one, preds_one)
