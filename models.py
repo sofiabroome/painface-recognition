@@ -704,7 +704,7 @@ class MyModel(tf.keras.Model):
 
         return model
 
-    def video_level_preds_attn_network(self, training):
+    def video_level_preds_attn_gru_network(self, training):
 
         input_features = Input(shape=(self.config_dict['video_pad_length'], self.config_dict['feature_dim']))
         input_preds = Input(shape=(self.config_dict['video_pad_length'], 2))
@@ -739,6 +739,41 @@ class MyModel(tf.keras.Model):
 
         # preds = preds_enc_1(input_preds)
         preds = preds_enc_2(input_preds)
+
+        x = tf.keras.layers.multiply([x, preds])
+
+        x = tf.keras.layers.BatchNormalization()(x, training=training)
+        # x = tf.keras.layers.GlobalMaxPooling1D()(x)
+        # x = tf.keras.layers.GlobalAveragePooling1D()(x)
+        # x = tf.keras.layers.Dense(units=self.config_dict['nb_labels'])(x)
+        x = Activation('softmax')(x)
+
+        model = tf.keras.Model(inputs=[input_features, input_preds], outputs=[x])
+        model.summary()
+
+        return model
+
+    def video_level_preds_attn_network(self, training):
+
+        input_features = Input(shape=(self.config_dict['video_pad_length'], self.config_dict['feature_dim']))
+        input_preds = Input(shape=(self.config_dict['video_pad_length'], 2))
+
+        reg = tf.keras.regularizers.l2(self.config_dict['l2_weight'])
+        
+        # FEATURES
+        fc_timedist_1 = TimeDistributed(tf.keras.layers.Dense(self.config_dict['nb_units_1']))
+        fc_timedist_2 = TimeDistributed(tf.keras.layers.Dense(self.config_dict['nb_labels']))
+
+        x = fc_timedist_1(input_features)
+        x = fc_timedist_2(x)
+        if training:
+            x = Dropout(self.config_dict['dropout_2'])(x)
+
+        
+        # PREDS
+        preds_enc_1 = TimeDistributed(tf.keras.layers.Dense(self.config_dict['nb_labels']))
+
+        preds = preds_enc_1(input_preds)
 
         x = tf.keras.layers.multiply([x, preds])
 
