@@ -174,7 +174,7 @@ class DataHandler:
             dataset = tf.data.Dataset.from_tensor_slices(file_paths)
             dataset = dataset.interleave(lambda x: tf.data.TFRecordDataset(x),
                 cycle_length=8, block_length=1, num_parallel_calls=tf.data.experimental.AUTOTUNE,
-                deterministic=False).cache()
+                deterministic=False)
             dataset = dataset.map(parse_fn, num_parallel_calls=AUTOTUNE)
 
         else:

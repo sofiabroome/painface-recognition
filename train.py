@@ -262,6 +262,10 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
                     preds_seq = mask_out_padding_predictions(preds_seq, y, config_dict['video_batch_size_train'], config_dict['video_pad_length'])
                     preds_seqs.append(preds_seq)
                 preds_seq = tf.math.reduce_mean(preds_seqs, axis=0)
+                preds_std = tf.math.reduce_std(preds_seqs, axis=0)
+                preds_seq -= preds_std
+                preds_seq = tf.keras.layers.Activation('softmax')(preds_seq)
+                preds_seq = mask_out_padding_predictions(preds_seq, y, config_dict['video_batch_size_train'], config_dict['video_pad_length'])
                 sparse_loss, tv_p, tv_np, mil = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
                 loss = sparse_loss
                 preds_mil = test_and_eval.evaluate_sparse_pain(y, preds_seq, lengths, config_dict)
@@ -279,7 +283,6 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
             l2_loss = config_dict['l2_weight'] * tf.reduce_sum([tf.nn.l2_loss(x) for x in model.trainable_weights if 'bias' not in x.name])
             total_loss = loss + l2_loss
         grads = tape.gradient(total_loss, model.trainable_weights)
-        grads = [grad if grad is not None else tf.zeros_like(var) for var, grad in zip(model.trainable_variables, grads)]
         grads_names = [tw.name for tw in model.trainable_weights]
         optimizer.apply_gradients(zip(grads, model.trainable_weights))
         train_acc_metric.update_state(y, preds)
@@ -302,10 +305,15 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
         if config_dict['video_loss'] == 'mil':
             preds_seqs = []
             for i in range(config_dict['mc_dropout_samples']):
-                preds_seq = model([x, preds], training=True)
+                training=False if config_dict['mc_dropout_samples'] == 1 else True
+                preds_seq = model([x, preds], training=training)
                 preds_seq = mask_out_padding_predictions(preds_seq, y, config_dict['video_batch_size_test'], config_dict['video_pad_length'])
                 preds_seqs.append(preds_seq)
             preds_seq = tf.math.reduce_mean(preds_seqs, axis=0)
+            preds_std = tf.math.reduce_std(preds_seqs, axis=0)
+            preds_seq -= preds_std
+            preds_seq = tf.keras.layers.Activation('softmax')(preds_seq)
+            preds_seq = mask_out_padding_predictions(preds_seq, y, config_dict['video_batch_size_test'], config_dict['video_pad_length'])
             sparse_loss, tv_p, tv_np, mil = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
             loss = sparse_loss
             preds_mil = test_and_eval.evaluate_sparse_pain(y, preds_seq, lengths, config_dict)
@@ -562,11 +570,11 @@ def save_features(model, config_dict, steps, dataset):
         predictions, features = model(x, training=False)
         # Downsample further with one MP layer, strides and kernel 2x2
         # The result per frame is 4x4x32.
-        # features = tf.keras.layers.TimeDistributed(
-        #     tf.keras.layers.MaxPool2D())(features)
-        # # The result per frame is 1x32.
-        # features = tf.keras.layers.TimeDistributed(
-        #     tf.keras.layers.GlobalAveragePooling2D())(features)
+        features = tf.keras.layers.TimeDistributed(
+            tf.keras.layers.MaxPool2D())(features)
+        # The result per frame is 1x32.
+        features = tf.keras.layers.TimeDistributed(
+            tf.keras.layers.GlobalAveragePooling2D())(features)
         features = tf.keras.layers.Flatten()(features)
         return predictions, features
 
@@ -586,7 +594,7 @@ def save_features(model, config_dict, steps, dataset):
             to_save_dict['y'] = y_batch_train
             features_to_save.append(to_save_dict)
     features_to_save = np.asarray(features_to_save)
-    np.savez_compressed(config_dict['checkpoint'][:18] + '_saved_features_20480dims', features_to_save)
+    np.savez_compressed(config_dict['checkpoint'][:18] + '_saved_features_320dims', features_to_save)
 
 
 def val_split(X_train, y_train, val_fraction, batch_size, round_to_batch=True):
