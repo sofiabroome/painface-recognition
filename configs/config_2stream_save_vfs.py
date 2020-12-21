@@ -27,7 +27,7 @@ config_dict = {
     # 'checkpoint': 'models/124805_last_model_2stream_5d_add.ckpt',
     # 'checkpoint': 'models/130425_best_model_2stream_5d_add.ckpt',
     'checkpoint': 'models/132766_best_model_2stream_5d_add.ckpt',
-    'save_video_features_folder': 'lps/video_level_features_132766bestmodel_20480dim_zeropad_noresample/',
+    'save_video_features_folder': 'lps/video_level_features_132766bestmodel_320dim_zeropad_noresample/',
     'train_video_features_folder': 'lps/video_level_features_20480dim_resample/',
     'val_video_features_folder': 'lps/video_level_features_20480dim_noresample/',
     'test_video_features_folder': 'lps/video_level_features_20480dim_noresample/',
