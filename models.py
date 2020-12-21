@@ -38,6 +38,9 @@ class MyModel(tf.keras.Model):
                 if self.video_features_model == 'video_level_preds_attn_network':
                     training = True if config_dict['train_video_level_features'] else False
                     self.model = self.video_level_preds_attn_network(training=training)
+                if self.video_features_model == 'video_level_preds_attn_gru_network':
+                    training = True if config_dict['train_video_level_features'] else False
+                    self.model = self.video_level_preds_attn_gru_network(training=training)
                 if self.video_features_model == 'video_level_mil_feats':
                     self.model = self.video_level_mil_feats()
                 if self.video_features_model == 'video_level_mil_feats_preds':
@@ -734,13 +737,14 @@ class MyModel(tf.keras.Model):
         # PREDS
         # preds_enc_1 = tf.keras.layers.GRU(
         #     self.config_dict['nb_units_2'], return_sequences=True)
-        preds_enc_2 = tf.keras.layers.GRU(
-            self.config_dict['nb_labels'], return_sequences=True)
+        # preds_enc_2 = tf.keras.layers.GRU(
+        #     self.config_dict['nb_labels'], return_sequences=True)
 
-        # preds = preds_enc_1(input_preds)
-        preds = preds_enc_2(input_preds)
+        # # preds = preds_enc_1(input_preds)
+        # preds = preds_enc_2(input_preds)
 
-        x = tf.keras.layers.multiply([x, preds])
+        # x = tf.keras.layers.multiply([x, preds])
+        # x = tf.keras.layers.add([x, preds])
 
         x = tf.keras.layers.BatchNormalization()(x, training=training)
         # x = tf.keras.layers.GlobalMaxPooling1D()(x)
