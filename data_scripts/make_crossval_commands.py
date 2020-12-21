@@ -121,8 +121,8 @@ if __name__=='__main__':
         config_file = 'configs/config_2stream_{}.py'.format(dataset_str)
     if model == 'clstm1':
         config_file = 'configs/config_clstm.py'
-    config_file = 'configs/config_video_level_training2.py'
-    job_name = 'configs_to_run_{}_videofeats2_crossval'.format(dataset_str)
+    config_file = 'configs/config_video_level_training.py'
+    job_name = 'configs_to_run_{}_videofeats_crossval'.format(dataset_str)
     # job_name = 'configs_to_run_{}_{}_crossval'.format(model, dataset_str)
     main()
 
