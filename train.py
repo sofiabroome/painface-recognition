@@ -152,12 +152,7 @@ def get_sparse_pain_loss(y_batch, preds_batch, lengths_batch, config_dict):
                                                   y_batch,
                                                   lengths_batch,
                                                   config_dict))
-    # print('tv pain, ', tv_pain)
-    # print('tv no pain, ', tv_nopain)
-    # print('mil', mil)
-
     total_loss = tv_nopain + tv_pain - mil
-    # total_loss = -mil
 
     return total_loss, tv_pain, tv_nopain, mil
 
@@ -262,10 +257,10 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
                     preds_seq = mask_out_padding_predictions(preds_seq, y, config_dict['video_batch_size_train'], config_dict['video_pad_length'])
                     preds_seqs.append(preds_seq)
                 preds_seq = tf.math.reduce_mean(preds_seqs, axis=0)
-                preds_std = tf.math.reduce_std(preds_seqs, axis=0)
-                preds_seq -= preds_std
-                preds_seq = tf.keras.layers.Activation('softmax')(preds_seq)
-                preds_seq = mask_out_padding_predictions(preds_seq, y, config_dict['video_batch_size_train'], config_dict['video_pad_length'])
+                # preds_std = tf.math.reduce_std(preds_seqs, axis=0)
+                # preds_seq -= preds_std
+                # preds_seq = tf.keras.layers.Activation('softmax')(preds_seq)
+                # preds_seq = mask_out_padding_predictions(preds_seq, y, config_dict['video_batch_size_train'], config_dict['video_pad_length'])
                 sparse_loss, tv_p, tv_np, mil = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
                 loss = sparse_loss
                 preds_mil = test_and_eval.evaluate_sparse_pain(y, preds_seq, lengths, config_dict)
@@ -310,10 +305,10 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
                 preds_seq = mask_out_padding_predictions(preds_seq, y, config_dict['video_batch_size_test'], config_dict['video_pad_length'])
                 preds_seqs.append(preds_seq)
             preds_seq = tf.math.reduce_mean(preds_seqs, axis=0)
-            preds_std = tf.math.reduce_std(preds_seqs, axis=0)
-            preds_seq -= preds_std
-            preds_seq = tf.keras.layers.Activation('softmax')(preds_seq)
-            preds_seq = mask_out_padding_predictions(preds_seq, y, config_dict['video_batch_size_test'], config_dict['video_pad_length'])
+            # preds_std = tf.math.reduce_std(preds_seqs, axis=0)
+            # preds_seq -= preds_std
+            # preds_seq = tf.keras.layers.Activation('softmax')(preds_seq)
+            # preds_seq = mask_out_padding_predictions(preds_seq, y, config_dict['video_batch_size_test'], config_dict['video_pad_length'])
             sparse_loss, tv_p, tv_np, mil = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
             loss = sparse_loss
             preds_mil = test_and_eval.evaluate_sparse_pain(y, preds_seq, lengths, config_dict)
@@ -594,7 +589,7 @@ def save_features(model, config_dict, steps, dataset):
             to_save_dict['y'] = y_batch_train
             features_to_save.append(to_save_dict)
     features_to_save = np.asarray(features_to_save)
-    np.savez_compressed(config_dict['checkpoint'][:18] + '_saved_features_320dims', features_to_save)
+    np.savez_compressed(config_dict['checkpoint'][:18] + '_pf_saved_features_20480dims', features_to_save)
 
 
 def val_split(X_train, y_train, val_fraction, batch_size, round_to_batch=True):
