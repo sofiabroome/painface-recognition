@@ -2,6 +2,8 @@
 
 Pain recognition in videos of horses.
 
+*NOTE*: Please use the branch `CVPR19` for the code described in this readme. This repository has undergone many updates since then (especially the data pipeline, adapting it to a new horse dataset), and I have transferred the code to tensorflow, tf.data and tf.keras. This means that the current state of the repo is better, and more readable, but the below description is not yet updated. Hoping to get that done soon.
+
 This repository contains the code for our [paper](http://openaccess.thecvf.com/content_CVPR_2019/html/Broome_Dynamics_Are_Important_for_the_Recognition_of_Equine_Pain_in_CVPR_2019_paper.html):
 
 `   @InProceedings{Broome_2019_CVPR,
@@ -56,7 +58,7 @@ The equine dataset has unfortunately as of yet not been possible to make public,
 Veterinary Anaesthesia and Analgesia, 2015, 42, 103–114`.
 
 
-However, the code can and has been used on the human pain video dataset UNBC-McMaster shoulder pain expression archive database, which is publicly available and described [here](https://ieeexplore.ieee.org/document/5771462).
+However, the code can and has previously been used on the human pain video dataset UNBC-McMaster shoulder pain expression archive database, which is publicly available and described [here](https://ieeexplore.ieee.org/document/5771462). Keep in mind that the total duration of the UNBC dataset is only 33 minutes assuming 25fps, and that pre-training on another dataset might be necessary in order to learn pain patterns with longer temporal extent for this one. Also, the pain behaviors of humans are arguably easier to catch in single frames since humans are more expressive than animals (more facial muscles, for instance), meaning that a two-stream recurrent network such as the one presented in this paper might not be the most efficient way to train on UNBC. I personally did not achieve competitive results on that one using the C-LSTM-2, but it was a few years back. If I would run on it today I would make sure to augment the minor pain class, to reduce the class imbalance, for instance, which might help. For this, it can perhaps be useful to look at the video buffer builder & resampler `get_sequences_from_frame_df(self, df)` inside `data_handler.py` on the master branch (not on the CVPR19 branch). (This paragraph was updated in Dec 2020)
 
 To train and test the a model on your own data, no matter the species or affective state of interest, the below data format should be adopted.
 
