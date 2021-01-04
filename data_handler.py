@@ -196,7 +196,6 @@ class DataHandler:
         print(dataset)
         return dataset
 
-
     def generate_features(self,
                           subject_codes,
                           split):
@@ -1269,6 +1268,7 @@ def zero_pad_list(list_to_pad, pad_length):
     element_shape = list_to_pad[0].shape
     zeros = np.zeros(element_shape)
     nb_to_pad = pad_length - list_length
+    print('nb_to_pad: ', nb_to_pad)
 
     for p in range(nb_to_pad):
         list_to_pad.append(zeros)

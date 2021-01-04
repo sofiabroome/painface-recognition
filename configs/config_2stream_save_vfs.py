@@ -1,6 +1,6 @@
 import configs.pixel_means as pixel_means
-data_path = '/local_storage/users/sbroome/painface-recognition/'
-# data_path = 'data/'
+# data_path = '/local_storage/users/sbroome/painface-recognition/'
+data_path = 'data/'
 
 config_dict = {
     # Program components
@@ -27,10 +27,11 @@ config_dict = {
     # 'checkpoint': 'models/124805_last_model_2stream_5d_add.ckpt',
     # 'checkpoint': 'models/130425_best_model_2stream_5d_add.ckpt',
     'checkpoint': 'models/132766_best_model_2stream_5d_add.ckpt',
-    'save_video_features_folder': 'lps/video_level_features_132766bestmodel_320dim_zeropad_noresample/',
-    'train_video_features_folder': 'lps/video_level_features_20480dim_resample/',
-    'val_video_features_folder': 'lps/video_level_features_20480dim_noresample/',
-    'test_video_features_folder': 'lps/video_level_features_20480dim_noresample/',
+    'clip_features_path': data_path + 'pf/132766_best_pf_saved_features_20480dims.npz',
+    'save_video_features_folder': 'pf/video_level_features_132766bestmodel_20480dim_zeropad_noresample/',
+    'train_video_features_folder': 'pf/video_level_features_132766bestmodel_20480dim_zeropad_noresample/',
+    'val_video_features_folder': 'pf/video_level_features_132766bestmodel_20480dim_zeropad_noresample/',
+    'test_video_features_folder': 'pf/video_level_features_132766bestmodel_20480dim_zeropad_noresample/',
     # Model
     'model': '2stream_5d_add',
     'rgb_period': 1,  # Set to 10 if simonyan-like model
@@ -45,26 +46,26 @@ config_dict = {
     'kernel_size': 5,
     'dropout_1': 0.25,
     'dropout_2': 0.5,
-    'return_last_clstm' : True,
+    'return_last_clstm': True,
     # Model for video level features
-    'video_features_model' : 'video_level_network',
+    'video_features_model': 'video_level_network',
     'feature_dim': 20480,
-    'nb_layers' : 1,
-    'nb_units_1' : 8,
-    'nb_units_2' : 8,
-    'video_batch_size' : 3,
-    'video_pad_length' : 144,
+    'nb_layers': 1,
+    'nb_units_1': 8,
+    'nb_units_2': 8,
+    'video_batch_size': 3,
+    'video_pad_length': 266,
     'video_nb_epochs': 2,
     'video_early_stopping': 50,
     'shuffle_buffer': 150,
     # Parameters for functional API C-LSTM
-    'kernel_regularizer' : None,
-    'padding_clstm' : 'valid',
-    'strides_clstm' : (1,1),
-    'dropout_clstm' : 0.0,
-    'pooling_method' : 'max',
-    'return_sequences' : [True, True, True, True],
-    'only_last_element_for_fc' : 'no',
+    'kernel_regularizer': None,
+    'padding_clstm': 'valid',
+    'strides_clstm': (1, 1),
+    'dropout_clstm': 0.0,
+    'pooling_method': 'max',
+    'return_sequences': [True, True, True, True],
+    'only_last_element_for_fc': 'no',
     # Training
     'optimizer': 'adadelta',
     'lr': 0.001,

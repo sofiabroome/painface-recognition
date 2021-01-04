@@ -1,10 +1,10 @@
 ,code,subject,dataset
-0,h1,horse_1,pf
-1,h2,horse_2,pf
-2,h3,horse_3,pf
-3,h4,horse_4,pf
-4,h5,horse_5,pf
-5,h6,horse_6,pf
+0,1,horse_1,pf
+1,2,horse_2,pf
+2,3,horse_3,pf
+3,4,horse_4,pf
+4,5,horse_5,pf
+5,6,horse_6,pf
 6,A,aslan,lps
 7,B,brava,lps
 8,H,herrera,lps
