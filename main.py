@@ -71,7 +71,7 @@ def run():
 
     if config_dict['save_features_per_video']:
         features = np.load(config_dict['clip_features_path'], allow_pickle=True)
-        dh.prepare_video_features(features, zero_pad=True)
+        dh.prepare_video_features(features, zero_pad=config_dict['zero_pad_video_features'])
 
     if config_dict['train_video_level_features']:
         train_dataset = dh.features_to_dataset(train_subjects, split='train')
