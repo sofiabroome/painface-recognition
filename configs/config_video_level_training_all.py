@@ -28,7 +28,7 @@ config_dict = {
     # 'checkpoint': 'models/124805_last_model_2stream_5d_add.ckpt',
     'checkpoint': 'models/130425_best_model_2stream_5d_add.ckpt',
     'save_video_features_folder': 'lps/video_level_features_320dim_noresample/',
-    'tfr_file': 'lps/tfrecords_video_level_features_132766bestmodel_20480dim_zeropad_noresample/lps_videofeats_132766best_flat',
+    'tfr_file': 'tfrecords/pflps_video_level_features_132766bestmodel_20480dim_zeropad266_noresample/videofeats_132766best_flat',
     # 'train_video_features_folder': 'lps/video_level_features_132766bestmodel_320dim_zeropad_noresample/',
     # 'val_video_features_folder': 'lps/video_level_features_132766bestmodel_320dim_zeropad_noresample/',
     # 'test_video_features_folder': 'lps/video_level_features_132766bestmodel_320dim_zeropad_noresample/',
@@ -53,10 +53,6 @@ config_dict = {
     # 'train_video_features_folder': 'lps/video_level_features_320dim_zeropad_noresample/',
     # 'val_video_features_folder': 'lps/video_level_features_320dim_zeropad_noresample/',
     # 'test_video_features_folder': 'lps/video_level_features_320dim_zeropad_noresample/',
-    # Do not use the zeropad lengths below.
-    'train_video_lengths_folder': 'lps/video_level_features_320dim_noresample/',
-    'val_video_lengths_folder': 'lps/video_level_features_320dim_noresample/',
-    'test_video_lengths_folder': 'lps/video_level_features_320dim_noresample/',
     # Model
     'model': '2stream_5d_add',
     'rgb_period': 1,  # Set to 10 if simonyan-like model
@@ -88,10 +84,10 @@ config_dict = {
     'nb_units_2' : 32,
     'feature_dim': 20480,
     # 'feature_dim': 320,
-    'video_batch_size_train' : 20,
+    'video_batch_size_train' : 10,
     'video_batch_size_test' : 1,
-    'video_pad_length' : 144,
-    'video_nb_epochs': 300,
+    'video_pad_length' : 266,
+    'video_nb_epochs': 600,
     'video_early_stopping': 150,
     'shuffle_buffer': 150,
     'k_mil_fraction': -1,  # This is to be updated using below params
