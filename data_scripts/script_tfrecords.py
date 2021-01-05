@@ -14,12 +14,18 @@ import generate_tfrecords as gtfr
 def process_files_and_write(df_summary, path_to_features, args, config_dict):
 
     default_array_str = 'arr_0'
-    subj_codes = ['A', 'B', 'H', 'I', 'J', 'K', 'N', 'S']
+    if args.dataset == 'lps':
+        subj_codes = ['A', 'B', 'H', 'I', 'J', 'K', 'N', 'S']
+    if args.dataset == 'pf':
+        subj_codes = ['1', '2', '3', '4', '5', '6']
 
     for subj_code in subj_codes:
-        df = df_summary[(df_summary.subject == subj_code)]
+        if args.dataset == 'pf':
+            df = df_summary[(df_summary.subject == int(subj_code))]
+        if args.dataset == 'lps':
+            df = df_summary[(df_summary.subject == subj_code)]
 
-        output_filename = 'lps_videofeats_132766best_flat_{}.tfrecords'.format(subj_code)
+        output_filename = 'videofeats_132766best_flat_{}.tfrecords'.format(subj_code)
         output_file = os.path.join(args.output_folder, output_filename)
         print('Output file path: ', output_file)
         writer = tf.io.TFRecordWriter(output_file)
@@ -53,6 +59,9 @@ def main():
         help='Folder where to output the tfrecords file')
     parser.add_argument(
         '--config', nargs='?', type=str,
+        help='Config file')
+    parser.add_argument(
+        '--dataset', nargs='?', type=str,
         help='Config file')
     args = parser.parse_args()
     print(args)

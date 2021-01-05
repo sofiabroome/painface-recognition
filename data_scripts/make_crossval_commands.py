@@ -5,9 +5,12 @@ import helpers
 
 
 def get_train_test(dataset):
-
-    horses_lps = ['aslan', 'brava', 'herrera', 'inkasso', 'julia',
-                       'kastanjett', 'naughty_but_nice', 'sir_holger']
+    if avoid_sir_holger:
+        horses_lps = ['aslan', 'brava', 'herrera', 'inkasso', 'julia',
+                           'kastanjett', 'naughty_but_nice']
+    else:
+        horses_lps = ['aslan', 'brava', 'herrera', 'inkasso', 'julia',
+                           'kastanjett', 'naughty_but_nice', 'sir_holger']
     horses_pf = ['horse_1', 'horse_2', 'horse_3', 'horse_4', 'horse_5', 'horse_6']
     
     if dataset == 'all':
@@ -18,6 +21,9 @@ def get_train_test(dataset):
         test_horses = horses_pf
     if dataset == 'lps':
         train_horses = horses_lps
+        test_horses = horses_lps
+    if dataset == 'lps_pftrain':
+        train_horses = horses_lps + horses_pf
         test_horses = horses_lps
 
     return train_horses, test_horses
@@ -35,6 +41,10 @@ def get_val(dataset, test_subject):
         if test_subject == 'horse_5':
             val_horses = ['horse_1']
     if dataset == 'lps':
+        val_horses = ['kastanjett']
+        if test_subject == 'kastanjett':
+            val_horses = ['brava']
+    if dataset == 'lps_pftrain':
         val_horses = ['kastanjett']
         if test_subject == 'kastanjett':
             val_horses = ['brava']
@@ -109,8 +119,10 @@ def main():
 if __name__=='__main__':
 
     # dataset_str = 'pf'
-    dataset_str = 'lps'
+    # dataset_str = 'lps'
     # dataset_str = 'all'
+    dataset_str = 'lps_pftrain'
+    avoid_sir_holger = True
 
     nb_reps = 5
 
@@ -121,7 +133,7 @@ if __name__=='__main__':
         config_file = 'configs/config_2stream_{}.py'.format(dataset_str)
     if model == 'clstm1':
         config_file = 'configs/config_clstm.py'
-    config_file = 'configs/config_video_level_training.py'
+    config_file = 'configs/config_video_level_training_all.py'
     job_name = 'configs_to_run_{}_videofeats_crossval'.format(dataset_str)
     # job_name = 'configs_to_run_{}_{}_crossval'.format(model, dataset_str)
     main()
