@@ -4,6 +4,7 @@ import numpy as np
 import subprocess
 import helpers
 import random
+import time
 import cv2
 import re
 import os
@@ -245,13 +246,18 @@ class DataHandler:
 
         nb_clip_batches = features[DEFAULT_NPLOAD_STR].shape[0]
         dict_of_dicts = {}  # key will be video ID, value will be to_save_dict
+        batches = features[DEFAULT_NPLOAD_STR]
+        batches = batches.tolist()  # For faster iteration
 
         for clip_batch in range(nb_clip_batches):
+            print('Batch {}/{}'.format(clip_batch, nb_clip_batches))
             # Get the data from one batch (8 short clips).
-            clip_batch_feats = features[DEFAULT_NPLOAD_STR][clip_batch]['features'].numpy()
-            clip_batch_preds = features[DEFAULT_NPLOAD_STR][clip_batch]['preds'].numpy()
-            clip_batch_labels = features[DEFAULT_NPLOAD_STR][clip_batch]['y'].numpy()
-            clip_batch_paths = features[DEFAULT_NPLOAD_STR][clip_batch]['paths'].numpy()
+            st = time.time()
+            clip_batch_feats = batches[clip_batch]['features'].numpy()
+            clip_batch_preds = batches[clip_batch]['preds'].numpy()
+            clip_batch_labels =batches[clip_batch]['y'].numpy()
+            clip_batch_paths = batches[clip_batch]['paths'].numpy()
+            print('Time taken %.6f' % (time.time() - st))
 
             # Iterate over the short clips in the batch.
             for ind, path in enumerate(clip_batch_paths):
@@ -265,6 +271,11 @@ class DataHandler:
                     same_video_paths = []
 
                 if video_id != old_video_id:
+                    if old_video_id in dict_of_dicts:
+                        print('Already had one for: ', old_video_id)
+                        # print('Saving with resampling.\n')
+                        print('Saving without resampling.\n')
+                        continue
                     feats, preds, labels, paths = prepare_fplp(same_video_features,
                                                                same_video_preds,
                                                                same_video_labels,
@@ -1269,7 +1280,7 @@ def zero_pad_list(list_to_pad, pad_length):
     zeros = np.zeros(element_shape)
     nb_to_pad = pad_length - list_length
     print('nb_to_pad: ', nb_to_pad)
-
+    
     for p in range(nb_to_pad):
         list_to_pad.append(zeros)
 
@@ -1297,7 +1308,8 @@ def prepare_fplp(same_video_features, same_video_preds, same_video_labels, same_
         same_video_features = zero_pad_list(same_video_features, pad_length)
         same_video_preds = zero_pad_list(same_video_preds, pad_length)
         same_video_labels = zero_pad_list(same_video_labels, pad_length)
-
+    print('Reshaping and arraying...')
+    st = time.time()
     feats = np.array(same_video_features)
     f_shape = feats.shape
     if len(f_shape) == 3:
@@ -1307,6 +1319,7 @@ def prepare_fplp(same_video_features, same_video_preds, same_video_labels, same_
     paths = np.array(same_video_paths)
     assert preds.shape[0] == feats.shape[0]
     assert labels.shape[0] == feats.shape[0]
+    print('Time taken for this prep %.4f' % (time.time() - st))
     # assert paths.shape[0] == feats.shape[0]
     return feats, preds, labels, paths
 
@@ -1387,9 +1400,9 @@ def parse_fn(proto):
     # preds = tf.ensure_shape(preds, [self.config_dict['video_pad_length'], self.config_dict['nb_labels']])
     # labels = tf.ensure_shape(labels, [self.config_dict['video_pad_length'], self.config_dict['nb_labels']])
 
-    feats = tf.ensure_shape(feats, [144, 20480])
-    preds = tf.ensure_shape(preds, [144, 2])
-    labels = tf.ensure_shape(labels, [144, 2])
+    feats = tf.ensure_shape(feats, [266, 20480])
+    preds = tf.ensure_shape(preds, [266, 2])
+    labels = tf.ensure_shape(labels, [266, 2])
 
     # feats = tf.cast(feats, tf.float32)
     # preds = tf.cast(preds, tf.float32)
