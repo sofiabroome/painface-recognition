@@ -735,16 +735,15 @@ class MyModel(tf.keras.Model):
         x = feature_enc2(x)
         
         # PREDS
-        # preds_enc_1 = tf.keras.layers.GRU(
-        #     self.config_dict['nb_units_2'], return_sequences=True)
-        # preds_enc_2 = tf.keras.layers.GRU(
-        #     self.config_dict['nb_labels'], return_sequences=True)
+        preds_enc = tf.keras.layers.GRU(
+            self.config_dict['nb_labels'], return_sequences=True)
 
-        # # preds = preds_enc_1(input_preds)
-        # preds = preds_enc_2(input_preds)
-
-        # x = tf.keras.layers.multiply([x, preds])
-        # x = tf.keras.layers.add([x, preds])
+        preds = preds_enc(input_preds)
+        
+        if self.config_dict['merge_attn'] == 'mult':
+            x = tf.keras.layers.multiply([x, preds])
+        if self.config_dict['merge_attn'] == 'add':
+            x = tf.keras.layers.add([x, preds])
 
         x = tf.keras.layers.BatchNormalization()(x, training=training)
         # x = tf.keras.layers.GlobalMaxPooling1D()(x)
