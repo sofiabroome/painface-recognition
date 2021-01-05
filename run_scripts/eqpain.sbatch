@@ -2,7 +2,7 @@
 #SBATCH --mem  20GB
 #SBATCH --gres gpu:1
 #SBATCH --cpus-per-task 4
-#SBATCH --constrain "rivendell|shire|gondor|shelob|balrog|smaug|khazadum"
+#SBATCH --constrain "belegost|rivendell|shire|gondor|shelob|balrog|smaug|khazadum"
 #SBATCH --mail-type FAIL,END
 #SBATCH --mail-user sbroome@kth.se
 #SBATCH --output /Midgard/home/%u/projects/painface-recognition/logs/%J_slurm.out
