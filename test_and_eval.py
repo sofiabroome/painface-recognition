@@ -247,8 +247,7 @@ def compute_video_level_accuracy(majvotes):
 def evaluate_on_video_level(config_dict, model, model_path, test_dataset,
                             test_steps):
 
-    path_to_csv_test = config_dict['data_path'] + config_dict['test_video_lengths_folder'] + 'summary.csv'
-    df_video_lengths_test = pd.read_csv(path_to_csv_test)
+    df_video_lengths = pd.read_csv('metadata/video_lengths.csv')
     test_acc_metric = tf.keras.metrics.BinaryAccuracy()
     model = model.model
     if config_dict['inference_only']:
@@ -292,7 +291,7 @@ def evaluate_on_video_level(config_dict, model, model_path, test_dataset,
             pbar.update(1)
             # step_start_time = time.time()
             feats_batch, preds_batch, labels_batch, video_id = sample
-            lengths_batch = train.get_nb_clips_per_video(video_id, df_video_lengths_test)
+            lengths_batch = train.get_nb_clips_per_video(video_id, df_video_lengths)
             # print('\n Video ID: ', video_id)
             preds, y = test_step(feats_batch, preds_batch, labels_batch, lengths_batch)
             all_preds.append(preds)

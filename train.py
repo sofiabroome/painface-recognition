@@ -142,6 +142,9 @@ def get_sparse_pain_loss(y_batch, preds_batch, lengths_batch, config_dict):
     mil = get_mil_loss(kmax_scores)
     batch_indicator_nopain = tf.cast(y_batch[:, 0, 0], dtype=tf.float32)
     batch_indicator_pain = tf.cast(y_batch[:, 0, 1], dtype=tf.float32)
+    # batch_tv_norm = batch_calc_TV_norm(
+    #     preds_batch[:, :, 1], y_batch, lengths_batch, config_dict)
+
     tv_nopain = config_dict['tv_weight_nopain'] * tf.reduce_sum(
         batch_indicator_nopain * batch_calc_TV_norm(preds_batch[:, :, 0],
                                                     y_batch,
@@ -149,9 +152,13 @@ def get_sparse_pain_loss(y_batch, preds_batch, lengths_batch, config_dict):
                                                     config_dict))
     tv_pain = config_dict['tv_weight_pain'] * tf.reduce_sum(
         batch_indicator_pain * batch_calc_TV_norm(preds_batch[:, :, 1],
-                                                  y_batch,
-                                                  lengths_batch,
-                                                  config_dict))
+                                                    y_batch,
+                                                    lengths_batch,
+                                                    config_dict))
+    # tv_nopain = config_dict['tv_weight_nopain'] * tf.reduce_sum(
+    #     batch_indicator_nopain * batch_tv_norm)
+    # tv_pain = config_dict['tv_weight_pain'] * tf.reduce_sum(
+    #     batch_indicator_pain * batch_tv_norm)
     total_loss = tv_nopain + tv_pain - mil
 
     return total_loss, tv_pain, tv_nopain, mil
@@ -229,10 +236,7 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
     last_ckpt_path = create_last_model_path(config_dict)
     best_ckpt_path = create_last_model_path(config_dict)
 
-    path_to_csv_train = config_dict['data_path'] + config_dict['train_video_lengths_folder'] + 'summary.csv'
-    df_video_lengths_train = pd.read_csv(path_to_csv_train)
-    path_to_csv_val = config_dict['data_path'] + config_dict['val_video_lengths_folder'] + 'summary.csv'
-    df_video_lengths_val = pd.read_csv(path_to_csv_val)
+    df_video_lengths = pd.read_csv('metadata/video_lengths.csv')
 
     train_steps = len([sample for sample in train_dataset])
     val_steps = len([sample for sample in val_dataset])
@@ -359,7 +363,7 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
                 pbar.update(1)
                 feats_batch, preds_batch, labels_batch, video_id = sample
                 
-                lengths_batch = get_nb_clips_per_video(video_id, df_video_lengths_train)
+                lengths_batch = get_nb_clips_per_video(video_id, df_video_lengths)
 
                 # print('\n Video ID: ', video_id)
 
@@ -410,7 +414,7 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
                     pbar.update(1)
                     # step_start_time = time.time()
                     feats_batch, preds_batch, labels_batch, video_id = sample
-                    lengths_batch = get_nb_clips_per_video(video_id, df_video_lengths_val)
+                    lengths_batch = get_nb_clips_per_video(video_id, df_video_lengths)
                     # print('\n Video ID: ', video_id)
                     if 'mil' in config_dict['video_loss']:
                         loss_value, tv_p, tv_np, mil = validation_step(
@@ -563,13 +567,13 @@ def save_features(model, config_dict, steps, dataset):
     @tf.function
     def get_features_step(x):
         predictions, features = model(x, training=False)
-        # Downsample further with one MP layer, strides and kernel 2x2
-        # The result per frame is 4x4x32.
-        features = tf.keras.layers.TimeDistributed(
-            tf.keras.layers.MaxPool2D())(features)
-        # The result per frame is 1x32.
-        features = tf.keras.layers.TimeDistributed(
-            tf.keras.layers.GlobalAveragePooling2D())(features)
+        # # Downsample further with one MP layer, strides and kernel 2x2
+        # # The result per frame is 4x4x32.
+        # features = tf.keras.layers.TimeDistributed(
+        #     tf.keras.layers.MaxPool2D())(features)
+        # # The result per frame is 1x32.
+        # features = tf.keras.layers.TimeDistributed(
+        #     tf.keras.layers.GlobalAveragePooling2D())(features)
         features = tf.keras.layers.Flatten()(features)
         return predictions, features
 
