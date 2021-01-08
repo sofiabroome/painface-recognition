@@ -50,6 +50,10 @@ class MyModel(tf.keras.Model):
                 if self.video_features_model == 'video_conv_seq_model':
                     self.model = self.video_conv_seq_model()
 
+        if self.model_name == 'i3d':
+            print('I3D') 
+            self.model = self.i3d()
+
         if self.model_name == 'conv2d_timedist_lstm':
             print("Conv2d-lstm model timedist")
             self.model = self.conv2d_timedist_lstm()
@@ -145,6 +149,39 @@ class MyModel(tf.keras.Model):
         if self.model_name == 'vgg16_GAP_dense':
             print('VGG-16 trained from scratch, then global avg pooling, then one FC layer.')
             self.model = self.vgg16_GAP_dense(w=None)
+
+    def i3d(self):
+
+        import i3d
+        rgb_model = i3d.InceptionI3d(
+            self.config_dict['nb_labels'], spatial_squeeze=True, final_endpoint='Logits')
+        input_array = Input(shape=(None, self.config_dict['seq_length'],
+                            self.height, self.width, 3))
+        encoded_image = rgb_model(input_array[:, 0, :])
+
+        of_model = i3d.InceptionI3D(
+            self.config_dict['nb_labels'], spatial_squeeze=True, final_endpoint='Logits')
+        encoded_of = of_model(input_array[:, 1, :])
+
+        if fusion == 'add':  # How it's done in the deepmind repo.
+            merged = tf.keras.layers.add([encoded_image, encoded_of])
+
+        merged_flat = Flatten()(merged)
+
+        if train:
+            merged_flat = Dropout(self.dropout_1)(merged_flat)
+        dense = Dense(self.nb_labels)(merged_flat)
+
+        output = Activation('softmax')(dense)
+
+        if self.config_dict['return_last_clstm']:
+            outputs = [output, merged]
+        else:
+            outputs = [output]
+
+        i3d_model = tf.keras.Model(inputs=[input_array], outputs=outputs)
+        return i3d_model
+    
 
     def two_stream(self):
         # Functional API
