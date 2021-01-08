@@ -176,7 +176,7 @@ class DataHandler:
             dataset = dataset.interleave(lambda x: tf.data.TFRecordDataset(x),
                 cycle_length=8, block_length=1, num_parallel_calls=tf.data.experimental.AUTOTUNE,
                 deterministic=False)
-            dataset = dataset.map(parse_fn, num_parallel_calls=AUTOTUNE)
+            dataset = dataset.map(self.parse_fn, num_parallel_calls=AUTOTUNE)
 
         else:
             dataset = tf.data.Dataset.from_generator(
@@ -196,6 +196,44 @@ class DataHandler:
         dataset = dataset.prefetch(AUTOTUNE)
         print(dataset)
         return dataset
+
+    def parse_fn(self, proto):
+    
+        # Define the tfrecord again. The sequence was saved as a string.
+        keys_to_features = {
+            'nb_clips': tf.io.FixedLenFeature([], tf.int64),
+            'height': tf.io.FixedLenFeature([], tf.int64),
+            'width': tf.io.FixedLenFeature([], tf.int64),
+            'features': tf.io.FixedLenFeature([], tf.string),
+            'preds': tf.io.FixedLenFeature([], tf.string),
+            'labels': tf.io.FixedLenFeature([], tf.string),
+            'video_id': tf.io.FixedLenFeature([], tf.string),
+        }
+    
+        # Load one example
+        parsed_features = tf.io.parse_single_example(proto, keys_to_features)
+    
+        video_ID = parsed_features['video_id']
+        feats = tf.io.parse_tensor(parsed_features['features'], out_type=tf.float32)
+        preds = tf.io.parse_tensor(parsed_features['preds'], out_type=tf.float32)
+        labels = tf.io.parse_tensor(parsed_features['labels'], out_type=tf.int32)
+    
+        # feats = tf.ensure_shape(feats, [self.config_dict['video_pad_length'], self.config_dict['feature_dim']])
+        # preds = tf.ensure_shape(preds, [self.config_dict['video_pad_length'], self.config_dict['nb_labels']])
+        # labels = tf.ensure_shape(labels, [self.config_dict['video_pad_length'], self.config_dict['nb_labels']])
+    
+        feats = tf.ensure_shape(feats, [self.config_dict['video_pad_length'],
+                                        self.config_dict['feature_dim']])
+        preds = tf.ensure_shape(preds, [self.config_dict['video_pad_length'],
+                                        self.config_dict['nb_labels']])
+        labels = tf.ensure_shape(labels, [self.config_dict['video_pad_length'],
+                                          self.config_dict['nb_labels']])
+    
+        # feats = tf.cast(feats, tf.float32)
+        # preds = tf.cast(preds, tf.float32)
+        # labels = tf.cast(labels, tf.int32)
+    
+        return feats, preds, labels, video_ID
 
     def generate_features(self,
                           subject_codes,
@@ -1374,40 +1412,5 @@ def mergesort_features_into_dict(video_id, d1, d2, pad_length, zero_pad):
 
     return merged_dict, length
 
-
-def parse_fn(proto):
-
-    # Define the tfrecord again. The sequence was saved as a string.
-    keys_to_features = {
-        'nb_clips': tf.io.FixedLenFeature([], tf.int64),
-        'height': tf.io.FixedLenFeature([], tf.int64),
-        'width': tf.io.FixedLenFeature([], tf.int64),
-        'features': tf.io.FixedLenFeature([], tf.string),
-        'preds': tf.io.FixedLenFeature([], tf.string),
-        'labels': tf.io.FixedLenFeature([], tf.string),
-        'video_id': tf.io.FixedLenFeature([], tf.string),
-    }
-
-    # Load one example
-    parsed_features = tf.io.parse_single_example(proto, keys_to_features)
-
-    video_ID = parsed_features['video_id']
-    feats = tf.io.parse_tensor(parsed_features['features'], out_type=tf.float32)
-    preds = tf.io.parse_tensor(parsed_features['preds'], out_type=tf.float32)
-    labels = tf.io.parse_tensor(parsed_features['labels'], out_type=tf.int32)
-
-    # feats = tf.ensure_shape(feats, [self.config_dict['video_pad_length'], self.config_dict['feature_dim']])
-    # preds = tf.ensure_shape(preds, [self.config_dict['video_pad_length'], self.config_dict['nb_labels']])
-    # labels = tf.ensure_shape(labels, [self.config_dict['video_pad_length'], self.config_dict['nb_labels']])
-
-    feats = tf.ensure_shape(feats, [266, 20480])
-    preds = tf.ensure_shape(preds, [266, 2])
-    labels = tf.ensure_shape(labels, [266, 2])
-
-    # feats = tf.cast(feats, tf.float32)
-    # preds = tf.cast(preds, tf.float32)
-    # labels = tf.cast(labels, tf.int32)
-
-    return feats, preds, labels, video_ID
 
 
