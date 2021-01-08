@@ -373,6 +373,8 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
                     wandb.log({'tv_nopain': tv_np.numpy()})
                     wandb.log({'tv_pain': tv_p.numpy()})
                     wandb.log({'mil': mil.numpy()})
+                    print(optimizer._decayed_lr('float32').numpy())
+                    wandb.log({'lr': optimizer._decayed_lr('float32').numpy()})
                 else:
                     grads, trainable_weights, grads_names, loss_value, l2_loss = train_step(
                         feats_batch, preds_batch, labels_batch, lengths_batch)
@@ -484,6 +486,8 @@ def low_level_train(model, ckpt_path, last_ckpt_path, optimizer,
         return loss
     
     epochs_not_improved = 0
+    print('\n Saving checkpoint to {} before first epoch'.format(last_ckpt_path))
+    model.save_weights(last_ckpt_path)
     for epoch in range(config_dict['nb_epochs']):
         print('\nStart of epoch %d' % (epoch,))
         wandb.log({'epoch': epoch})
@@ -593,7 +597,7 @@ def save_features(model, config_dict, steps, dataset):
             to_save_dict['y'] = y_batch_train
             features_to_save.append(to_save_dict)
     features_to_save = np.asarray(features_to_save)
-    np.savez_compressed(config_dict['checkpoint'][:18] + '_pf_saved_features_20480dims', features_to_save)
+    np.savez_compressed(config_dict['checkpoint'][:18] + '_lps_saved_features_20480dims', features_to_save)
 
 
 def val_split(X_train, y_train, val_fraction, batch_size, round_to_batch=True):
