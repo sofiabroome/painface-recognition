@@ -10,7 +10,7 @@ config_dict = {
     'save_features_per_video': False,
     'video_level_mode': False,
     'train_video_level_features': False,
-    'do_evaluate': True,
+    'do_evaluate': False,
     'val_mode': 'subject',  # subject | fraction | no_val
     'train_mode': 'low_level',
     # 'train_mode': 'keras',
@@ -23,7 +23,8 @@ config_dict = {
     'lps_of_path': data_path + 'lps/jpg_128_128_16fps_OF_magnitude_cv2_2fpsrate/',
     'pixel_mean': pixel_means.pf_rgb['mean'],
     'pixel_std': pixel_means.pf_rgb['std'],
-    'checkpoint': 'models/132766_best_model_2stream_5d_add.ckpt',
+    # 'checkpoint': 'models/132766_best_model_2stream_5d_add.ckpt',
+    'checkpoint': 'models/UNTRAINED_last_model_2stream_5d_add.ckpt',
     # Model
     'model': '2stream_5d_add',
     'rgb_period': 1,  # Set to 10 if simonyan-like model

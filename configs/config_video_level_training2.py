@@ -54,9 +54,6 @@ config_dict = {
     # 'val_video_features_folder': 'lps/video_level_features_320dim_zeropad_noresample/',
     # 'test_video_features_folder': 'lps/video_level_features_320dim_zeropad_noresample/',
     # Do not use the zeropad lengths below.
-    'train_video_lengths_folder': 'lps/video_level_features_320dim_noresample/',
-    'val_video_lengths_folder': 'lps/video_level_features_320dim_noresample/',
-    'test_video_lengths_folder': 'lps/video_level_features_320dim_noresample/',
     # Model
     'model': '2stream_5d_add',
     'rgb_period': 1,  # Set to 10 if simonyan-like model
@@ -80,6 +77,7 @@ config_dict = {
     # 'video_features_model' : 'video_level_mil_feats',
     'video_features_model' : 'video_level_preds_attn_gru_network',
     # 'video_features_model' : 'video_level_preds_attn_network',
+    'merge_attn': 'mult',
     'video_loss' : 'mil',
     # 'video_features_model' : 'video_level_mil_feats_preds',
     # 'video_loss' : 'mil_ce',
