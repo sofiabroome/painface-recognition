@@ -239,7 +239,8 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
     df_video_lengths = pd.read_csv('metadata/video_lengths.csv')
 
     train_steps = len([sample for sample in train_dataset])
-    val_steps = len([sample for sample in val_dataset])
+    if not config_dict['val_mode'] == 'no_val':
+        val_steps = len([sample for sample in val_dataset])
     epochs_not_improved = 0
 
     @tf.function(input_signature=(
