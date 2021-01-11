@@ -88,8 +88,10 @@ def make_jobarray_configs(dataset, nb_repetitions):
     for rep in range(nb_repetitions):
         for ind, test_subject in enumerate(test_horses):
             commands = []
-
-            val_horses = get_val(dataset, test_subject)
+            if config_dict['val_mode'] == 'subject':
+                val_horses = get_val(dataset, test_subject)
+            if config_dict['val_mode'] == 'no_val':
+                val_horses = ''
             train_subjects = [x for x in train_horses
                                 if x is not test_subject
                                 and x not in val_horses]
@@ -119,9 +121,10 @@ def main():
 if __name__=='__main__':
 
     # dataset_str = 'pf'
-    # dataset_str = 'lps'
+    dataset_str = 'lps'
     # dataset_str = 'all'
-    dataset_str = 'lps_pftrain'
+    # dataset_str = 'lps_pftrain'
+
     avoid_sir_holger = True
 
     nb_reps = 5
@@ -133,8 +136,16 @@ if __name__=='__main__':
         config_file = 'configs/config_2stream_{}.py'.format(dataset_str)
     if model == 'clstm1':
         config_file = 'configs/config_clstm.py'
-    config_file = 'configs/config_video_level_training_all2.py'
-    job_name = 'configs_to_run_{}_videofeats2_crossval'.format(dataset_str)
+
+    # VIDEO LEVEL uncomment these 2 lines and write a config file
+    config_file = 'configs/config_video_level_training_untrained.py'
+    job_name = 'configs_to_run_{}_videofeats_untrained'.format(dataset_str)
+
+    # DENSE SUPERVISION uncomment the line below
     # job_name = 'configs_to_run_{}_{}_crossval'.format(model, dataset_str)
+    
+    config_dict_module = helpers.load_module('../' + config_file)
+    config_dict = config_dict_module.config_dict
+
     main()
 
