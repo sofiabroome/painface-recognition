@@ -121,9 +121,9 @@ def main():
 if __name__=='__main__':
 
     # dataset_str = 'pf'
-    dataset_str = 'lps'
+    # dataset_str = 'lps'
     # dataset_str = 'all'
-    # dataset_str = 'lps_pftrain'
+    dataset_str = 'lps_pftrain'
 
     avoid_sir_holger = True
 
@@ -138,8 +138,12 @@ if __name__=='__main__':
         config_file = 'configs/config_clstm.py'
 
     # VIDEO LEVEL uncomment these 2 lines and write a config file
-    config_file = 'configs/config_video_level_training_untrained.py'
-    job_name = 'configs_to_run_{}_videofeats_untrained'.format(dataset_str)
+    job_str = 'best_noTV'
+    config_file = 'configs/{}.py'.format(job_str)
+    job_name = 'configs_to_run_{}_{}_videofeats'.format(dataset_str, job_str)
+
+    # config_file = 'configs/config_video_level_training_untrained.py'
+    # job_name = 'configs_to_run_{}_videofeats_untrained'.format(dataset_str)
 
     # DENSE SUPERVISION uncomment the line below
     # job_name = 'configs_to_run_{}_{}_crossval'.format(model, dataset_str)
