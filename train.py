@@ -145,16 +145,22 @@ def get_sparse_pain_loss(y_batch, preds_batch, lengths_batch, config_dict):
     # batch_tv_norm = batch_calc_TV_norm(
     #     preds_batch[:, :, 1], y_batch, lengths_batch, config_dict)
 
-    tv_nopain = config_dict['tv_weight_nopain'] * tf.reduce_sum(
-        batch_indicator_nopain * batch_calc_TV_norm(preds_batch[:, :, 0],
-                                                    y_batch,
-                                                    lengths_batch,
-                                                    config_dict))
-    tv_pain = config_dict['tv_weight_pain'] * tf.reduce_sum(
-        batch_indicator_pain * batch_calc_TV_norm(preds_batch[:, :, 1],
-                                                    y_batch,
-                                                    lengths_batch,
-                                                    config_dict))
+    if config_dict['tv_weight_nopain'] == 0:
+        tv_nopain = 0
+    else:
+        tv_nopain = config_dict['tv_weight_nopain'] * tf.reduce_sum(
+            batch_indicator_nopain * batch_calc_TV_norm(preds_batch[:, :, 0],
+                                                        y_batch,
+                                                        lengths_batch,
+                                                        config_dict))
+    if config_dict['tv_weight_pain'] == 0:
+        tv_pain = 0
+    else:
+        tv_pain = config_dict['tv_weight_pain'] * tf.reduce_sum(
+            batch_indicator_pain * batch_calc_TV_norm(preds_batch[:, :, 1],
+                                                        y_batch,
+                                                        lengths_batch,
+                                                        config_dict))
     # tv_nopain = config_dict['tv_weight_nopain'] * tf.reduce_sum(
     #     batch_indicator_nopain * batch_tv_norm)
     # tv_pain = config_dict['tv_weight_pain'] * tf.reduce_sum(
@@ -598,7 +604,7 @@ def save_features(model, config_dict, steps, dataset):
             to_save_dict['y'] = y_batch_train
             features_to_save.append(to_save_dict)
     features_to_save = np.asarray(features_to_save)
-    np.savez_compressed(config_dict['checkpoint'][:18] + '_lps_saved_features_20480dims', features_to_save)
+    np.savez_compressed(config_dict['checkpoint'][:18] + config_dict['save_clip_feats_id'], features_to_save)
 
 
 def val_split(X_train, y_train, val_fraction, batch_size, round_to_batch=True):
