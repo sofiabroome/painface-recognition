@@ -24,8 +24,7 @@ def process_files_and_write(df_summary, path_to_features, args, config_dict):
             df = df_summary[(df_summary.subject == int(subj_code))]
         if args.dataset == 'lps':
             df = df_summary[(df_summary.subject == subj_code)]
-
-        output_filename = 'videofeats_132766best_flat_{}.tfrecords'.format(subj_code)
+        output_filename = 'videofeats_{}_flat_{}.tfrecords'.format(args.model_id, subj_code)
         output_file = os.path.join(args.output_folder, output_filename)
         print('Output file path: ', output_file)
         writer = tf.io.TFRecordWriter(output_file)
@@ -63,6 +62,9 @@ def main():
     parser.add_argument(
         '--dataset', nargs='?', type=str,
         help='Config file')
+    parser.add_argument(
+        '--model-id', nargs='?', type=str,
+        help='Model identifier')
     args = parser.parse_args()
     print(args)
 
