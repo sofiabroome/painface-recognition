@@ -28,11 +28,12 @@ config_dict = {
     # 'checkpoint': 'models/124805_last_model_2stream_5d_add.ckpt',
     # 'checkpoint': 'models/130425_best_model_2stream_5d_add.ckpt',
     'checkpoint': 'models/132766_best_model_2stream_5d_add.ckpt',
-    'clip_features_path': data_path + 'lps/132766_best_saved_features_20480dims.npz',
-    'save_video_features_folder': 'lps/video_level_features_132766bestmodel_20480dim_zeropad266_noresample/',
-    'train_video_features_folder': 'lps/video_level_features_132766bestmodel_20480dim_zeropad266_noresample/',
-    'val_video_features_folder': 'lps/video_level_features_132766bestmodel_20480dim_zeropad266_noresample/',
-    'test_video_features_folder': 'lps/video_level_features_132766bestmodel_20480dim_zeropad266_noresample/',
+    # 'clip_features_path': data_path + 'lps/132766_best_saved_features_20480dims.npz',
+    'clip_features_path': data_path + 'lps/UNTRAINED_l_lps_saved_features_20480dims.npz',
+    'save_video_features_folder': 'lps/video_level_features_untrained_20480dim_zeropad266_noresample/',
+    'train_video_features_folder': 'lps/video_level_features_untrained_20480dim_zeropad266_noresample/',
+    'val_video_features_folder': 'lps/video_level_features_untrained_20480dim_zeropad266_noresample/',
+    'test_video_features_folder': 'lps/video_level_features_untrained_20480dim_zeropad266_noresample/',
     # Model
     'model': '2stream_5d_add',
     'rgb_period': 1,  # Set to 10 if simonyan-like model

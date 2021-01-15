@@ -25,7 +25,7 @@ config_dict = {
     'pixel_std': pixel_means.pf_rgb['std'],
     'checkpoint': 'models/132766_best_model_2stream_5d_add.ckpt',
     # Model
-    'model': '2stream_5d_add',
+    'model': 'i3d_2stream',
     'rgb_period': 1,  # Set to 10 if simonyan-like model
     'flow_period': 1,
     'input_width': 128,
@@ -55,7 +55,7 @@ config_dict = {
     'seq_length': 10,
     'seq_stride': 10,
     'nb_workers': 1,
-    'batch_size': 8,
+    'batch_size': 4,
     'nb_input_dims': 5,
     'val_fraction_value': 0.0,
     'monitor': 'val_binary_accuracy',

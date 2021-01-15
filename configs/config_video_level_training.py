@@ -77,7 +77,7 @@ config_dict = {
     # 'video_features_model' : 'video_level_mil_feats',
     'video_features_model' : 'video_level_preds_attn_gru_network',
     # 'video_features_model' : 'video_level_preds_attn_network',
-    'merge_attn': 'mult',
+    'merge_attn': 'add',
     'video_loss' : 'mil',
     # 'video_features_model' : 'video_level_mil_feats_preds',
     # 'video_loss' : 'mil_ce',
@@ -89,7 +89,7 @@ config_dict = {
     'video_batch_size_train' : 20,
     'video_batch_size_test' : 1,
     'video_pad_length' : 144,
-    'video_nb_epochs': 300,
+    'video_nb_epochs': 600,
     'video_early_stopping': 150,
     'shuffle_buffer': 150,
     'k_mil_fraction': -1,  # This is to be updated using below params

@@ -25,6 +25,7 @@ config_dict = {
     'pixel_std': pixel_means.pf_rgb['std'],
     # 'checkpoint': 'models/132766_best_model_2stream_5d_add.ckpt',
     'checkpoint': 'models/UNTRAINED_last_model_2stream_5d_add.ckpt',
+    'save_clip_feats_id': '_pf_saved_features_20480dims',  # With 18 first chars of ckpt.
     # Model
     'model': '2stream_5d_add',
     'rgb_period': 1,  # Set to 10 if simonyan-like model

@@ -13,7 +13,7 @@ config_dict = {
     'tfrecords': True,
     'train_video_level_features': True,
     'do_evaluate': True,
-    'val_mode': 'no_val',  # subject | fraction | no_val
+    'val_mode': 'subject',  # subject | fraction | no_val
     'train_mode': 'low_level',  # keras | low_level
     # Data
     'data_path': data_path,
@@ -28,7 +28,7 @@ config_dict = {
     # 'checkpoint': 'models/124805_last_model_2stream_5d_add.ckpt',
     'checkpoint': 'models/130425_best_model_2stream_5d_add.ckpt',
     'save_video_features_folder': 'lps/video_level_features_320dim_noresample/',
-    'tfr_file': 'lps/tfrecords_video_level_features_132766bestmodel_20480dim_zeropad_noresample/lps_videofeats_132766best_flat',
+    'tfr_file': 'tfrecords/pflps_video_level_features_132766bestmodel_20480dim_zeropad266_noresample/videofeats_132766best_flat',
     # 'train_video_features_folder': 'lps/video_level_features_132766bestmodel_320dim_zeropad_noresample/',
     # 'val_video_features_folder': 'lps/video_level_features_132766bestmodel_320dim_zeropad_noresample/',
     # 'test_video_features_folder': 'lps/video_level_features_132766bestmodel_320dim_zeropad_noresample/',
@@ -53,7 +53,6 @@ config_dict = {
     # 'train_video_features_folder': 'lps/video_level_features_320dim_zeropad_noresample/',
     # 'val_video_features_folder': 'lps/video_level_features_320dim_zeropad_noresample/',
     # 'test_video_features_folder': 'lps/video_level_features_320dim_zeropad_noresample/',
-    # Do not use the zeropad lengths below.
     # Model
     'model': '2stream_5d_add',
     'rgb_period': 1,  # Set to 10 if simonyan-like model
@@ -77,7 +76,7 @@ config_dict = {
     # 'video_features_model' : 'video_level_mil_feats',
     'video_features_model' : 'video_level_preds_attn_gru_network',
     # 'video_features_model' : 'video_level_preds_attn_network',
-    'merge_attn': 'mult',
+    'merge_attn': 'add',
     'video_loss' : 'mil',
     # 'video_features_model' : 'video_level_mil_feats_preds',
     # 'video_loss' : 'mil_ce',
@@ -86,19 +85,19 @@ config_dict = {
     'nb_units_2' : 32,
     'feature_dim': 20480,
     # 'feature_dim': 320,
-    'video_batch_size_train' : 20,
+    'video_batch_size_train' : 10,
     'video_batch_size_test' : 1,
-    'video_pad_length' : 144,
-    'video_nb_epochs': 300,
+    'video_pad_length' : 266,
+    'video_nb_epochs': 600,
     'video_early_stopping': 150,
     'shuffle_buffer': 150,
     'k_mil_fraction': -1,  # This is to be updated using below params
-    'k_mil_fraction_start': 0.50,
+    'k_mil_fraction_start': 0.05,
     'k_mil_fraction_end': 0.05,
     'k_mil_fraction_decrement_step': 0.05,
     'k_mil_fraction_nb_epochs_to_decrease': 1,
     'tv_weight_pain': 0,
-    'tv_weight_nopain': 0.1,
+    'tv_weight_nopain': 0,
     'l2_weight': 0,
     'mc_dropout_samples': 1,
     # Parameters for functional API C-LSTM
