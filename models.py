@@ -50,9 +50,9 @@ class MyModel(tf.keras.Model):
                 if self.video_features_model == 'video_conv_seq_model':
                     self.model = self.video_conv_seq_model()
 
-        if self.model_name == 'i3d':
+        if self.model_name == 'i3d_2stream':
             print('I3D') 
-            self.model = self.i3d()
+            self.model = self.i3d_2stream(fusion='add')
 
         if self.model_name == 'conv2d_timedist_lstm':
             print("Conv2d-lstm model timedist")
@@ -150,16 +150,58 @@ class MyModel(tf.keras.Model):
             print('VGG-16 trained from scratch, then global avg pooling, then one FC layer.')
             self.model = self.vgg16_GAP_dense(w=None)
 
-    def i3d(self):
+    def i3d_2stream(self, fusion, train=True):
+
+        from i3d import Inception_Inflated3d
+
+        rgb_model = Inception_Inflated3d(
+            include_top=False,
+            weights='rgb_kinetics_only',
+            input_shape=(self.config_dict['seq_length'], self.height, self.width, 3),
+            classes=self.config_dict['nb_labels'])
+        input_array = Input(shape=(None, self.config_dict['seq_length'], self.height, self.width, 3))
+        # input_array = Input(shape=(self.config_dict['seq_length'], self.height, self.width, 3))
+        encoded_image = rgb_model(input_array[:, 0, :])
+
+        of_model = Inception_Inflated3d(
+            include_top=False,
+            weights='flow_kinetics_only',
+            input_shape=(self.config_dict['seq_length'], self.height, self.width, 2),
+            classes=self.config_dict['nb_labels'])
+        encoded_of = of_model(input_array[:, 1, :, :, :, :2])
+
+        if fusion == 'add':  # How it's done in the deepmind repo.
+            merged = tf.keras.layers.add([encoded_image, encoded_of])
+
+        merged_flat = Flatten()(merged)
+
+        if train:
+            merged_flat = Dropout(self.dropout_1)(merged_flat)
+        dense = Dense(self.nb_labels)(merged_flat)
+
+        output = Activation('softmax')(dense)
+
+        if self.config_dict['return_last_clstm']:
+            outputs = [output, merged]
+        else:
+            outputs = [output]
+
+        model = tf.keras.Model(inputs=[input_array], outputs=outputs)
+        return model
+    
+
+
+    def i3d_old(self):
 
         import i3d
         rgb_model = i3d.InceptionI3d(
             self.config_dict['nb_labels'], spatial_squeeze=True, final_endpoint='Logits')
         input_array = Input(shape=(None, self.config_dict['seq_length'],
                             self.height, self.width, 3))
-        encoded_image = rgb_model(input_array[:, 0, :])
+        encoded_image, _ = rgb_model._build(input_array[:, 0, :], is_training=True, dropout_keep_prob=1.0)
+        # encoded_image = rgb_model(input_array[:, 0, :])
 
-        of_model = i3d.InceptionI3D(
+        of_model = i3d.InceptionI3d(
             self.config_dict['nb_labels'], spatial_squeeze=True, final_endpoint='Logits')
         encoded_of = of_model(input_array[:, 1, :])
 
