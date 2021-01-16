@@ -119,7 +119,7 @@ def create_image_arrays(config_dict, input_sequence, gradcams, time_mask,
                         output_folder, video_id, mask_type,
                         image_width, image_height):
     combined_images = []
-    sequence = input_sequence[0, :, :, :, :, :]
+    sequence = input_sequence[:, 0, :, :, :, :]
     perturbed_sequence = mask.perturb_sequence(
         sequence,
         time_mask,
@@ -127,7 +127,7 @@ def create_image_arrays(config_dict, input_sequence, gradcams, time_mask,
         snap_values=True)
     sequence = prepare_for_image_write(sequence)
 
-    flow_sequence = input_sequence[1, :, :, :, :, :]
+    flow_sequence = input_sequence[:, 1, :, :, :, :]
     perturbed_flow = mask.perturb_sequence(
         flow_sequence,
         time_mask,

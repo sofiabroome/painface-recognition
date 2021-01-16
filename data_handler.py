@@ -729,7 +729,7 @@ class DataHandler:
                 start_indices = [0]
 
             elif nb_per_video is None:
-                number_of_windows = last_valid_end_index // window_stride
+                number_of_windows = (last_valid_end_index+1) // window_stride
                 # print('Number of windows', number_of_windows)
                 start_indices = [(start_ind + window_index * window_stride)
                                  for window_index in range(number_of_windows)]

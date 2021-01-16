@@ -26,10 +26,9 @@ def run():
 
     for sample_ind, sample in enumerate(dataset):
         print(sample_ind)
+        if sample_ind == nb_steps_assuming_bs1:
+            break
         tf.compat.v1.global_variables_initializer()
-
-        # if sample_ind > 5:
-        #     break
 
         video_id = 'clip_' + str(sample_ind)
 
@@ -61,10 +60,10 @@ def run():
                 # The mask should always be "clipped" here.
                 mask_clip = tf.sigmoid(mask_var)
                 if config_dict['model'] == '2stream_5d_add':
-                    perturbed_rgb = mask.perturb_sequence(x[0, :], mask_clip)
-                    perturbed_flow = mask.perturb_sequence(x[1, :], mask_clip)
+                    perturbed_rgb = mask.perturb_sequence(x[:, 0, :], mask_clip)
+                    perturbed_flow = mask.perturb_sequence(x[:, 1, :], mask_clip)
                     concat_streams = tf.concat([perturbed_rgb, perturbed_flow], axis=0)
-                    concat_streams_6d = tf.expand_dims(concat_streams, axis=1)
+                    concat_streams_6d = tf.expand_dims(concat_streams, axis=0)
                     after_softmax, _ = model(concat_streams_6d)
                 else:
                     after_softmax, _ = model(mask.perturb_sequence(
@@ -81,13 +80,12 @@ def run():
                     tf.abs(mask_clip))
                 tv = config_dict['lambda_2'] * mask.calc_TV_norm(
                     mask_clip, config_dict)
-                # loss = l1 + tv + class_loss
-                loss = class_loss
+                loss = l1 + tv + class_loss
+                # loss = class_loss
             gradients = tape.gradient(loss, mask_var)
             optimizer.apply_gradients(zip([gradients], [mask_var]))
-            # return gradients, [loss, l1, tv, class_loss], mask_var
-            return gradients, [loss, class_loss], mask_var
-
+            return gradients, [loss, l1, tv, class_loss], mask_var
+            # return gradients, [loss, class_loss], mask_var
 
         print('\nmask_var', mask_var)
 
@@ -102,22 +100,23 @@ def run():
             print('grads numpy', grads.numpy())
             print('\n mask after update: ', mask_update.numpy())
 
-            # loss_value, l1value, tvvalue, classlossvalue = losses
-            # wandb.log({'total_loss': loss_value.numpy()})
-            # wandb.log({'l1_loss': l1value.numpy()})
-            # wandb.log({'tv_loss': tvvalue.numpy()})
-            # wandb.log({'class_loss': classlossvalue.numpy()})
-            # print("Total loss: {}, class score: {}, l1: {}, TV-norm: {}".format(
-            #     loss_value, classlossvalue, l1value, tvvalue))
-
-            loss_value, classlossvalue = losses
+            loss_value, l1value, tvvalue, classlossvalue = losses
             wandb.log({'total_loss': loss_value.numpy()})
+            wandb.log({'l1_loss': l1value.numpy()})
+            wandb.log({'tv_loss': tvvalue.numpy()})
             wandb.log({'class_loss': classlossvalue.numpy()})
-            print("Total loss: {}, class score: {}".format(
-                loss_value, classlossvalue))
+            print("Total loss: {}, class score: {}, l1: {}, TV-norm: {}".format(
+                loss_value, classlossvalue, l1value, tvvalue))
+
+            # loss_value, classlossvalue = losses
+            # wandb.log({'total_loss': loss_value.numpy()})
+            # wandb.log({'class_loss': classlossvalue.numpy()})
+            # print("Total loss: {}, class score: {}".format(
+            #     loss_value, classlossvalue))
 
             if abs(old_loss - loss_value) < eta:
                 break
+
         time_mask = tf.sigmoid(mask_var)
         true_class = np.argmax(label)
         true_class_score = preds[:, true_class]
@@ -208,7 +207,7 @@ if __name__ == '__main__':
 
     data_df = pd.read_csv(config_dict['data_df_path'])
 
-    dataset = make_df_for_testclips.get_dataset_from_df(
+    dataset, nb_steps_assuming_bs1 = make_df_for_testclips.get_dataset_from_df(
         df=data_df,
         data_columns=['pain'],
         config_dict=config_dict,

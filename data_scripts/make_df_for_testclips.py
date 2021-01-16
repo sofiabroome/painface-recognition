@@ -120,8 +120,10 @@ def add_flow_to_frames_df(flow_path, frames_df):
 def get_dataset_from_df(df, data_columns, config_dict, all_subjects_df):
     dh = data_handler.DataHandler(data_columns, config_dict, all_subjects_df)
     sequences_df = dh.get_sequences_from_frame_df(df)
+    nb_steps_assuming_bs1 = len(sequences_df)
+    print('Number of extracted sequences: ', len(sequences_df))
     # Set train to True to shuffle sequences
-    return dh.get_dataset(sequence_dfs=sequences_df, train=True)
+    return dh.get_dataset(sequence_dfs=sequences_df, train=True), nb_steps_assuming_bs1
 
 
 def make_df_frames_rgb():
@@ -138,16 +140,19 @@ def make_df_frames_rgb():
 
 def make_df_frames_optical_flow():
     if os.path.isfile(flow_frames_csv_path):
-        df_flow_and_frames = pd.read_csv(frames_csv_path)
+        df_flow_and_frames = pd.read_csv(flow_frames_csv_path)
     else:
         print('Making a DataFrame with optical flow frames for: ', frames_path)
         frames_df = make_df_frames_rgb()
         df_flow_and_frames = add_flow_to_frames_df(flow_path=flow_frames_path,
                                                    frames_df=frames_df)
-        df_flow_and_frames.to_csv(flow_frames_path + 'test_clip_frames.csv')
+        # df_flow_and_frames.to_csv(flow_frames_path + 'test_clip_frames.csv')
+        df_flow_and_frames.to_csv(str_csv)
     return df_flow_and_frames
 
 if __name__ == '__main__':
+
+    str_csv = 'data/lps/interpretability_results/top_k/A_20190104_IND3_STA_2/top_3_pain.csv'
     all_subjects_df = pd.read_csv('../metadata/horse_subjects.csv')
     data_columns = ['pain', 'observer']
 

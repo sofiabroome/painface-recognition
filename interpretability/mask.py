@@ -145,10 +145,10 @@ def init_mask(seq, target, model, config_dict, thresh=0.9, mode="central"):
 
         def perturb_one_or_two_streams(x, mask):
             if config_dict['model'] == '2stream_5d_add':
-                perturbed_rgb = perturb_sequence(x[0, :], mask)
-                perturbed_flow = perturb_sequence(x[1, :], mask)
+                perturbed_rgb = perturb_sequence(x[:, 0, :], mask)
+                perturbed_flow = perturb_sequence(x[:, 1, :], mask)
                 concat_streams = tf.concat([perturbed_rgb, perturbed_flow], axis=0)
-                concat_streams_6d = tf.expand_dims(concat_streams, axis=1)
+                concat_streams_6d = tf.expand_dims(concat_streams, axis=0)
                 print('concat streams shape: ', concat_streams.shape)
                 score, _ = model(concat_streams_6d)
             else:
