@@ -1,7 +1,7 @@
 ,subject,video_id,path,length,trial,observer,pain
 0,aslan,A_20190103_IND0_STA_1(2),../data/lps/raw_videos/aslan/A_20190103_IND0_STA_1(2).MP4,187.2,IND0,1,0.0
 1,aslan,A_20190103_IND0_STA_1,../data/lps/raw_videos/aslan/A_20190103_IND0_STA_1.MP4,234.24,IND0,1,0.0
-2,aslan,A_20190103_IND0_STA_2,../data/lps/raw_videos/aslan/A_20190103_IND0_STA_2.MP4,315.84,IND0,1,0.33
+2,aslan,A_20190103_IND0_STA_2,../data/lps/raw_videos/aslan/A_20190103_IND0_STA_2.MP4,315.84,IND0,1,0.0
 3,aslan,A_20190104_IND2_STA_2,../data/lps/raw_videos/aslan/A_20190104_IND2_STA_2.MP4,306.24,IND2,1,2.0
 4,aslan,A_20190104_IND3_STA_1,../data/lps/raw_videos/aslan/A_20190104_IND3_STA_1.MP4,305.28,IND3,1,2.0
 5,aslan,A_20190104_IND3_STA_2,../data/lps/raw_videos/aslan/A_20190104_IND3_STA_2.MP4,303.36,IND3,1,1.67
@@ -35,7 +35,7 @@
 33,herrera,H_20190106_IND5_STA_1,../data/lps/raw_videos/herrera/H_20190106_IND5_STA_1.MP4,301.44,IND5,1,0.33
 34,herrera,H_20190106_IND5_STA_2,../data/lps/raw_videos/herrera/H_20190106_IND5_STA_2.MP4,316.8,IND5,1,0.0
 35,herrera,H_20190107_IND6_STA_1,../data/lps/raw_videos/herrera/H_20190107_IND6_STA_1.MP4,360.96,IND6,1,0.0
-36,inkasso,I_20190328_IND0_STA_1,../data/lps/raw_videos/inkasso/I_20190328_IND0_STA_1.MP4,310.56,IND0,1,3.33
+36,inkasso,I_20190328_IND0_STA_1,../data/lps/raw_videos/inkasso/I_20190328_IND0_STA_1.MP4,310.56,IND0,1,0.0
 37,inkasso,I_20190328_IND0_STA_2,../data/lps/raw_videos/inkasso/I_20190328_IND0_STA_2.MP4,302.88,IND0,1,0.0
 38,inkasso,I_20190330_IND'_STA_1,../data/lps/raw_videos/inkasso/I_20190330_IND'_STA_1.MP4,357.6,IND',1,3.0
 39,inkasso,I_20190330_IND1_STA_1,../data/lps/raw_videos/inkasso/I_20190330_IND1_STA_1.MP4,310.08,IND1,1,4.33
@@ -89,8 +89,8 @@
 87,naughty_but_nice,N_20181207_IND3_STA_1,../data/lps/raw_videos/naughty_but_nice/N_20181207_IND3_STA_1.MP4,306.24,IND3,1,1.67
 88,naughty_but_nice,N_20181207_IND3_STA_2,../data/lps/raw_videos/naughty_but_nice/N_20181207_IND3_STA_2.MP4,306.24,IND3,1,0.0
 89,naughty_but_nice,N_20181208_IND4_STA_1,../data/lps/raw_videos/naughty_but_nice/N_20181208_IND4_STA_1.MP4,326.4,IND4,1,0.0
-90,sir_holger,S_20181102_IND0_STA_1,../data/lps/raw_videos/sir_holger/S_20181102_IND0_STA_1.MP4,304.8,IND0,1,1.0
-91,sir_holger,S_20181102_IND0_STA_2,../data/lps/raw_videos/sir_holger/S_20181102_IND0_STA_2.MP4,310.56,IND0,1,0.33
+90,sir_holger,S_20181102_IND0_STA_1,../data/lps/raw_videos/sir_holger/S_20181102_IND0_STA_1.MP4,304.8,IND0,1,0.0
+91,sir_holger,S_20181102_IND0_STA_2,../data/lps/raw_videos/sir_holger/S_20181102_IND0_STA_2.MP4,310.56,IND0,1,0.0
 92,sir_holger,S_20181104_IND'_STA_1,../data/lps/raw_videos/sir_holger/S_20181104_IND'_STA_1.MP4,327.36,IND',1,0.0
 93,sir_holger,S_20181104_IND1_STA_1,../data/lps/raw_videos/sir_holger/S_20181104_IND1_STA_1.MP4,304.32,IND1,1,0.0
 94,sir_holger,S_20181104_IND1_STA_2(2),../data/lps/raw_videos/sir_holger/S_20181104_IND1_STA_2(2).MP4,46.56,IND1,1,0.0
