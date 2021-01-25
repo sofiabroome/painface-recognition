@@ -1,10 +1,15 @@
 from tensorflow.keras.layers import MaxPooling2D, GlobalAveragePooling2D, LSTM, Dense, Flatten, Conv2D
 from tensorflow.keras.layers import Dropout, BatchNormalization, Input, Activation
+from tensorflow.keras.layers import AveragePooling3D
 from tensorflow.keras.applications import InceptionV3
 from tensorflow.keras.layers import TimeDistributed
 from tensorflow.keras.layers import ConvLSTM2D
 from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Reshape
+from tensorflow.keras.layers import Lambda
+from tensorflow.keras import backend as K
 import tensorflow as tf
+import i3d
 
 
 class MyModel(tf.keras.Model):
@@ -30,19 +35,18 @@ class MyModel(tf.keras.Model):
         
         if not self.config_dict['save_features']:
             if self.config_dict['video_level_mode']:
+                training = True if config_dict['train_video_level_features'] else False
                 self.video_features_model = self.config_dict['video_features_model']
                 config_dict['model'] = self.video_features_model
                 self.model_name = 'only_train_video_feats'
                 if self.video_features_model == 'video_level_network':
                     self.model = self.video_level_network()
                 if self.video_features_model == 'video_level_preds_attn_network':
-                    training = True if config_dict['train_video_level_features'] else False
                     self.model = self.video_level_preds_attn_network(training=training)
                 if self.video_features_model == 'video_level_preds_attn_gru_network':
-                    training = True if config_dict['train_video_level_features'] else False
                     self.model = self.video_level_preds_attn_gru_network(training=training)
                 if self.video_features_model == 'video_level_mil_feats':
-                    self.model = self.video_level_mil_feats()
+                    self.model = self.video_level_mil_feats(training=training)
                 if self.video_features_model == 'video_level_mil_feats_preds':
                     self.model = self.video_level_mil_feats_preds()
                 if self.video_features_model == 'video_fc_model':
@@ -150,39 +154,58 @@ class MyModel(tf.keras.Model):
             print('VGG-16 trained from scratch, then global avg pooling, then one FC layer.')
             self.model = self.vgg16_GAP_dense(w=None)
 
+    def i3d_classification_block(self, x, dropout_prob, classes, name_str):
+        # Classification block
+        print('\nCLASSIFICATION HEAD SHAPES: ')
+        print(x.shape)
+        # x = AveragePooling3D((2, 7, 7), strides=(1, 1, 1), padding='valid', name='global_avg_pool')(x)
+        x = AveragePooling3D((2, 4, 4), strides=(1, 1, 1), padding='valid',
+            name='global_avg_pool_{}'.format(name_str))(x)
+        print(x.shape)
+        x = Dropout(dropout_prob)(x)
+        x = i3d.conv3d_bn(x, classes, 1, 1, 1, padding='same', 
+            use_bias=True, use_activation_fn=False, use_bn=False,
+            name='Conv3d_6a_1x1_{}'.format(name_str))
+        print(x.shape)
+ 
+        num_frames_remaining = int(x.shape[1])
+        print('num_frames_remaining :', num_frames_remaining)
+        x = Reshape((num_frames_remaining, classes))(x)
+
+        # logits (raw scores for each class)
+        logits = Lambda(lambda x: K.mean(x, axis=1, keepdims=False),
+                   output_shape=lambda s: (s[0], s[2]))(x)
+        return logits
+
     def i3d_2stream(self, fusion, train=True):
 
-        from i3d import Inception_Inflated3d
-
-        rgb_model = Inception_Inflated3d(
+        rgb_model = i3d.Inception_Inflated3d(
             include_top=False,
             weights='rgb_kinetics_only',
             input_shape=(self.config_dict['seq_length'], self.height, self.width, 3),
-            classes=self.config_dict['nb_labels'])
+            classes=self.nb_labels)
         input_array = Input(shape=(None, self.config_dict['seq_length'], self.height, self.width, 3))
-        # input_array = Input(shape=(self.config_dict['seq_length'], self.height, self.width, 3))
         encoded_image = rgb_model(input_array[:, 0, :])
+        rgb_logits = self.i3d_classification_block(encoded_image,
+            dropout_prob=self.dropout_2, classes=self.nb_labels, name_str='rgb')
 
-        of_model = Inception_Inflated3d(
+        flow_model = i3d.Inception_Inflated3d(
             include_top=False,
             weights='flow_kinetics_only',
             input_shape=(self.config_dict['seq_length'], self.height, self.width, 2),
-            classes=self.config_dict['nb_labels'])
-        encoded_of = of_model(input_array[:, 1, :, :, :, :2])
+            classes=self.nb_labels)
+        encoded_flow = flow_model(input_array[:, 1, :, :, :, :2])
+        flow_logits = self.i3d_classification_block(encoded_flow,
+            dropout_prob=self.dropout_2, classes=self.nb_labels, name_str='flow')
 
-        if fusion == 'add':  # How it's done in the deepmind repo.
-            merged = tf.keras.layers.add([encoded_image, encoded_of])
+        features = encoded_image + encoded_flow
 
-        merged_flat = Flatten()(merged)
+        logits = rgb_logits + flow_logits  # How it's done in the deepmind repo.
 
-        if train:
-            merged_flat = Dropout(self.dropout_1)(merged_flat)
-        dense = Dense(self.nb_labels)(merged_flat)
-
-        output = Activation('softmax')(dense)
+        output = Activation('softmax')(logits)
 
         if self.config_dict['return_last_clstm']:
-            outputs = [output, merged]
+            outputs = [output, features]
         else:
             outputs = [output]
 
@@ -193,20 +216,18 @@ class MyModel(tf.keras.Model):
 
     def i3d_old(self):
 
-        import i3d
         rgb_model = i3d.InceptionI3d(
             self.config_dict['nb_labels'], spatial_squeeze=True, final_endpoint='Logits')
         input_array = Input(shape=(None, self.config_dict['seq_length'],
                             self.height, self.width, 3))
         encoded_image, _ = rgb_model._build(input_array[:, 0, :], is_training=True, dropout_keep_prob=1.0)
-        # encoded_image = rgb_model(input_array[:, 0, :])
 
-        of_model = i3d.InceptionI3d(
+        flow_model = i3d.InceptionI3d(
             self.config_dict['nb_labels'], spatial_squeeze=True, final_endpoint='Logits')
-        encoded_of = of_model(input_array[:, 1, :])
+        encoded_flow = flow_model(input_array[:, 1, :])
 
         if fusion == 'add':  # How it's done in the deepmind repo.
-            merged = tf.keras.layers.add([encoded_image, encoded_of])
+            merged = tf.keras.layers.add([encoded_image, encoded_flow])
 
         merged_flat = Flatten()(merged)
 
@@ -231,11 +252,11 @@ class MyModel(tf.keras.Model):
         image_input = Input(shape=(self.height, self.width, 3))
         encoded_image = rgb_model(image_input)
 
-        of_model, _ = self.inception_4d_input(w=None, top_layer=False)
+        flow_model, _ = self.inception_4d_input(w=None, top_layer=False)
         of_input = Input(shape=(self.height, self.width, 3))
-        encoded_of = of_model(of_input)
+        encoded_flow = flow_model(of_input)
         
-        merged = tf.keras.layers.add([encoded_image, encoded_of])
+        merged = tf.keras.layers.add([encoded_image, encoded_flow])
 
         merged = Dropout(.2)(merged)
         dense = Dense(self.nb_labels)(merged)
@@ -254,11 +275,11 @@ class MyModel(tf.keras.Model):
         image_input = Input(shape=(self.height, self.width, 3))
         encoded_image = rgb_model(image_input)
 
-        of_model, _ = self.inception_4d_input(w='imagenet', top_layer=False)
+        flow_model, _ = self.inception_4d_input(w='imagenet', top_layer=False)
         of_input = Input(shape=(self.height, self.width, 3))
-        encoded_of = of_model(of_input)
+        encoded_flow = flow_model(of_input)
         
-        merged = tf.keras.layers.add([encoded_image, encoded_of])
+        merged = tf.keras.layers.add([encoded_image, encoded_flow])
 
         merged = Dropout(.2)(merged)
         dense = Dense(self.nb_labels)(merged)
@@ -340,17 +361,17 @@ class MyModel(tf.keras.Model):
         encoded_image = rgb_model(input_array[:, 0, :])
         # encoded_image = rgb_model(input_array[0, :])
 
-        of_model = self.convolutional_LSTM(channels=3, top_layer=False)
-        # of_model = self.clstm(channels=3, top_layer=False, bn=True)
-        encoded_of = of_model(input_array[:, 1, :])
-        # encoded_of = of_model(input_array[1, :])
+        flow_model = self.convolutional_LSTM(channels=3, top_layer=False)
+        # flow_model = self.clstm(channels=3, top_layer=False, bn=True)
+        encoded_flow = flow_model(input_array[:, 1, :])
+        # encoded_flow = flow_model(input_array[1, :])
 
         if fusion == 'add':
-            merged = tf.keras.layers.add([encoded_image, encoded_of])
+            merged = tf.keras.layers.add([encoded_image, encoded_flow])
         if fusion == 'mult':
-            merged = tf.keras.layers.multiply([encoded_image, encoded_of])
+            merged = tf.keras.layers.multiply([encoded_image, encoded_flow])
         if fusion == 'concat':
-            merged = tf.keras.layers.concatenate([encoded_image, encoded_of], axis=-1)
+            merged = tf.keras.layers.concatenate([encoded_image, encoded_flow], axis=-1)
 
         merged_flat = Flatten()(merged)
 
@@ -378,16 +399,16 @@ class MyModel(tf.keras.Model):
         image_input = Input(shape=(None, self.height, self.width, 3))
         encoded_image = rgb_model(image_input)
 
-        of_model = self.rodriguez(top_layer=False)
+        flow_model = self.rodriguez(top_layer=False)
         of_input = Input(shape=(None, self.height, self.width, 3))
-        encoded_of = of_model(of_input)
+        encoded_flow = flow_model(of_input)
 
         if fusion == 'add':
-            merged = tf.keras.layers.add([encoded_image, encoded_of])
+            merged = tf.keras.layers.add([encoded_image, encoded_flow])
         if fusion == 'mult':
-            merged = tf.keras.layers.multiply([encoded_image, encoded_of])
+            merged = tf.keras.layers.multiply([encoded_image, encoded_flow])
         if fusion == 'concat':
-            merged = tf.keras.layers.concatenate([encoded_image, encoded_of], axis=-1)
+            merged = tf.keras.layers.concatenate([encoded_image, encoded_flow], axis=-1)
 
         merged = Dropout(self.dropout_1)(merged)
         dense = Dense(self.nb_labels)(merged)
@@ -469,9 +490,9 @@ class MyModel(tf.keras.Model):
         image_input = Input(shape=(self.height, self.width, 3))
         rgb_class_scores = rgb_model(image_input)
 
-        of_model = self.simonyan_temporal_stream()
+        flow_model = self.simonyan_temporal_stream()
         of_input = Input(shape=(2*self.seq_length, self.height, self.width))
-        flow_class_scores = of_model(of_input)
+        flow_class_scores = flow_model(of_input)
 
         if fusion == 'average':
             output = tf.keras.layers.average([rgb_class_scores, flow_class_scores])
@@ -737,7 +758,7 @@ class MyModel(tf.keras.Model):
 
         return model
 
-    def video_level_mil_feats(self):
+    def video_level_mil_feats_old(self):
 
         input_features = Input(shape=(None, self.config_dict['feature_dim']))
         input_preds = Input(shape=(None, 2))
@@ -828,6 +849,31 @@ class MyModel(tf.keras.Model):
         # x = tf.keras.layers.GlobalMaxPooling1D()(x)
         # x = tf.keras.layers.GlobalAveragePooling1D()(x)
         # x = tf.keras.layers.Dense(units=self.config_dict['nb_labels'])(x)
+        x = Activation('softmax')(x)
+
+        model = tf.keras.Model(inputs=[input_features, input_preds], outputs=[x])
+        model.summary()
+
+        return model
+
+    def video_level_mil_feats(self, training):
+
+        input_features = Input(shape=(self.config_dict['video_pad_length'], self.config_dict['feature_dim']))
+        input_preds = Input(shape=(self.config_dict['video_pad_length'], 2))
+
+        # FEATURES
+        feature_enc1 = tf.keras.layers.GRU(
+            self.config_dict['nb_units_1'],
+            return_sequences=True)
+        feature_enc2 = tf.keras.layers.GRU(
+            self.config_dict['nb_labels'], return_sequences=True)
+
+        x = feature_enc1(input_features)
+        if training:
+            x = Dropout(self.config_dict['dropout_2'])(x)
+        x = feature_enc2(x)
+        
+        x = tf.keras.layers.BatchNormalization()(x, training=training)
         x = Activation('softmax')(x)
 
         model = tf.keras.Model(inputs=[input_features, input_preds], outputs=[x])
