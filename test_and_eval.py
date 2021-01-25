@@ -280,6 +280,7 @@ def evaluate_on_video_level(config_dict, model, model_path, test_dataset,
             preds_mil = evaluate_sparse_pain(y, preds_seq, lengths, config_dict)
             preds = 1/2 * (preds_one + preds_mil)
         y = y[:, 0, :]
+        # print('PRED: ', preds, 'Y :', y)
         test_acc_metric.update_state(y, preds)
         return preds, y
     all_preds = []
@@ -291,6 +292,7 @@ def evaluate_on_video_level(config_dict, model, model_path, test_dataset,
             pbar.update(1)
             # step_start_time = time.time()
             feats_batch, preds_batch, labels_batch, video_id = sample
+            # print('\nVideo ID being tested: ', video_id)
             lengths_batch = train.get_nb_clips_per_video(video_id, df_video_lengths)
             # print('\n Video ID: ', video_id)
             preds, y = test_step(feats_batch, preds_batch, labels_batch, lengths_batch)

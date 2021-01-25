@@ -28,7 +28,7 @@ def convert_to_sequential_example(feats, preds, labels, video_id, args, config_d
     """
     nb_clips = config_dict['video_pad_length']
     assert feats.shape[0] == nb_clips
-    assert feats.shape[1] == 20480
+    assert feats.shape[1] == config_dict['feature_dim']
     assert preds.shape[0] == feats.shape[0]
     assert labels.shape[0] == feats.shape[0]
 

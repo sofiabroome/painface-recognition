@@ -38,6 +38,17 @@ def process_files_and_write(df_summary, path_to_features, args, config_dict):
             f_shape = feats.shape
             preds = np.array(loaded['preds']).astype(np.float32)
             labels = np.array(loaded['labels']).astype(np.int32)
+            # import ipdb; ipdb.set_trace()
+            if f_shape[0] == 267:
+                print('Was 267!')
+                feats = feats[:266,:]
+                preds = preds[:266,:]
+                labels = labels[:266,:]
+                f_shape = feats.shape
+                print('Now fshape {}'.format(f_shape))
+                print('Now preds {}'.format(preds.shape))
+                print('Now labels {}'.format(labels.shape))
+            
 
             example = gtfr.convert_to_sequential_example(feats,
                                                          preds,
