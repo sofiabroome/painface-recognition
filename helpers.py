@@ -4,7 +4,7 @@ import importlib
 import os
 
 
-def process_image(image_path, target_shape, standardize=True, mean=None, std=None):
+def process_image(image_path, target_shape, standardize=True, mean=None, std=None, normalize=True):
     """
     Process and image and return the corresponding numerical array.
     :param image_path: str
@@ -17,7 +17,9 @@ def process_image(image_path, target_shape, standardize=True, mean=None, std=Non
     w, h, c = target_shape
     target_shape = (h, w, c)
     img = load_img(image_path, target_size=target_shape)
-    img = img_to_array(img)/255
+    img = img_to_array(img)
+    if normalize:
+        img = img/255
     if standardize:
         img = (img-mean)/std
 
