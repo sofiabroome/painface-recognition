@@ -78,15 +78,8 @@ def get_flow_magnitude(flow):
     :param flow: np.ndarray [width, height, 2]
     :return: np.ndarray [width, height, 1]
     """
-    rows = flow.shape[0]
-    cols = flow.shape[1]
-    magnitude = np.zeros((rows, cols, 1))
-    for i in range(0, rows):
-        for j in range(0, cols):
-            xflow = flow[i, j, 0]
-            yflow = flow[i, j, 1]
-            mag = np.sqrt(np.power(xflow, 2) + np.power(yflow, 2))
-            magnitude[i, j] = mag
+    magnitude = np.sqrt(np.power(flow[:, :, 0], 2) + np.power(flow[:, :, 1], 2))
+    magnitude = np.reshape(magnitude, (flow.shape[0], flow.shape[1], 1))
     return magnitude
 
 

@@ -73,7 +73,8 @@ def iterate_over_frames(frequency):
                     old_vid_seq_name = vid_seq_name
                 # -1 if I want to start at 1, otherwise 2.
                 counter_format = ("%06d" % (per_video_counter-1))
-                if (per_video_counter % frequency) == 2:
+                frequency_counter = per_video_counter % frequency
+                if frequency_counter == 2 or frequency_counter == 14:
                     flow_output_path_stem = output_root_dir + subject_id +  '/'\
                                             + vid_seq_name + '/flow_' + counter_format
                     # print(flow_output_path_stem)
@@ -83,7 +84,8 @@ def iterate_over_frames(frequency):
             frame_path = row[1]['path']
             # Equine data
             vid_seq_name = find_between(frame_path, subject_id + '/', '/frame')
-            im = process_image('../' + frame_path, (width, height, channels))
+            im = process_image('../' + frame_path, (width, height, channels),
+                               standardize=False, mean=None, std=None, normalize=False)
             ims.append(im)
             counter += 1
             per_video_counter += 1
@@ -97,16 +99,16 @@ if __name__ == '__main__':
     # df = pd.read_csv('../metadata/shoulder_pain_overview.csv')
 
     # Directory with the frames from which to extract the OF.
-    frames_dir = '../data/lps/jpg_128_128_16fps/'
+    frames_dir = '../data/lps/jpg_224_224_25fps/'
 
     # Output root directory (will contain subfolders for every sequence).
     # Need to make this folder before running, and the horse_x folders in it.
-    output_root_dir = '../data/lps/jpg_128_128_16fps_OF_magnitude_cv2_2fpsrate/'
+    output_root_dir = '../data/lps/jpg_224_224_25fps_OF_magnitude_cv2_2fpsrate/'
     if not os.path.exists(output_root_dir):
         subprocess.call(['mkdir', output_root_dir])
 
-    width = 128
-    height = 128
+    width = 224
+    height = 224
     channels = 3
 
     # Only need to make the subfolders of output_root_dir once.
@@ -114,4 +116,4 @@ if __name__ == '__main__':
 
     # Iterate over the frames in root_dir and compute the flows.
     # Right now this is done for every 15th frame.
-    iterate_over_frames(frequency=8)
+    iterate_over_frames(frequency=25)
