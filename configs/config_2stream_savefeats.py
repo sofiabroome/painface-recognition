@@ -27,7 +27,8 @@ config_dict = {
     'checkpoint': 'models/UNTRAINED_last_model_2stream_5d_add.ckpt',
     'save_clip_feats_id': '_pf_saved_features_20480dims',  # With 18 first chars of ckpt.
     # Model
-    'model': '2stream_5d_add',
+    # 'model': '2stream_5d_add',
+    'model': 'i3d_2stream',
     'rgb_period': 1,  # Set to 10 if simonyan-like model
     'flow_period': 1,
     'input_width': 128,

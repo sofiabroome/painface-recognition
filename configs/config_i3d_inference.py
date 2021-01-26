@@ -4,14 +4,14 @@ data_path = '/local_storage/users/sbroome/painface-recognition/'
 config_dict = {
     # Program components
     'get_raw_sequence_data': True,
-    'inference_only': False,
+    'inference_only': True,
     'fine_tune': False,
     'save_features': False,
     'save_features_per_video': False,
     'video_level_mode': False,
     'train_video_level_features': False,
     'do_evaluate': True,
-    'val_mode': 'subject',  # subject | fraction | no_val
+    'val_mode': 'no_val',  # subject | fraction | no_val
     'train_mode': 'low_level',
     # 'train_mode': 'keras',
     # Data
@@ -23,9 +23,10 @@ config_dict = {
     'lps_of_path': data_path + 'lps/jpg_128_128_16fps_OF_magnitude_cv2_2fpsrate/',
     'pixel_mean': pixel_means.pf_rgb['mean'],
     'pixel_std': pixel_means.pf_rgb['std'],
-    'checkpoint': 'models/132766_best_model_2stream_5d_add.ckpt',
+    # 'checkpoint': 'models/132766_best_model_2stream_5d_add.ckpt',
+    'checkpoint': 'models/158937_last_model_i3d_2stream.ckpt',
     # Model
-    'model': '2stream_5d_add',
+    'model': 'i3d_2stream',
     'rgb_period': 1,  # Set to 10 if simonyan-like model
     'flow_period': 1,
     'input_width': 128,
@@ -47,7 +48,7 @@ config_dict = {
     'video_early_stopping': 15,
     'shuffle_buffer': 150,
     # Training
-    'nb_epochs': 200,
+    'nb_epochs': 30,
     'early_stopping': 50,
     'optimizer': 'adadelta',
     'lr': 0.001,
@@ -55,7 +56,7 @@ config_dict = {
     'seq_length': 10,
     'seq_stride': 10,
     'nb_workers': 1,
-    'batch_size': 8,
+    'batch_size': 4,
     'nb_input_dims': 5,
     'val_fraction_value': 0.0,
     'monitor': 'val_binary_accuracy',
