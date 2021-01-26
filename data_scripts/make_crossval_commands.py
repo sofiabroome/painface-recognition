@@ -16,7 +16,7 @@ def get_train_test(dataset):
     if dataset == 'all':
         train_horses = horses_lps + horses_pf
         test_horses = horses_lps + horses_pf
-    if dataset == 'pf':
+    if dataset == 'pf' or dataset == 'pf224':
         train_horses = horses_pf
         test_horses = horses_pf
     if dataset == 'lps' or dataset == 'lps224':
@@ -36,7 +36,7 @@ def get_val(dataset, test_subject):
             val_horses = ['kastanjett', 'horse_1']
         if test_subject == 'kastanjett':
             val_horses = ['brava', 'horse_5']
-    if dataset == 'pf':
+    if dataset == 'pf' or dataset == 'pf224':
         val_horses = ['horse_5']
         if test_subject == 'horse_5':
             val_horses = ['horse_1']
@@ -122,8 +122,9 @@ if __name__=='__main__':
 
     # Choose one dataset_str
     # dataset_str = 'pf'
+    dataset_str = 'pf224'
     # dataset_str = 'lps'
-    dataset_str = 'lps224'
+    # dataset_str = 'lps224'
     # dataset_str = 'all'
     # dataset_str = 'lps_pftrain'
 
