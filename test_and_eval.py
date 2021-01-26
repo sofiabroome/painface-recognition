@@ -95,6 +95,8 @@ class Evaluator:
                                        digits=NB_DECIMALS,
                                        output_dict=True)
             wandb.log({'test f1-score' : cr['macro avg']['f1-score']})
+            wandb.log({'test_nopain_f1' : cr['NO_PAIN']['f1-score']})
+            wandb.log({'test_pain_f1' : cr['PAIN']['f1-score']})
 
         if self.cm:
             cm = confusion_matrix(np.argmax(y_test, axis=1), np.argmax(y_pred, axis=1))
