@@ -115,10 +115,11 @@ def get_k_max_scores_per_class(y_batch, preds_batch, lengths_batch, batch_size, 
         sample_class_kmax_scores = []
         seq_length = lengths_batch[sample_index]
         k = tf.cast(tf.math.ceil(config_dict['k_mil_fraction'] * tf.cast(seq_length, dtype=tf.float32)), dtype=tf.int32)
-        # print('\n', k, seq_length)
+        # print('k, seq length: ', k, seq_length)
         for class_index in range(config_dict['nb_labels']):
             preds_nopad = preds_batch[sample_index, :, class_index]
             k_preds, indices = tf.math.top_k(preds_nopad, k)
+            # print('K max indices: ', indices)
             sample_class_kmax_score = tf.cast(1/k, dtype=tf.float32) * tf.reduce_sum(k_preds)
             sample_class_kmax_scores.append(sample_class_kmax_score)
         kmax_scores.append(sample_class_kmax_scores)
@@ -463,6 +464,118 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
     return best_ckpt_path
 
 
+def low_level_distributed_train(model, ckpt_path, last_ckpt_path, optimizer,
+                    config_dict, train_steps, val_steps=None,
+                    train_dataset=None, val_dataset=None):
+    """
+    Train a model in "low-level" tf with standard, dense supervision.
+    """
+    with strategy.scope():
+        # Set reduction to `none` so we can do the reduction afterwards and divide by
+        # global batch size.
+        loss_fn = tf.keras.losses.BinaryCrossentropy()
+        def compute_loss(labels, predictions):
+            per_example_loss = loss_object(labels, predictions)
+            return tf.nn.compute_average_loss(per_example_loss, global_batch_size=GLOBAL_BATCH_SIZE)
+
+    train_acc_metric = tf.keras.metrics.BinaryAccuracy()
+    val_acc_metric = tf.keras.metrics.BinaryAccuracy()
+    val_acc_old = -1
+    mirrored_strategy = tf.distribute.MirroredStrategy()
+    print ('Number of devices: {}'.format(strategy.num_replicas_in_sync))
+    train_dataset = strategy.experimental_distribute_dataset(train_dataset)
+    val_dataset = strategy.experimental_distribute_dataset(val_dataset)
+
+    @tf.function
+    def train_step(x, y):
+        with tf.GradientTape() as tape:
+            preds = model(x, training=True)
+            loss = loss_fn(y, preds)
+        grads = tape.gradient(loss, model.trainable_weights)
+        optimizer.apply_gradients(zip(grads, model.trainable_weights))
+        train_acc_metric.update_state(y, preds)
+        return loss
+
+    @tf.function
+    def validation_step(x, y):
+        preds = model(x, training=False)
+        loss = loss_fn(y, preds)
+        val_acc_metric.update_state(y, preds)
+        return loss
+    
+    epochs_not_improved = 0
+    print('\n Saving checkpoint to {} before first epoch'.format(last_ckpt_path))
+    model.save_weights(last_ckpt_path)
+    for epoch in range(config_dict['nb_epochs']):
+        print('\nStart of epoch %d' % (epoch,))
+        wandb.log({'epoch': epoch})
+        start_time = time.time()
+
+        with tqdm(total=train_steps) as pbar:
+            for step, sample in enumerate(train_dataset):
+                if step > train_steps:
+                    break
+                pbar.update(1)
+                # step_start_time = time.time()
+                x_batch_train, y_batch_train = sample
+                # print(x_batch_train.shape, y_batch_train.shape)
+                # x_batch_train, y_batch_train, paths = sample
+                loss_value = train_step(x_batch_train, y_batch_train)
+                # step_time = time.time() - step_start_time
+                # print('Step time: %.2f' % step_time)
+                wandb.log({'train_loss': loss_value.numpy()})
+
+                if step % config_dict['print_loss_every'] == 0:
+                    print(
+                        "Training loss (for one batch) at step %d: %.4f"
+                        % (step, float(loss_value.numpy()))
+                    )
+                    print("Seen so far: %d samples" %
+                          ((step + 1) * config_dict['batch_size']))
+
+        train_acc = train_acc_metric.result()
+        wandb.log({'train_acc': train_acc})
+        print('Training acc over epoch: %.4f' % (float(train_acc),))
+
+        # Reset training metrics at the end of each epoch
+        train_acc_metric.reset_states()
+
+        if not config_dict['val_mode'] == 'no_val':
+
+            with tqdm(total=val_steps) as pbar:
+                for step, sample in enumerate(val_dataset):
+                    if step > val_steps:
+                        break
+                    pbar.update(1)
+                    # step_start_time = time.time()
+                    x_batch_val, y_batch_val = sample
+                    # x_batch_val, y_batch_val, paths = sample
+                    loss_value = validation_step(x_batch_val, y_batch_val)
+                    # step_time = time.time() - step_start_time
+                    # print('Step time: %.2f' % step_time)
+
+            wandb.log({'val_loss': loss_value.numpy()})
+            val_acc = val_acc_metric.result()
+            wandb.log({'val_acc': val_acc})
+            print("Validation acc: %.4f" % (float(val_acc),))
+
+            if val_acc > val_acc_old:
+                print('The validation acc improved, saving checkpoint...')
+                model.save_weights(ckpt_path)
+                print('Resetting epochs not improved.')
+                epochs_not_improved = 0
+                val_acc_old = val_acc
+            else:
+                epochs_not_improved += 1
+                if epochs_not_improved == config_dict['early_stopping']:
+                    break
+                    
+            val_acc_metric.reset_states()
+        print('\n Saving checkpoint to {} after epoch {}'.format(last_ckpt_path, epoch))
+        model.save_weights(last_ckpt_path)
+        print("Epoch time taken: %.2fs" % (time.time() - start_time))
+
+
 def low_level_train(model, ckpt_path, last_ckpt_path, optimizer,
                     config_dict, train_steps, val_steps=None,
                     train_dataset=None, val_dataset=None):
@@ -515,9 +628,9 @@ def low_level_train(model, ckpt_path, last_ckpt_path, optimizer,
                 wandb.log({'train_loss': loss_value.numpy()})
 
                 if step % config_dict['print_loss_every'] == 0:
-                    for i in range(5):
-                        wandb.log({"step_{}_frame_{}".format(step, i): [wandb.Image(x_batch_train[0,0,i,:], caption="frame")]})
-                        wandb.log({"step_{}_flow_{}".format(step, i): [wandb.Image(x_batch_train[0,1,i,:], caption="flow")]})
+                    # for i in range(5):
+                    #     wandb.log({"step_{}_frame_{}".format(step, i): [wandb.Image(x_batch_train[0,0,i,:], caption="frame")]})
+                    #     wandb.log({"step_{}_flow_{}".format(step, i): [wandb.Image(x_batch_train[0,1,i,:], caption="flow")]})
                     print(
                         "Training loss (for one batch) at step %d: %.4f"
                         % (step, float(loss_value.numpy()))
