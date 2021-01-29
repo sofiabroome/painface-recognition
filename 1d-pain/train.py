@@ -1,10 +1,12 @@
 import sys
 sys.path.append('..')
-
 import tensorflow as tf
+import wandb
+
+one = None
 
 
-def get_sparse_pain_loss(y_batch, preds_batch):
+def get_sparse_pain_loss(y_batch, preds_batch, config_dict):
     batch_size = y_batch.shape[0]  # last batch may be smaller
 
     def get_mil_loss(kmax_scores):
@@ -16,7 +18,7 @@ def get_sparse_pain_loss(y_batch, preds_batch):
             mils += mil
         return mils
 
-    kmax_scores = get_k_max_scores_per_class(y_batch, preds_batch, batch_size)
+    kmax_scores = get_k_max_scores_per_class(preds_batch, config_dict)
     mil = get_mil_loss(kmax_scores)
     batch_indicator_nopain = tf.cast(y_batch[:, 0], dtype=tf.float32)
     batch_indicator_pain = tf.cast(y_batch[:, 1], dtype=tf.float32)
@@ -24,20 +26,20 @@ def get_sparse_pain_loss(y_batch, preds_batch):
         tv_nopain = 0
     else:
         tv_nopain = config_dict['tv_weight_nopain'] * tf.reduce_sum(
-            batch_indicator_nopain * batch_calc_TV_norm(preds_batch[:, 0],
-                                                        y_batch))
+            batch_indicator_nopain * batch_calc_TV_norm(preds_batch[:, 0]))
     if config_dict['tv_weight_pain'] == 0:
         tv_pain = 0
     else:
         tv_pain = config_dict['tv_weight_pain'] * tf.reduce_sum(
-            batch_indicator_pain * batch_calc_TV_norm(preds_batch[:, 1],
-                                                  y_batch))
+            batch_indicator_pain * batch_calc_TV_norm(preds_batch[:, 1]))
     total_loss = tv_nopain + tv_pain - mil
                                                                                                                                                         
     return total_loss, tv_pain, tv_nopain, mil
 
-def get_k_max_scores_per_class(y_batch, preds_batch, batch_size):                                                           
+
+def get_k_max_scores_per_class(preds_batch, config_dict):
     kmax_scores = []
+    batch_size = preds_batch.shape[0]
     for sample_index in range(batch_size):
         sample_class_kmax_scores = []
         seq_length = 144
@@ -53,7 +55,7 @@ def get_k_max_scores_per_class(y_batch, preds_batch, batch_size):
     return kmax_scores
 
 
-def batch_calc_TV_norm(batch_vectors, y_batch, p=3, q=3):
+def batch_calc_TV_norm(batch_vectors, p=3, q=3):
     """"
     Calculates the Total Variational Norm by summing the differences of the values
     in between the different positions in the mask.
@@ -68,22 +70,24 @@ def batch_calc_TV_norm(batch_vectors, y_batch, p=3, q=3):
         for u in range(1, batch_length - 1):
             val += tf.abs(vector[u - 1] - vector[u]) ** p
             val += tf.abs(vector[u + 1] - vector[u]) ** p
-        val = val ** (1 / p)
+        val = val ** (tf.cast(1 / p, dtype=tf.float32))
         val = val ** q
         vals = vals.write(vector_index, val)
     return vals.stack()
 
-def evaluate_sparse_pain(y_batch, preds_batch):
-    batch_size = y_batch.shape[0]
-    kmax_scores = get_k_max_scores_per_class(y_batch, preds_batch, batch_size)
+
+def evaluate_sparse_pain(preds_batch, config_dict):
+    kmax_scores = get_k_max_scores_per_class(preds_batch, config_dict)
     batch_class_distribution = tf.keras.layers.Activation('softmax')(kmax_scores)
     return batch_class_distribution
 
-def mask_out_padding_predictions(preds_batch, length, batch_size, pad_length, one):                                                                                                                                                      
+
+def mask_out_padding_predictions(preds_batch, length, batch_size, pad_length):
     zeros = tf.zeros_like(preds_batch)
 
     mask_tensor = tf.TensorArray(tf.float32, size=batch_size)
 
+    global one
     if one is None:  # Cannot recreate tf.Variables in each step.
         one = tf.Variable(tf.ones([pad_length, 1]))
 
@@ -101,20 +105,22 @@ def mask_out_padding_predictions(preds_batch, length, batch_size, pad_length, on
     preds_batch = tf.keras.layers.multiply([preds_batch, mask_tensor])
     return preds_batch
 
-def train(train_dataset, val_dataset, model, config_dict):
+
+def train(train_dataset, val_dataset, model, optimizer, config_dict):
     train_acc_metric = tf.keras.metrics.BinaryAccuracy()
     val_acc_metric = tf.keras.metrics.BinaryAccuracy()
-    one = None
 
     @tf.function
-    def train_step(x, y, length, one):
+    def train_step(x, y, length):
+        # print(x, y, length)
         with tf.GradientTape() as tape:
             preds_seq = model(x)
             # print(y.shape, preds_seq.shape)
-            preds_seq = mask_out_padding_predictions(preds_seq, length, batch_size, T, one)
+            preds_seq = mask_out_padding_predictions(
+                preds_seq, length, config_dict['batch_size'], config_dict['T'])
             
-            sparse_loss, tv_p, tv_np, mil = get_sparse_pain_loss(y, preds_seq)
-            preds_mil = evaluate_sparse_pain(y, preds_seq)
+            sparse_loss, tv_p, tv_np, mil = get_sparse_pain_loss(y, preds_seq, config_dict)
+            preds_mil = evaluate_sparse_pain(preds_seq, config_dict)
             loss = sparse_loss
             # loss = loss_fn(y, preds_seq)
         
@@ -125,11 +131,12 @@ def train(train_dataset, val_dataset, model, config_dict):
         return loss
         
     @tf.function
-    def val_step(x, y, length, one):
+    def val_step(x, y, length):
         preds_seq = model(x)
-        preds_seq = mask_out_padding_predictions(preds_seq, length, val_batch_size, T, one)
-        sparse_loss, tv_p, tv_np, mil = get_sparse_pain_loss(y, preds_seq)
-        preds_mil = evaluate_sparse_pain(y, preds_seq)
+        preds_seq = mask_out_padding_predictions(
+            preds_seq, length, config_dict['val_batch_size'], config_dict['T'])
+        sparse_loss, tv_p, tv_np, mil = get_sparse_pain_loss(y, preds_seq, config_dict)
+        preds_mil = evaluate_sparse_pain(preds_seq, config_dict)
         loss = sparse_loss
         val_acc_metric.update_state(y, preds_mil)
     #     loss = loss_fn(y, preds_seq)
@@ -138,17 +145,17 @@ def train(train_dataset, val_dataset, model, config_dict):
 
     for epoch in range(config_dict['epochs']):
         for x, y, length in train_dataset:
-            train_loss = train_step(x, y, length, one)
+            train_loss = train_step(x, y, length)
             wandb.log({'train_loss': train_loss})
         train_acc = train_acc_metric.result()
         wandb.log({'train_acc': train_acc})
         
-            
         for x, y, length in val_dataset:
-            val_loss = val_step(x, y, length, one)
+            val_loss = val_step(x, y, length)
             wandb.log({'val_loss': val_loss})
         val_acc = val_acc_metric.result()
         wandb.log({'val_acc': val_acc})
         if epoch % 20 == 0:
             print('Training acc over epoch %d: %.4f' % (epoch, float(train_acc),))
             print("Validation acc: %.4f" % (float(val_acc),))
+
