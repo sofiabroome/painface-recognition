@@ -45,6 +45,14 @@ def parse_arguments():
                         help='')
     parser.add_argument('--optimizer', nargs='?', type=str,
                         help='')
+    parser.add_argument('--nb-pain-train', nargs='?', type=int,
+                        help='')
+    parser.add_argument('--nb-nopain-train', nargs='?', type=int,
+                        help='')
+    parser.add_argument('--nb-pain-val', nargs='?', type=int,
+                        help='')
+    parser.add_argument('--nb-nopain-val', nargs='?', type=int,
+                        help='')
     return parser.parse_args()
 
 
