@@ -10,6 +10,8 @@ config_dict = {
     'val_batch_size': 1,
     # Model
     'model_name': 'gru',  # 'gru'|'dense'|'id'
+    'layers': [2],
+    # 'layers': [32, 2],
     # Data
     'T': 266,
     'base_level': 1,
