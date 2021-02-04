@@ -5,13 +5,11 @@ import subprocess
 import helpers
 import random
 import time
-import cv2
 import re
 import os
 
 import matplotlib
 matplotlib.use('agg')
-import matplotlib.pyplot as plt
 
 
 DEFAULT_NPLOAD_STR = 'arr_0'

@@ -317,6 +317,8 @@ def evaluate_on_video_level(config_dict, model, model_path, test_dataset,
                                digits=NB_DECIMALS,
                                output_dict=True)
     wandb.log({'test f1-score' : cr['macro avg']['f1-score']})
+    wandb.log({'test_nopain_f1' : cr['NO_PAIN']['f1-score']})
+    wandb.log({'test_pain_f1' : cr['PAIN']['f1-score']})
     test_acc = test_acc_metric.result()
     wandb.log({'test_acc': test_acc})
     print("Test acc keras metric: %.4f" % (float(test_acc),))

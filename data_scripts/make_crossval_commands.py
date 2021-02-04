@@ -22,7 +22,7 @@ def get_train_test(dataset):
     if dataset == 'lps' or dataset == 'lps224':
         train_horses = horses_lps
         test_horses = horses_lps
-    if dataset == 'lps_pftrain':
+    if dataset == 'lps_pftrain' or dataset == 'lps_pftrain_224':
         train_horses = horses_lps + horses_pf
         test_horses = horses_lps
 
@@ -44,7 +44,7 @@ def get_val(dataset, test_subject):
         val_horses = ['kastanjett']
         if test_subject == 'kastanjett':
             val_horses = ['brava']
-    if dataset == 'lps_pftrain':
+    if dataset == 'lps_pftrain' or dataset == 'lps_pftrain_224':
         val_horses = ['kastanjett']
         if test_subject == 'kastanjett':
             val_horses = ['brava']
@@ -122,11 +122,12 @@ if __name__=='__main__':
 
     # Choose one dataset_str
     # dataset_str = 'pf'
-    dataset_str = 'pf224'
+    # dataset_str = 'pf224'
     # dataset_str = 'lps'
-    # dataset_str = 'lps224'
+    dataset_str = 'lps224'
     # dataset_str = 'all'
     # dataset_str = 'lps_pftrain'
+    # dataset_str = 'lps_pftrain_224'
 
     avoid_sir_holger = True
 
@@ -144,9 +145,10 @@ if __name__=='__main__':
         config_file = 'configs/config_i3d_pf.py'
 
     # # VIDEO LEVEL uncomment these 3 lines
-    # job_str = 'best_nopreds'
+    job_str = 'best'
     # config_file = 'configs/{}.py'.format(job_str)
-    # job_name = 'configs_to_run_{}_{}_videofeats'.format(dataset_str, job_str)
+    config_file = 'configs/config_videolevel_224.py'
+    job_name = 'configs_to_run_{}_{}_videofeats'.format(dataset_str, job_str)
     
     # UNTRAINED uncomment these 2 lines
     # config_file = 'configs/config_video_level_training_untrained_pftrain.py'
@@ -157,7 +159,7 @@ if __name__=='__main__':
     # job_name = 'configs_to_run_{}_videofeats_i3d_pftrain'.format(dataset_str)
 
     # DENSE SUPERVISION uncomment the line below
-    job_name = 'configs_to_run_{}_{}_crossval'.format(model, dataset_str)
+    # job_name = 'configs_to_run_{}_{}_crossval'.format(model, dataset_str)
     
     config_dict_module = helpers.load_module('../' + config_file)
     config_dict = config_dict_module.config_dict

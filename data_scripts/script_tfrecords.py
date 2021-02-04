@@ -85,7 +85,7 @@ def main():
     config_dict_module = helpers.load_module(args.config)
     config_dict = config_dict_module.config_dict
 
-    feature_folder = config_dict['train_video_features_folder']
+    feature_folder = config_dict['save_video_features_folder']
     path_to_features = config_dict['data_path'] + feature_folder
     df_summary = pd.read_csv(path_to_features + 'summary.csv')
 
