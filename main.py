@@ -131,7 +131,6 @@ if __name__ == '__main__':
     if config_dict['val_mode'] == 'subject':
         val_subjects = re.split('/', args.val_subjects)
 
-
     config_dict['job_identifier'] = args.job_identifier
     print('Job identifier: ', args.job_identifier)
     wandb.init(project='pfr', config=config_dict)

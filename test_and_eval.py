@@ -266,18 +266,14 @@ def evaluate_on_video_level(config_dict, model, model_path, test_dataset,
             for i in range(config_dict['mc_dropout_samples']):
                 training=False if config_dict['mc_dropout_samples'] == 1 else True
                 preds_seq = model([x, preds], training=training)
-                preds_seq = train.mask_out_padding_predictions(preds_seq, y, config_dict['video_batch_size_test'], config_dict['video_pad_length'])
+                preds_seq = train.mask_out_padding_predictions(preds_seq, lengths, config_dict['video_batch_size_test'], config_dict['video_pad_length'])
                 preds_seqs.append(preds_seq)
             preds_seq = tf.math.reduce_mean(preds_seqs, axis=0)
-            # preds_std = tf.math.reduce_std(preds_seqs, axis=0)
-            # preds_seq -= preds_std
-            # preds_seq = tf.keras.layers.Activation('softmax')(preds_seq)
-            # preds_seq = train.mask_out_padding_predictions(preds_seq, y, config_dict['video_batch_size_test'], config_dict['video_pad_length'])
             preds_mil = evaluate_sparse_pain(y, preds_seq, lengths, config_dict)
             preds = preds_mil
         if config_dict['video_loss'] == 'mil_ce':
             preds_seq, preds_one = model([x, preds], training=False)
-            preds_seq = train.mask_out_padding_predictions(preds_seq, y, config_dict['video_batch_size_test'], config_dict['video_pad_length'])
+            preds_seq = train.mask_out_padding_predictions(preds_seq, lengths, config_dict['video_batch_size_test'], config_dict['video_pad_length'])
             preds_one = tf.keras.layers.Activation('softmax')(preds_one)
             preds_mil = evaluate_sparse_pain(y, preds_seq, lengths, config_dict)
             preds = 1/2 * (preds_one + preds_mil)
@@ -332,9 +328,9 @@ def make_array(list_of_tensors):
     return np.concatenate(list_of_arrays)
 
 
-def evaluate_sparse_pain(y_batch, preds_batch, lengths_batch, config_dict):
-    batch_size = y_batch.shape[0]  # last batch may be smaller
-    kmax_scores = train.get_k_max_scores_per_class(y_batch, preds_batch, lengths_batch, batch_size, config_dict)
+def evaluate_sparse_pain(preds_batch, lengths_batch, config_dict):
+    batch_size = preds_batch.shape[0]  # last batch may be smaller
+    kmax_scores = train.get_k_max_scores_per_class(preds_batch, lengths_batch, batch_size, config_dict)
     batch_class_distribution = tf.keras.layers.Activation('softmax')(kmax_scores)
     return batch_class_distribution
 

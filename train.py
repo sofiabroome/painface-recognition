@@ -109,7 +109,8 @@ def keras_train(model, ckpt_path, config_dict, train_steps, val_steps,
 
     plot_training(binacc_test_history, binacc_train_history, config_dict)
 
-def get_k_max_scores_per_class(y_batch, preds_batch, lengths_batch, batch_size, config_dict):
+
+def get_k_max_scores_per_class(preds_batch, lengths_batch, batch_size, config_dict):
     kmax_scores = []
     for sample_index in range(batch_size):
         sample_class_kmax_scores = []
@@ -127,45 +128,40 @@ def get_k_max_scores_per_class(y_batch, preds_batch, lengths_batch, batch_size, 
     return kmax_scores
 
 
+def get_mil_loss(kmax_scores, y_batch):
+    batch_size = y_batch.shape[0]  # last batch may be smaller
+    kmax_distribution = tf.keras.layers.Activation('softmax')(kmax_scores)
+    mils = 0
+    for sample_index in range(batch_size):
+        label_index = tf.argmax(y_batch[sample_index, :])
+        mil = tf.math.log(kmax_distribution[sample_index, label_index])
+        mils += mil
+    return mils
+
+
 def get_sparse_pain_loss(y_batch, preds_batch, lengths_batch, config_dict):
     batch_size = y_batch.shape[0]  # last batch may be smaller
 
-    def get_mil_loss(kmax_scores):
-        kmax_distribution = tf.keras.layers.Activation('softmax')(kmax_scores)
-        mils = 0
-        for sample_index in range(batch_size):
-            label_index = tf.argmax(y_batch[sample_index, 0, :])  # Take first (video-level label)
-            mil = tf.math.log(kmax_distribution[sample_index, label_index])
-            mils += mil
-        return mils
+    if len(y_batch.shape) == 3:
+        y_batch = y_batch[:, 0, :]  # Take first (video-level label)
 
-    kmax_scores = get_k_max_scores_per_class(y_batch, preds_batch, lengths_batch, batch_size, config_dict)
-    mil = get_mil_loss(kmax_scores)
-    batch_indicator_nopain = tf.cast(y_batch[:, 0, 0], dtype=tf.float32)
-    batch_indicator_pain = tf.cast(y_batch[:, 0, 1], dtype=tf.float32)
-    # batch_tv_norm = batch_calc_TV_norm(
-    #     preds_batch[:, :, 1], y_batch, lengths_batch, config_dict)
+    kmax_scores = get_k_max_scores_per_class(preds_batch, lengths_batch, batch_size, config_dict)
+    mil = get_mil_loss(kmax_scores, y_batch)
+    batch_indicator_nopain = tf.cast(y_batch[:, 0], dtype=tf.float32)
+    batch_indicator_pain = tf.cast(y_batch[:, 1], dtype=tf.float32)
 
     if config_dict['tv_weight_nopain'] == 0:
         tv_nopain = 0
     else:
         tv_nopain = config_dict['tv_weight_nopain'] * tf.reduce_sum(
             batch_indicator_nopain * batch_calc_TV_norm(preds_batch[:, :, 0],
-                                                        y_batch,
-                                                        lengths_batch,
-                                                        config_dict))
+                                                        lengths_batch))
     if config_dict['tv_weight_pain'] == 0:
         tv_pain = 0
     else:
         tv_pain = config_dict['tv_weight_pain'] * tf.reduce_sum(
             batch_indicator_pain * batch_calc_TV_norm(preds_batch[:, :, 1],
-                                                        y_batch,
-                                                        lengths_batch,
-                                                        config_dict))
-    # tv_nopain = config_dict['tv_weight_nopain'] * tf.reduce_sum(
-    #     batch_indicator_nopain * batch_tv_norm)
-    # tv_pain = config_dict['tv_weight_pain'] * tf.reduce_sum(
-    #     batch_indicator_pain * batch_tv_norm)
+                                                      lengths_batch))
     total_loss = tv_nopain + tv_pain - mil
     if config_dict['l1_nopain']:
         l1_batch_vector = batch_indicator_nopain * tf.reduce_sum(preds_batch[:, :, 1], axis=1)
@@ -174,28 +170,30 @@ def get_sparse_pain_loss(y_batch, preds_batch, lengths_batch, config_dict):
 
     return total_loss, tv_pain, tv_nopain, mil
 
-def batch_calc_TV_norm(batch_vectors, y_batch, lengths_batch, config_dict, p=3, q=3):
+
+def batch_calc_TV_norm(batch_preds, lengths_batch, p=3, q=3):
     """"
     Calculates the Total Variational Norm by summing the differences of the values
     in between the different positions in the mask.
-    p=3 and q=3 are defaults from the paper.
     """
     val = tf.cast(0, dtype=tf.float32)
-    batch_size = batch_vectors.shape[0]
-    batch_length = batch_vectors.shape[1]
+    batch_size = batch_preds.shape[0]
+    batch_length = batch_preds.shape[1]
     vals = tf.TensorArray(tf.float32, size=batch_size)
-    for vector_index in range(batch_size):
-        vector = batch_vectors[vector_index]
+    for batch_index in range(batch_size):
+        vector = batch_preds[batch_index]
         for u in range(1, batch_length - 1):
             val += tf.abs(vector[u - 1] - vector[u]) ** p
             val += tf.abs(vector[u + 1] - vector[u]) ** p
         val = val ** (1 / p)
         val = val ** q
-        vals = vals.write(vector_index, val)
+        # Normalize according to seq length.
+        val /= tf.cast(lengths_batch[batch_index], dtype=tf.float32)
+        vals = vals.write(batch_index, val)
     return vals.stack()
 
 
-def mask_out_padding_predictions(preds_batch, y_batch, batch_size, pad_length):
+def mask_out_padding_predictions(preds_batch, lengths_batch, batch_size, pad_length):
     zeros = tf.zeros_like(preds_batch)
 
     mask_tensor = tf.TensorArray(tf.float32, size=batch_size)
@@ -206,12 +204,16 @@ def mask_out_padding_predictions(preds_batch, y_batch, batch_size, pad_length):
 
     for u in range(batch_size):
         one.assign(tf.ones([pad_length, 1]))
-        indices = tf.where([(tf.reduce_sum(y_batch[u, i, :]) == 0) for i in range(pad_length)])
-        # Put zeros in the mask where the sum of the y-labels is 0
-        mask = tf.compat.v1.scatter_nd_update(one, indices, tf.gather(zeros[0,:,0], indices))
+
+        # Put zeros in the mask past the (variable) sequence length
+        indices = tf.where([(i >= lengths_batch[u]) for i in range(pad_length)])
+        zeros_for_mask = tf.gather(zeros[0, :, 0], indices)
+        mask = tf.compat.v1.scatter_nd_update(one, indices, zeros_for_mask)
+
         # Need mask for both classes: (pad_length x nb_labels)
         masks = tf.stack([mask, mask], axis=1)
         mask_tensor = mask_tensor.write(u, masks)
+
     mask_tensor = mask_tensor.stack()
     mask_tensor = tf.reshape(mask_tensor, preds_batch.shape)
     preds_batch = tf.keras.layers.multiply([preds_batch, mask_tensor])
@@ -270,7 +272,7 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
                 preds_seqs = []
                 for i in range(config_dict['mc_dropout_samples']):
                     preds_seq = model([x, preds], training=True)
-                    preds_seq = mask_out_padding_predictions(preds_seq, y, config_dict['video_batch_size_train'], config_dict['video_pad_length'])
+                    preds_seq = mask_out_padding_predictions(preds_seq, lengths, config_dict['video_batch_size_train'], config_dict['video_pad_length'])
                     preds_seqs.append(preds_seq)
                 preds_seq = tf.math.reduce_mean(preds_seqs, axis=0)
                 sparse_loss, tv_p, tv_np, mil = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
@@ -314,7 +316,7 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
             for i in range(config_dict['mc_dropout_samples']):
                 training=False if config_dict['mc_dropout_samples'] == 1 else True
                 preds_seq = model([x, preds], training=training)
-                preds_seq = mask_out_padding_predictions(preds_seq, y, config_dict['video_batch_size_test'], config_dict['video_pad_length'])
+                preds_seq = mask_out_padding_predictions(preds_seq, lengths, config_dict['video_batch_size_test'], config_dict['video_pad_length'])
                 preds_seqs.append(preds_seq)
             preds_seq = tf.math.reduce_mean(preds_seqs, axis=0)
             sparse_loss, tv_p, tv_np, mil = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
@@ -324,7 +326,7 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
             y = y[:, 0, :]
         if config_dict['video_loss'] == 'mil_ce':
             preds_seq, preds_one = model([x, preds], training=False)
-            preds_seq = mask_out_padding_predictions(preds_seq, y, config_dict['video_batch_size_test'], config_dict['video_pad_length'])
+            preds_seq = mask_out_padding_predictions(preds_seq, lengths, config_dict['video_batch_size_test'], config_dict['video_pad_length'])
             preds_one = tf.keras.layers.Activation('softmax')(preds_one)
             y_one = y[:, 0, :]
             ce_loss = loss_fn(y_one, preds_one)
