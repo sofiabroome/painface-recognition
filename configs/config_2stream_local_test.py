@@ -3,18 +3,28 @@ data_path = 'data/'
 # data_path = '/local_storage/users/sbroome/painface-recognition/'
 
 config_dict = {
-    'train_dataset': 'pf',
-    'test_dataset': 'lps',
+    # Program components
+    'get_raw_sequence_data': True,
+    'inference_only': False,
+    'fine_tune': False,
+    'save_features': False,
+    'save_features_per_video': False,
+    'video_level_mode': False,
+    'train_video_level_features': False,
+    'do_evaluate': True,
+    'val_mode': 'subject',  # subject | fraction | no_val
+    'train_mode': 'low_level',
+    # Data
     'clip_list_pf': 'metadata/videos_overview_missingremoved.csv',
     'clip_list_lps': 'metadata/lps_videos_overview.csv',
-    'pf_rgb_path': data_path + 'pf/jpg_128_128_2fps/',
-    'lps_rgb_path': data_path + 'lps/jpg_128_128_2fps/',
-    'pf_of_path': data_path + 'pf/jpg_128_128_16fps_OF_magnitude_cv2/',
+    'pf_rgb_path': data_path + 'pf/jpg_224_224_25fps/',
+    'lps_rgb_path': data_path + 'lps/jpg_224_224_25fps/',
+    'pf_of_path': data_path + 'pf/jpg_224_224_25fps_OF_magnitude_cv2_2fpsrate/',
     'lps_of_path': data_path + 'lps/jpg_128_128_16fps_OF_magnitude_cv2_2fpsrate/',
     'pixel_mean': pixel_means.pf_rgb['mean'],
     'pixel_std': pixel_means.pf_rgb['std'],
-    'model': '2stream_5d_add',
-    # 'model': 'convolutional_LSTM',
+    # 'model': '2stream_5d_add',
+    'model': 'convolutional_LSTM',
     # 'model': 'clstm_functional',
     'fine_tune': False,
     'inference_only': True,
@@ -22,8 +32,8 @@ config_dict = {
     'checkpoint': 'models/best_model_2stream_5d_add_testhejj.ckpt',
     'rgb_period': 1,  # Set to 10 if simonyan-like model
     'flow_period': 1,
-    'input_width': 128,
-    'input_height': 128,
+    'input_width': 224,
+    'input_height': 224,
     'color': True,
     'nb_labels': 2,
     'target_names': ['NO_PAIN', 'PAIN'],
