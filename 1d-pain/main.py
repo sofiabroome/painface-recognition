@@ -5,8 +5,8 @@ import tensorflow as tf
 import arg_parser
 import helpers
 import models
+import train_1d
 import wandb
-import train
 import data
 
 
@@ -33,7 +33,7 @@ def run():
     val_dataset = data.construct_dataset(config_dict['nb_pain_val'], config_dict['nb_nopain_val'],
                                          config_dict['val_batch_size'], config_dict)
     
-    train.train(train_dataset, val_dataset, model, optimizer, config_dict)
+    train_1d.train_1d(train_dataset, val_dataset, model, optimizer, config_dict)
 
 
 if __name__ == '__main__':

@@ -54,7 +54,7 @@ def get_data(nb_series, min_events, max_events, max_event_length, max_intensity,
         for ev in range(nb_events):
             length = np.random.randint(1, max_event_length+1)
             last_valid_start = length_draw - max_event_length
-            start = np.random.randint(int(last_valid_start))
+            start = 0 if not last_valid_start == 0 else np.random.randint(int(last_valid_start))
             end = start + length
             event = np.zeros(int(T))
             event[start:end] = values[range(start, end, 1)]*max_intensity

@@ -3,6 +3,7 @@ config_dict = {
     'k_mil_fraction': 0.05,
     'tv_weight_nopain': 0.1,
     'tv_weight_pain': 0,
+    'l1_nopain': False,
     'nb_labels': 2,
     'lr': 0.00001,
     'epochs': 500,
