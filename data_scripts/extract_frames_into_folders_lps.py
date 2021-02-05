@@ -8,7 +8,7 @@ from lps_subjects import lps_subjects
 if __name__ == '__main__':
     df = pd.read_csv('../metadata/lps_videos_overview.csv', sep=',')
     root_dir = '../data/lps/raw_videos/'
-    frames_dir = '../data/lps/jpg_128_128_2fps/'
+    frames_dir = '../data/lps/jpg_224_224_2fps/'
 
     if not os.path.exists(frames_dir):
         subprocess.call(['mkdir', frames_dir])
@@ -69,11 +69,20 @@ if __name__ == '__main__':
             # ffmpeg_command = ['ffmpeg', '-ss', start, '-i', video_path, '-qscale:v', str(4), '-t', length, '-vf',
             #                   'scale=320:240', '-r', str(16), '-an', complete_output_path]
 
-            # JPG 2FPS 128x128
+            # # JPG 2FPS 128x128
+            # #
+            # ffmpeg_command = ['ffmpeg', '-ss', start, '-i', video_path, '-qscale:v', str(4), '-t', length, '-vf',
+            #                   'scale=128:128', '-r', str(2), '-an', complete_output_path]
+
+            # JPG 25FPS 224x224
+            #
+            # ffmpeg_command = ['ffmpeg', '-ss', start, '-i', video_path, '-qscale:v', str(4), '-t', length, '-vf',
+            #                   'scale=224:224', '-r', str(25), '-an', complete_output_path]
+
+            # JPG 2FPS 224x224
             #
             ffmpeg_command = ['ffmpeg', '-ss', start, '-i', video_path, '-qscale:v', str(4), '-t', length, '-vf',
-                              'scale=128:128', '-r', str(2), '-an', complete_output_path]
-
+                              'scale=224:224', '-r', str(2), '-an', complete_output_path]
             # JPG 16FPS 128x128
             
             # ffmpeg_command = ['ffmpeg', '-ss', start, '-i', video_path, '-qscale:v', str(4), '-t', length, '-vf',

@@ -1,13 +1,17 @@
 import pandas as pd
 import subprocess
 import os
+from pf_subjects import pf_subjects
 
 
-def get_path(file_name):
+def get_path(video_id):
     """
-    param file_name: str
+    param video_id: str
     """
-    return path_dict.get(file_name + '.mts')
+    if video_id == '4_4a':
+        return path_dict.get('#' + video_id + '.mp4')
+    else:
+        return path_dict.get('#' + video_id + '.mts')
 
 
 def check_if_unique_in_df(file_name, df):
@@ -16,12 +20,28 @@ def check_if_unique_in_df(file_name, df):
     param df: pd.DataFrame
     :return: int [nb occurences of sequences from the same video clip]
     """
-    return len(df[df['Video_ID'] == file_name])
+    return len(df[df['video_id'] == file_name])
 
 
 if __name__ == '__main__':
-    df = pd.read_csv('metadata/videos_overview_missingremoved.csv', sep=';')
-    root_dir = 'data/Experimental_pain/'
+    df = pd.read_csv('../metadata/videos_overview_missingremoved.csv')
+    # root_dir = 'data/Experimental_pain/'
+    root_dir = '/Volumes/LaCie/Karina_Pain_Face_Data/horse_videos/Experimental_pain/'
+    output_root = '../data/pf/jpg_224_224_2fps/'
+
+    if not os.path.exists(output_root):
+        subprocess.call(['mkdir', output_root])
+
+    for key, horse in pf_subjects.items():
+        print("NEW HORSE")
+        output_dir = horse
+        output_dir_path = os.path.join(output_root, output_dir)
+        if not os.path.exists(output_dir_path):
+            subprocess.call(['mkdir', output_dir_path])
+        horse_df = df.loc[df['subject'] == horse]
+        for ind, row in horse_df.iterrows():
+            seq_dir_path = os.path.join(output_root, output_dir, row['video_id'])
+            subprocess.call(['mkdir', seq_dir_path])
     complete_paths = []
     file_names = []
     filename = -1
@@ -42,14 +62,14 @@ if __name__ == '__main__':
         print("NEW HORSE")
         counter = 1  # Counter of non-unique videos.
         output_dir = 'horse_' + str(h)
-        horse_df = df.loc[df['Subject'] == output_dir]
-        for vid in horse_df['Video_ID']:
+        horse_df = df.loc[df['subject'] == output_dir]
+        for vid in horse_df['video_id']:
             path = get_path(vid)
             occurences = check_if_unique_in_df(vid, df)
             if occurences == 1:
-                seq_dir_path = 'data/' + output_dir + '/' + vid
+                seq_dir_path = output_root + output_dir + '/' + vid
             elif occurences > 1:
-                seq_dir_path = 'data/' + output_dir + '/' + vid + '_' + str(counter)
+                seq_dir_path = output_root + output_dir + '/' + vid + '_' + str(counter)
                 if counter == occurences:
                     counter = 1
                 else:
@@ -63,15 +83,15 @@ if __name__ == '__main__':
         print("NEW HORSE")
         counter = 1  # Counter of non-unique videos.
         output_dir = 'horse_' + str(h)
-        horse_df = df.loc[df['Subject'] == output_dir]
+        horse_df = df.loc[df['subject'] == output_dir]
         for ind, vid in horse_df.iterrows():
-            print(vid['Length'])
-            occurences = check_if_unique_in_df(vid['Video_ID'], df)
+            print(vid['length'])
+            occurences = check_if_unique_in_df(vid['video_id'], df)
             print(occurences)
             if occurences == 1:
-                seq_dir_path = 'data/' + output_dir + '/' + vid['Video_ID']
+                seq_dir_path = output_root + output_dir + '/' + vid['video_id']
             elif occurences > 1:
-                seq_dir_path = 'data/' + output_dir + '/' + vid['Video_ID'] + '_' + str(counter)
+                seq_dir_path = output_root + output_dir + '/' + vid['video_id'] + '_' + str(counter)
                 if counter == occurences:
                     counter = 1
                 else:
@@ -80,12 +100,12 @@ if __name__ == '__main__':
                 print("WARNING, No occurences")
 
             # Start and lengths as hh:mm:ss-strings
-            start = str(vid['Start'])
-            length = str(vid['Length'])
+            start = str(vid['start'])
+            length = str(vid['length'])
             print(start)
 
             complete_output_path = seq_dir_path + '/frame_%06d.jpg'
-            video_path = str(get_path(vid['Video_ID']))
+            video_path = str(get_path(vid['path_id']))
 
             print('COMPLETE OUTPUT PATH:')
             print(complete_output_path)
@@ -129,9 +149,17 @@ if __name__ == '__main__':
 
             # JPG HALFASS QUALITY, MAYBE LOSSY, 16 FPS
             # NOTE:  Need to add qscale:v arg for higher frame rates, otherwise pixelated.
-            ffmpeg_command = ['ffmpeg', '-ss', start, '-i', video_path, '-qscale:v', str(4), '-t', length, '-vf',
-                              'scale=320:240', '-r', str(16), '-an', complete_output_path]
+            # ffmpeg_command = ['ffmpeg', '-ss', start, '-i', video_path, '-qscale:v', str(4), '-t', length, '-vf',
+            #                   'scale=320:240', '-r', str(16), '-an', complete_output_path]
 
+            # JPG 25FPS 224x224
+            # NOTE:  Need to add qscale:v arg for higher frame rates, otherwise pixelated.
+            # ffmpeg_command = ['ffmpeg', '-ss', start, '-i', video_path, '-qscale:v', str(4), '-t', length, '-vf',
+            #                   'scale=224:224', '-r', str(25), '-an', complete_output_path]
+            # JPG 2FPS 224x224
+            # NOTE:  Need to add qscale:v arg for higher frame rates, otherwise pixelated.
+            ffmpeg_command = ['ffmpeg', '-ss', start, '-i', video_path, '-qscale:v', str(4), '-t', length, '-vf',
+                              'scale=224:224', '-r', str(2), '-an', complete_output_path]
             # JPG 2FPS 128x128
             #
             # ffmpeg_command = ['ffmpeg', '-ss', start, '-i', video_path, '-qscale:v', str(4), '-t', length, '-vf',
