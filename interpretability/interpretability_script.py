@@ -49,7 +49,7 @@ def run():
 
         # The mask is what we optimize over
         mask_var = tf.Variable(
-            mask.init_mask(input_var, label, model, config_dict, thresh=0.9, mode="central"),
+            mask.init_mask(input_var, label, model, config_dict, thresh=0.9, mode="random"),
             name='mask',
             trainable=True,
             dtype=tf.float32)
@@ -84,7 +84,7 @@ def run():
                 # loss = class_loss
             gradients = tape.gradient(loss, mask_var)
             optimizer.apply_gradients(zip([gradients], [mask_var]))
-            return gradients, [loss, l1, tv, class_loss], mask_var
+            return gradients, [loss, l1, tv, class_loss], mask_clip
             # return gradients, [loss, class_loss], mask_var
 
         print('\nmask_var', mask_var)

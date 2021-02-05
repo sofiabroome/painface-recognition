@@ -1,5 +1,6 @@
 import tensorflow as tf
 import numpy as np
+import random
 
 from tf_slice_assign import slice_assign
 
@@ -141,19 +142,27 @@ def init_mask(seq, target, model, config_dict, thresh=0.9, mode="central"):
     turns (on average) 70% of the mask
     (Does not give very conclusive results so far).
     """
-    if mode == 'central':
+    def perturb_one_or_two_streams(x, mask):
+        if config_dict['model'] == '2stream_5d_add':
+            perturbed_rgb = perturb_sequence(x[:, 0, :], mask)
+            perturbed_flow = perturb_sequence(x[:, 1, :], mask)
+            concat_streams = tf.concat([perturbed_rgb, perturbed_flow], axis=0)
+            concat_streams_6d = tf.expand_dims(concat_streams, axis=0)
+            print('concat streams shape: ', concat_streams.shape)
+            score, _ = model(concat_streams_6d)
+        else:
+            score, _ = model(perturb_sequence(x, mask))
+        return score
 
-        def perturb_one_or_two_streams(x, mask):
-            if config_dict['model'] == '2stream_5d_add':
-                perturbed_rgb = perturb_sequence(x[:, 0, :], mask)
-                perturbed_flow = perturb_sequence(x[:, 1, :], mask)
-                concat_streams = tf.concat([perturbed_rgb, perturbed_flow], axis=0)
-                concat_streams_6d = tf.expand_dims(concat_streams, axis=0)
-                print('concat streams shape: ', concat_streams.shape)
-                score, _ = model(concat_streams_6d)
-            else:
-                score, _ = model(perturb_sequence(x, mask))
-            return score
+    if mode == 'random':
+        mask_init_length = 3
+        mask = np.ones(config_dict['seq_length'])
+        last_valid_start = config_dict['seq_length']-mask_init_length
+        start_index = random.randint(0, last_valid_start)
+        mask[:start_index] = 0
+        mask[start_index+mask_init_length:] = 0
+
+    if mode == 'central':
 
         # get the class score for the fully perturbed sequence
         full_pert_score = perturb_one_or_two_streams(seq, np.ones(config_dict['seq_length'], dtype='float32'))
@@ -182,12 +191,12 @@ def init_mask(seq, target, model, config_dict, thresh=0.9, mode="central"):
 
         mask = new_mask
 
-        # modify the mask so that it is roughly 0 or 1 after sigmoid
-        for j in range(len(mask)):
-            if mask[j] == 0:
-                mask[j] = -5
-            elif mask[j] == 1:
-                mask[j] = 5
+    # modify the mask so that it is roughly 0 or 1 after sigmoid
+    for j in range(len(mask)):
+        if mask[j] == 0:
+            mask[j] = -5
+        elif mask[j] == 1:
+            mask[j] = 5
 
     print('Initial mask: ', mask)
     return mask
