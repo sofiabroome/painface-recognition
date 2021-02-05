@@ -13,7 +13,7 @@ def train_1d(train_dataset, val_dataset, model, optimizer, config_dict):
     train_acc_metric = tf.keras.metrics.BinaryAccuracy()
     val_acc_metric = tf.keras.metrics.BinaryAccuracy()
 
-    # @tf.function
+    @tf.function
     def train_step(x, y, length):
         # print(x, y, length)
         with tf.GradientTape() as tape:
