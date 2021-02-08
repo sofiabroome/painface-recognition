@@ -11,10 +11,10 @@ def train_1d(train_dataset, val_dataset, model, optimizer, config_dict):
     train_acc_metric = tf.keras.metrics.BinaryAccuracy()
     val_acc_metric = tf.keras.metrics.BinaryAccuracy()
 
-    # @tf.function(input_signature=(
-    #     tf.TensorSpec(shape=[config_dict['batch_size'], config_dict['video_pad_length']], dtype=tf.float32),
-    #     tf.TensorSpec(shape=[config_dict['batch_size'], 2], dtype=tf.int32),
-    #     tf.TensorSpec(shape=[config_dict['batch_size'],], dtype=tf.int32)))
+    @tf.function(input_signature=(
+        tf.TensorSpec(shape=[config_dict['batch_size'], config_dict['video_pad_length']], dtype=tf.float32),
+        tf.TensorSpec(shape=[config_dict['batch_size'], 2], dtype=tf.int32),
+        tf.TensorSpec(shape=[config_dict['batch_size'],], dtype=tf.int32)))
     def train_step(x, y, length):
         with tf.GradientTape() as tape:
             preds_seq = model(x)
