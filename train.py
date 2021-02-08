@@ -176,21 +176,15 @@ def batch_calc_TV_norm(batch_preds, lengths_batch, p=3, q=3):
     Calculates the Total Variational Norm by summing the differences of the values
     in between the different positions in the mask.
     """
-    val = tf.cast(0, dtype=tf.float32)
-    batch_size = batch_preds.shape[0]
-    batch_length = batch_preds.shape[1]
-    vals = tf.TensorArray(tf.float32, size=batch_size)
-    for batch_index in range(batch_size):
-        vector = batch_preds[batch_index]
-        for u in range(1, batch_length - 1):
-            val += tf.abs(vector[u - 1] - vector[u]) ** p
-            val += tf.abs(vector[u + 1] - vector[u]) ** p
-        val = val ** (1 / p)
-        val = val ** q
-        # Normalize according to seq length.
-        val /= tf.cast(lengths_batch[batch_index], dtype=tf.float32)
-        vals = vals.write(batch_index, val)
-    return vals.stack()
+
+    diff = batch_preds[:, 1:] - batch_preds[:, :-1]
+    tot_var = tf.reduce_sum(tf.abs(diff)**p, axis=1)
+    tot_var = tot_var ** (1/p)
+    tot_var = tot_var ** q
+    # Divide by sequence length
+    tot_var /= tf.cast(lengths_batch, dtype=tf.float32)
+
+    return tot_var
 
 
 def mask_out_padding_predictions(preds_batch, lengths_batch, batch_size, pad_length):
