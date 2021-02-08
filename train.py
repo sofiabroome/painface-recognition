@@ -271,7 +271,7 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
                 preds_seq = tf.math.reduce_mean(preds_seqs, axis=0)
                 sparse_loss, tv_p, tv_np, mil = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
                 loss = sparse_loss
-                preds_mil = test_and_eval.evaluate_sparse_pain(y, preds_seq, lengths, config_dict)
+                preds_mil = test_and_eval.evaluate_sparse_pain(preds_seq, lengths, config_dict)
                 preds = preds_mil
                 y = y[:, 0, :]
             if config_dict['video_loss'] == 'mil_ce':
@@ -279,7 +279,7 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
                 y_one = y[:, 0, :]
                 ce_loss = loss_fn(y_one, preds_one)
                 sparse_loss, tv_p, tv_np, mil  = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
-                preds_mil = test_and_eval.evaluate_sparse_pain(y, preds_seq, lengths, config_dict)
+                preds_mil = test_and_eval.evaluate_sparse_pain(preds_seq, lengths, config_dict)
                 preds = preds_mil
                 y = y[:, 0, :]
                 loss = ce_loss + sparse_loss
@@ -315,7 +315,7 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
             preds_seq = tf.math.reduce_mean(preds_seqs, axis=0)
             sparse_loss, tv_p, tv_np, mil = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
             loss = sparse_loss
-            preds_mil = test_and_eval.evaluate_sparse_pain(y, preds_seq, lengths, config_dict)
+            preds_mil = test_and_eval.evaluate_sparse_pain(preds_seq, lengths, config_dict)
             preds = preds_mil
             y = y[:, 0, :]
         if config_dict['video_loss'] == 'mil_ce':
@@ -326,7 +326,7 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
             ce_loss = loss_fn(y_one, preds_one)
             sparse_loss, tv_p, tv_np, mil  = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
             loss = ce_loss + sparse_loss
-            preds_mil = test_and_eval.evaluate_sparse_pain(y, preds_seq, lengths, config_dict)
+            preds_mil = test_and_eval.evaluate_sparse_pain(preds_seq, lengths, config_dict)
             preds = 1/2 * (preds_one + preds_mil)
             y = y[:, 0, :]
         val_acc_metric.update_state(y, preds)

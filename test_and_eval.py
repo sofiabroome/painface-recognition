@@ -269,13 +269,13 @@ def evaluate_on_video_level(config_dict, model, model_path, test_dataset,
                 preds_seq = train.mask_out_padding_predictions(preds_seq, lengths, config_dict['video_batch_size_test'], config_dict['video_pad_length'])
                 preds_seqs.append(preds_seq)
             preds_seq = tf.math.reduce_mean(preds_seqs, axis=0)
-            preds_mil = evaluate_sparse_pain(y, preds_seq, lengths, config_dict)
+            preds_mil = evaluate_sparse_pain(preds_seq, lengths, config_dict)
             preds = preds_mil
         if config_dict['video_loss'] == 'mil_ce':
             preds_seq, preds_one = model([x, preds], training=False)
             preds_seq = train.mask_out_padding_predictions(preds_seq, lengths, config_dict['video_batch_size_test'], config_dict['video_pad_length'])
             preds_one = tf.keras.layers.Activation('softmax')(preds_one)
-            preds_mil = evaluate_sparse_pain(y, preds_seq, lengths, config_dict)
+            preds_mil = evaluate_sparse_pain(preds_seq, lengths, config_dict)
             preds = 1/2 * (preds_one + preds_mil)
         y = y[:, 0, :]
         # print('PRED: ', preds, 'Y :', y)
