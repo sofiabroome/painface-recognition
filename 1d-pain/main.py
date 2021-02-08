@@ -50,5 +50,7 @@ if __name__ == '__main__':
     print(config_dict)
     print('Job identifier: ', args.job_identifier) 
     wandb.init(project='1d-pain', config=config_dict)
+    # wandb.save('train_1d.py')
+    # wandb.save('../train.py')
 
     run()
