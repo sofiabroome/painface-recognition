@@ -2,7 +2,7 @@ import tensorflow as tf
 
 
 def get_gru_model(config_dict):
-    input_features = tf.keras.layers.Input(shape=(config_dict['T'], 1))
+    input_features = tf.keras.layers.Input(shape=(config_dict['video_pad_length'], 1))
     # feature_enc1 = tf.keras.layers.GRU(32, return_sequences=True)
     for l_ind, l_units in enumerate(config_dict['layers']):
         if l_ind == 0:

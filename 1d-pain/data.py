@@ -21,13 +21,21 @@ def gen(nb_samples, lengths, data, labels):
 def construct_dataset(nb_pain, nb_nopain, batch_size, config_dict):
 
     pain, p_lengths = get_data(
-        nb_pain, min_events=config_dict['min_events_pain'], max_events=config_dict['nb_events_pain'],
+        nb_pain,
+        min_events=config_dict['min_events_pain'],
+        max_events=config_dict['nb_events_pain'],
         max_event_length=config_dict['max_length_pain'],
-        max_intensity=config_dict['max_intensity_pain'], base=config_dict['base_level'], T=config_dict['T'])
+        max_intensity=config_dict['max_intensity_pain'],
+        base=config_dict['base_level'],
+        T=config_dict['video_pad_length'])
     nopain, np_lengths = get_data(
-        nb_nopain, min_events=config_dict['min_events_nopain'], max_events=config_dict['nb_events_nopain'],
+        nb_nopain,
+        min_events=config_dict['min_events_nopain'],
+        max_events=config_dict['nb_events_nopain'],
         max_event_length=config_dict['max_length_nopain'],
-        max_intensity=config_dict['max_intensity_nopain'], base=config_dict['base_level'], T=config_dict['T'])
+        max_intensity=config_dict['max_intensity_nopain'],
+        base=config_dict['base_level'],
+        T=config_dict['video_pad_length'])
     data = nopain + pain
     labels = [np.zeros(nb_nopain).tolist() + np.ones(nb_pain).tolist()]
     dataset = tf.data.Dataset.from_generator(lambda: gen(nb_pain+nb_nopain, np_lengths + p_lengths, data, labels),

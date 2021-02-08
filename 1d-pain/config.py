@@ -14,7 +14,7 @@ config_dict = {
     'layers': [2],
     # 'layers': [32, 2],
     # Data
-    'T': 266,
+    'video_pad_length': 266,
     'base_level': 1,
     'max_intensity_pain': 2000,
     'max_intensity_nopain': 1,

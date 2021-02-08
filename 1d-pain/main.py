@@ -14,9 +14,9 @@ def run():
     if config_dict['model_name'] == 'gru':
         model = models.get_gru_model(config_dict)
     if config_dict['model_name'] == 'dense':
-        model = models.get_dense_model(T=config_dict['T'])
+        model = models.get_dense_model(T=config_dict['video_pad_length'])
     if config_dict['model_name'] == 'id':
-        model = models.get_identity_model(T=config_dict['T'])
+        model = models.get_identity_model(T=config_dict['video_pad_length'])
 
     # loss_fn = tf.keras.losses.BinaryCrossentropy()
     lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(

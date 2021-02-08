@@ -11,15 +11,15 @@ def train_1d(train_dataset, val_dataset, model, optimizer, config_dict):
     train_acc_metric = tf.keras.metrics.BinaryAccuracy()
     val_acc_metric = tf.keras.metrics.BinaryAccuracy()
 
-    @tf.function(input_signature=(
-        tf.TensorSpec(shape=[config_dict['batch_size'], config_dict['T']], dtype=tf.float32),
-        tf.TensorSpec(shape=[config_dict['batch_size'], 2], dtype=tf.int32),
-        tf.TensorSpec(shape=[config_dict['batch_size'],], dtype=tf.int32)))
+    # @tf.function(input_signature=(
+    #     tf.TensorSpec(shape=[config_dict['batch_size'], config_dict['video_pad_length']], dtype=tf.float32),
+    #     tf.TensorSpec(shape=[config_dict['batch_size'], 2], dtype=tf.int32),
+    #     tf.TensorSpec(shape=[config_dict['batch_size'],], dtype=tf.int32)))
     def train_step(x, y, length):
         with tf.GradientTape() as tape:
             preds_seq = model(x)
             preds_seq = train.mask_out_padding_predictions(
-                preds_seq, length, config_dict['batch_size'], config_dict['T'])
+                preds_seq, length, config_dict['batch_size'], config_dict['video_pad_length'])
             
             sparse_loss, tv_p, tv_np, mil = train.get_sparse_pain_loss(
                 y, preds_seq, length, config_dict)
@@ -35,13 +35,13 @@ def train_1d(train_dataset, val_dataset, model, optimizer, config_dict):
         return loss
         
     @tf.function(input_signature=(
-        tf.TensorSpec(shape=[config_dict['val_batch_size'], config_dict['T']], dtype=tf.float32),
+        tf.TensorSpec(shape=[config_dict['val_batch_size'], config_dict['video_pad_length']], dtype=tf.float32),
         tf.TensorSpec(shape=[config_dict['val_batch_size'], 2], dtype=tf.int32),
         tf.TensorSpec(shape=[config_dict['val_batch_size'],], dtype=tf.int32)))
     def val_step(x, y, length):
         preds_seq = model(x)
         preds_seq = train.mask_out_padding_predictions(
-            preds_seq, length, config_dict['val_batch_size'], config_dict['T'])
+            preds_seq, length, config_dict['val_batch_size'], config_dict['video_pad_length'])
         sparse_loss, tv_p, tv_np, mil = train.get_sparse_pain_loss(
             y, preds_seq, length, config_dict)
         preds_mil = test_and_eval.evaluate_sparse_pain(preds_seq, length, config_dict)
