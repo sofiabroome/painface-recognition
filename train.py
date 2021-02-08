@@ -111,32 +111,57 @@ def keras_train(model, ckpt_path, config_dict, train_steps, val_steps,
 
 
 def get_k_max_scores_per_class(preds_batch, lengths_batch, batch_size, config_dict):
+    """
+    :param preds_batch: tf.Tensor, shape=(batch_size, video_pad_length, nb_labels), dtype=float32
+    :param lengths_batch: tf.Tensor, shape=(batch_size,) dtype=int32
+    :param batch_size: int
+    :param config_dict: {}
+    :return: tf.Tensor: shape=(batch_size, nb_labels), dtype=float32
+    """
+    k_batch = tf.cast(
+        tf.math.ceil(config_dict['k_mil_fraction'] * tf.cast(lengths_batch, dtype=tf.float32)),
+        dtype=tf.int32)
     kmax_scores = []
+    # Need to loop over samples because tf.math.top_k requires a scalar.
     for sample_index in range(batch_size):
-        sample_class_kmax_scores = []
-        seq_length = lengths_batch[sample_index]
-        k = tf.cast(tf.math.ceil(config_dict['k_mil_fraction'] * tf.cast(seq_length, dtype=tf.float32)), dtype=tf.int32)
-        # print('k, seq length: ', k, seq_length)
-        for class_index in range(config_dict['nb_labels']):
-            preds_nopad = preds_batch[sample_index, :, class_index]
-            k_preds, indices = tf.math.top_k(preds_nopad, k)
-            # print('K max indices: ', indices)
-            sample_class_kmax_score = tf.cast(1/k, dtype=tf.float32) * tf.reduce_sum(k_preds)
-            sample_class_kmax_scores.append(sample_class_kmax_score)
-        kmax_scores.append(sample_class_kmax_scores)
+        preds_sample = preds_batch[sample_index, :]
+        preds_sample = tf.transpose(preds_sample)  # tf.math.top_k operates on rows.
+        k_preds, inds = tf.math.top_k(preds_sample, k_batch[sample_index])
+        avg_kmax_scores = tf.cast(1 / k_batch[sample_index], dtype=tf.float32) * tf.reduce_sum(k_preds, axis=1)
+        kmax_scores.append(avg_kmax_scores)
+
     kmax_scores = tf.convert_to_tensor(kmax_scores)
     return kmax_scores
 
 
 def get_mil_loss(kmax_scores, y_batch):
-    batch_size = y_batch.shape[0]  # last batch may be smaller
+    """
+    :param kmax_scores: tf.Tensor, dtype=float32, shape [batch_size, nb_labels]
+    :param y_batch: tf.Tensor, dtype=float32, shape [batch_size, nb_labels]
+    :return: tf.float32
+    """
     kmax_distribution = tf.keras.layers.Activation('softmax')(kmax_scores)
-    mils = 0
-    for sample_index in range(batch_size):
-        label_index = tf.argmax(y_batch[sample_index, :])
-        mil = tf.math.log(kmax_distribution[sample_index, label_index])
-        mils += mil
-    return mils
+    label_indices = tf.argmax(y_batch, axis=1)
+    mils = tf.gather(kmax_distribution, label_indices, batch_dims=1)
+    mils_log = tf.math.log(mils)
+    mils_sum = tf.reduce_sum(mils_log)
+    return mils_sum
+
+
+def batch_calc_TV_norm(batch_preds, lengths_batch, p=3, q=3):
+    """"
+    Calculates the Total Variational Norm by summing the differences of the values
+    in between the different positions of the sequences.
+    """
+
+    diff = batch_preds[:, 1:] - batch_preds[:, :-1]
+    tot_var = tf.reduce_sum(tf.abs(diff)**p, axis=1)
+    tot_var = tot_var ** (1/p)
+    tot_var = tot_var ** q
+    # Divide by sequence length
+    tot_var /= tf.cast(lengths_batch, dtype=tf.float32)
+
+    return tot_var
 
 
 def get_sparse_pain_loss(y_batch, preds_batch, lengths_batch, config_dict):
@@ -169,22 +194,6 @@ def get_sparse_pain_loss(y_batch, preds_batch, lengths_batch, config_dict):
         total_loss += l1_nopain_scalar
 
     return total_loss, tv_pain, tv_nopain, mil
-
-
-def batch_calc_TV_norm(batch_preds, lengths_batch, p=3, q=3):
-    """"
-    Calculates the Total Variational Norm by summing the differences of the values
-    in between the different positions in the mask.
-    """
-
-    diff = batch_preds[:, 1:] - batch_preds[:, :-1]
-    tot_var = tf.reduce_sum(tf.abs(diff)**p, axis=1)
-    tot_var = tot_var ** (1/p)
-    tot_var = tot_var ** q
-    # Divide by sequence length
-    tot_var /= tf.cast(lengths_batch, dtype=tf.float32)
-
-    return tot_var
 
 
 def mask_out_padding_predictions(preds_batch, lengths_batch, batch_size, pad_length):
