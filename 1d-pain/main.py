@@ -2,6 +2,7 @@ import sys
 sys.path.append('..')
 
 import tensorflow as tf
+import numpy as np
 import arg_parser
 import helpers
 import models
@@ -27,11 +28,13 @@ def run():
     optimizer = tf.keras.optimizers.RMSprop(learning_rate=lr_schedule)
     # optimizer = tf.keras.optimizers.Adam(learning_rate=config_dict['lr'])
 
+    rng = np.random.default_rng(seed=3) 
+
     train_dataset = data.construct_dataset(config_dict['nb_pain_train'], config_dict['nb_nopain_train'],
-                                           config_dict['batch_size'], config_dict)
+                                           config_dict['batch_size'], config_dict, rng)
     
     val_dataset = data.construct_dataset(config_dict['nb_pain_val'], config_dict['nb_nopain_val'],
-                                         config_dict['val_batch_size'], config_dict)
+                                         config_dict['val_batch_size'], config_dict, rng)
     
     train_1d.train_1d(train_dataset, val_dataset, model, optimizer, config_dict)
 
@@ -47,6 +50,10 @@ if __name__ == '__main__':
     config_dict['nb_pain_val'] = args.nb_pain_val
     config_dict['nb_nopain_val'] = args.nb_nopain_val
     config_dict['job_identifier'] = args.job_identifier
+
+    if args.test_run == 1:
+        config_dict['epochs'] = 1
+
     print(config_dict)
     print('Job identifier: ', args.job_identifier) 
     wandb.init(project='1d-pain', config=config_dict)
