@@ -98,6 +98,7 @@ config_dict = {
     'k_mil_fraction_nb_epochs_to_decrease': 1,
     'tv_weight_pain': 0,
     'tv_weight_nopain': 0.1,
+    'l1_nopain': False,
     'l2_weight': 0,
     'mc_dropout_samples': 1,
     # Parameters for functional API C-LSTM

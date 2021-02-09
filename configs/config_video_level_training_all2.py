@@ -76,7 +76,7 @@ config_dict = {
     # 'video_features_model' : 'video_level_mil_feats',
     'video_features_model' : 'video_level_preds_attn_gru_network',
     # 'video_features_model' : 'video_level_preds_attn_network',
-    'merge_attn': 'mult',
+    'merge_attn': 'add',
     'video_loss' : 'mil',
     # 'video_features_model' : 'video_level_mil_feats_preds',
     # 'video_loss' : 'mil_ce',
