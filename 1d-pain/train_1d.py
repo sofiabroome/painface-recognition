@@ -10,14 +10,41 @@ import train
 def train_1d(train_dataset, val_dataset, model, optimizer, config_dict):
     train_acc_metric = tf.keras.metrics.BinaryAccuracy()
     val_acc_metric = tf.keras.metrics.BinaryAccuracy()
+    loss_fn = tf.keras.losses.BinaryCrossentropy()
 
+    # @tf.function(input_signature=(
+    #     tf.TensorSpec(shape=[config_dict['batch_size'], config_dict['video_pad_length']], dtype=tf.float32),
+    #     tf.TensorSpec(shape=[config_dict['batch_size'], 2], dtype=tf.int32),
+    #     tf.TensorSpec(shape=[config_dict['batch_size'],], dtype=tf.int32)))
+    def train_step_crossentropy(x, y, length):
+        with tf.GradientTape() as tape:
+            preds = model(x)
+            loss = loss_fn(y, preds)
+        
+        grads = tape.gradient(loss, model.trainable_weights)
+        optimizer.apply_gradients(zip(grads, model.trainable_weights))
+        train_acc_metric.update_state(y, preds)
+        return loss
+        
     @tf.function(input_signature=(
-        tf.TensorSpec(shape=[config_dict['batch_size'], config_dict['video_pad_length']], dtype=tf.float32),
-        tf.TensorSpec(shape=[config_dict['batch_size'], 2], dtype=tf.int32),
-        tf.TensorSpec(shape=[config_dict['batch_size'],], dtype=tf.int32)))
+        tf.TensorSpec(shape=[config_dict['val_batch_size'], config_dict['video_pad_length']], dtype=tf.float32),
+        tf.TensorSpec(shape=[config_dict['val_batch_size'], 2], dtype=tf.int32),
+        tf.TensorSpec(shape=[config_dict['val_batch_size'],], dtype=tf.int32)))
+    def val_step_crossentropy(x, y, length):
+        preds = model(x)
+        loss = loss_fn(y, preds)
+        val_acc_metric.update_state(y, preds)
+        return loss
+
+
+    # @tf.function(input_signature=(
+    #     tf.TensorSpec(shape=[config_dict['batch_size'], config_dict['video_pad_length']], dtype=tf.float32),
+    #     tf.TensorSpec(shape=[config_dict['batch_size'], 2], dtype=tf.int32),
+    #     tf.TensorSpec(shape=[config_dict['batch_size'],], dtype=tf.int32)))
     def train_step(x, y, length):
         with tf.GradientTape() as tape:
             preds_seq = model(x)
+            import pdb; pdb.set_trace()
             preds_seq = train.mask_out_padding_predictions(
                 preds_seq, length, config_dict['batch_size'], config_dict['video_pad_length'])
             
@@ -54,13 +81,15 @@ def train_1d(train_dataset, val_dataset, model, optimizer, config_dict):
     for epoch in range(config_dict['epochs']):
         wandb.log({'epoch': epoch})
         for x, y, length in train_dataset:
-            train_loss = train_step(x, y, length)
+            train_loss = train_step_crossentropy(x, y, length)
+            # train_loss = train_step(x, y, length)
             wandb.log({'train_loss': train_loss})
         train_acc = train_acc_metric.result()
         wandb.log({'train_acc': train_acc})
         
         for x, y, length in val_dataset:
-            val_loss = val_step(x, y, length)
+            val_loss = val_step_crossentropy(x, y, length)
+            # val_loss = val_step(x, y, length)
             wandb.log({'val_loss': val_loss})
         val_acc = val_acc_metric.result()
         wandb.log({'val_acc': val_acc})

@@ -60,7 +60,7 @@ config_dict = {
     'nb_units_2' : 32,
     'feature_dim': 15680,
     # 'feature_dim': 320,
-    'video_batch_size_train' : 10,
+    'video_batch_size_train' : 20,
     'video_batch_size_test' : 1,
     'video_pad_length' : 266,
     'video_nb_epochs': 600,

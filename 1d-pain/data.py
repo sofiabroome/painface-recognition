@@ -2,6 +2,8 @@ import tensorflow as tf
 import pandas as pd
 import numpy as np
 
+AUTOTUNE = tf.data.experimental.AUTOTUNE
+
 
 def gen(nb_samples, lengths, data, labels):
     data = [x.astype(np.float32) for x in data]
@@ -41,6 +43,7 @@ def construct_dataset(nb_pain, nb_nopain, batch_size, config_dict, rng):
     print('first 5 pain seq lengths: ', p_lengths[:5])
     print('first 5 nopain seq lengths: ', np_lengths[:5])
     data = nopain + pain
+    # values /= sum(values)
     labels = [np.zeros(nb_nopain).tolist() + np.ones(nb_pain).tolist()]
     dataset = tf.data.Dataset.from_generator(lambda: gen(nb_pain+nb_nopain, np_lengths + p_lengths, data, labels),
                                              output_types=(tf.float32,tf.int32, tf.int32))
@@ -59,9 +62,9 @@ def get_data(nb_series, min_events, max_events, max_event_length, max_intensity,
     for i in range(nb_series):
         length_draw = int(rng.normal(mu, sigma))
         series_lengths.append(length_draw)
-        
         values = rng.normal(size=T)*base
         values = abs(values)
+        values[length_draw:] = 0
         nb_events = 0 if max_events == 0 else rng.integers(min_events, max_events)
         for ev in range(nb_events):
             length = rng.integers(1, max_event_length+1)
@@ -71,6 +74,5 @@ def get_data(nb_series, min_events, max_events, max_event_length, max_intensity,
             event = np.zeros(int(T))
             event[start:end] = values[range(start, end, 1)]*max_intensity
             values += event
-        values /= sum(values)
         series.append(values)
     return series, series_lengths
