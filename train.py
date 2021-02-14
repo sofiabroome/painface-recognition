@@ -175,18 +175,18 @@ def get_sparse_pain_loss(y_batch, preds_batch, lengths_batch, config_dict):
     batch_indicator_nopain = tf.cast(y_batch[:, 0], dtype=tf.float32)
     batch_indicator_pain = tf.cast(y_batch[:, 1], dtype=tf.float32)
 
+    pain_tv = batch_calc_TV_norm(preds_batch[:, :, 1], lengths_batch)
+
     if config_dict['tv_weight_nopain'] == 0:
         tv_nopain = 0
     else:
         tv_nopain = config_dict['tv_weight_nopain'] * tf.reduce_sum(
-            batch_indicator_nopain * batch_calc_TV_norm(preds_batch[:, :, 0],
-                                                        lengths_batch))
+            batch_indicator_nopain * pain_tv)
     if config_dict['tv_weight_pain'] == 0:
         tv_pain = 0
     else:
         tv_pain = config_dict['tv_weight_pain'] * tf.reduce_sum(
-            batch_indicator_pain * batch_calc_TV_norm(preds_batch[:, :, 1],
-                                                      lengths_batch))
+            batch_indicator_pain * pain_tv)
     total_loss = tv_nopain + tv_pain - mil
     if config_dict['l1_nopain']:
         l1_batch_vector = batch_indicator_nopain * tf.reduce_sum(preds_batch[:, :, 1], axis=1)
