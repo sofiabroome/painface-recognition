@@ -12,6 +12,8 @@ import data
 
 
 def run():
+    if config_dict['model_name'] == 'transformer':
+        model = models.get_transformer_model(config_dict)
     if config_dict['model_name'] == 'gru':
         model = models.get_gru_model(config_dict)
     if config_dict['model_name'] == 'gru_attention':

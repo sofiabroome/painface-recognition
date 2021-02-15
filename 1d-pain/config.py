@@ -10,11 +10,19 @@ config_dict = {
     'batch_size': 20,
     'val_batch_size': 1,
     # Model
-    'model_name': 'gru_attention',  # 'gru'|'gru_attention'|'dense'|'id'
+    # 'model_name': 'gru_attention',  # 'gru'|'gru_attention'|'dense'|'id'
+    'model_name': 'transformer',  # 'transformer|gru'|'gru_attention'|'dense'|'id'
     # 'model_name': 'gru',  # 'gru'|'gru_attention'|'dense'|'id'
     # 'layers': [2],
     'layers': [32, 2],
+    # Transformer settings
+    'model_size': 128,
+    'nb_layers_enc': 2,
+    'nb_layers_dec': 2,
+    'nb_heads_enc': 2,
+    'nb_heads_dec': 2,
     # Data
+    'feature_dim': 1,
     'video_pad_length': 266,
     'base_level': 1,
     'max_intensity_pain': 20,

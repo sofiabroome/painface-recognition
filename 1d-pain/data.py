@@ -5,18 +5,29 @@ import numpy as np
 AUTOTUNE = tf.data.experimental.AUTOTUNE
 
 
-def gen(nb_samples, lengths, data, labels):
+def gen(nb_samples, lengths, data, labels, sequence_labels=True):
     data = [x.astype(np.float32) for x in data]
-    labels = [int(x) for x in labels[0]]
+    labels = [int(x) for x in labels]
     lengths = [int(x) for x in lengths]
+    pad_length = data[0].shape[0]
     for i in range(nb_samples):
         x = data[i]
         label = labels[i]
         length = lengths[i]
-        if label == 0:
-            label = [1, 0]
-        if label == 1:
-            label = [0, 1]
+        if sequence_labels:
+            # One hot encoding of sequence labels
+            label_seq = np.zeros((pad_length, 2))
+            if label == 0:
+                label_seq[:length, 0] = 1
+            if label == 1:
+                label_seq[:length, 1] = 1
+            label = label_seq
+        else:
+            if label == 0:
+                label = [1, 0]
+            if label == 1:
+                label = [0, 1]
+        # Output example format if seq labels: (266,) (266, 2) 48
         yield x, label, length
 
 
@@ -44,9 +55,9 @@ def construct_dataset(nb_pain, nb_nopain, batch_size, config_dict, rng):
     print('first 5 nopain seq lengths: ', np_lengths[:5])
     data = nopain + pain
     # values /= sum(values)
-    labels = [np.zeros(nb_nopain).tolist() + np.ones(nb_pain).tolist()]
+    labels = np.zeros(nb_nopain).tolist() + np.ones(nb_pain).tolist()
     dataset = tf.data.Dataset.from_generator(lambda: gen(nb_pain+nb_nopain, np_lengths + p_lengths, data, labels),
-                                             output_types=(tf.float32,tf.int32, tf.int32))
+                                             output_types=(tf.float32, tf.int32, tf.int32))
     dataset = dataset.shuffle(1000, reshuffle_each_iteration=True)
     dataset = dataset.batch(batch_size, drop_remainder=True)
     return dataset

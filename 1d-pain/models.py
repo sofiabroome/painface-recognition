@@ -41,6 +41,7 @@ class MultiHeadAttention(tf.keras.Model):
         # heads has shape (batch, query_len, model_size)
         return heads
 
+
 class Encoder(tf.keras.Model):
     def __init__(self, vocab_size, model_size, num_layers, h):
         super(Encoder, self).__init__()
@@ -49,7 +50,7 @@ class Encoder(tf.keras.Model):
         self.h = h
         
         # One Embedding layer
-        self.embedding = tf.keras.layers.Embedding(vocab_size, model_size)
+        self.embedding = tf.keras.layers.Embedding(vocab_size, model_size, mask_zero=True)
         
         # num_layers Multi-Head Attention and Normalization layers
         self.attention = [MultiHeadAttention(model_size, h) for _ in range(num_layers)]
@@ -64,11 +65,12 @@ class Encoder(tf.keras.Model):
         sub_in = []
         for i in range(sequence.shape[1]):
             # Compute the embedded vector
-            embed = self.embedding(tf.expand_dims(sequence[:, i], axis=1))
-            
+            # embed = self.embedding(tf.expand_dims(sequence[:, i], axis=1))
+            embed = self.embedding(sequence[:, i, :])
+
             # Add positional encoding to the embedded vector
-            sub_in.append(embed + pes[i, :])
-        
+            sub_in.append(embed)
+
         # Concatenate the result so that the shape is (batch_size, length, model_size)
         sub_in = tf.concat(sub_in, axis=1)
         
@@ -88,6 +90,7 @@ class Encoder(tf.keras.Model):
             sub_out = tf.concat(sub_out, axis=1)
 
             # Residual connection
+
             sub_out = sub_in + sub_out
             # Normalize the output
             sub_out = self.attention_norm[i](sub_out)
@@ -107,13 +110,14 @@ class Encoder(tf.keras.Model):
         # Return the result when done
         return ffn_out
 
+
 class Decoder(tf.keras.Model):
     def __init__(self, vocab_size, model_size, num_layers, h):
         super(Decoder, self).__init__()
         self.model_size = model_size
         self.num_layers = num_layers
         self.h = h
-        self.embedding = tf.keras.layers.Embedding(vocab_size, model_size)
+        self.embedding = tf.keras.layers.Embedding(vocab_size, model_size, mask_zero=True)
         self.attention_bot = [MultiHeadAttention(model_size, h) for _ in range(num_layers)]
         self.attention_bot_norm = [tf.keras.layers.BatchNormalization() for _ in range(num_layers)]
         self.attention_mid = [MultiHeadAttention(model_size, h) for _ in range(num_layers)]
@@ -129,12 +133,12 @@ class Decoder(tf.keras.Model):
         # EMBEDDING AND POSITIONAL EMBEDDING
         embed_out = []
         for i in range(sequence.shape[1]):
-            embed = self.embedding(tf.expand_dims(sequence[:, i], axis=1))
-            embed_out.append(embed + pes[i, :])
+            # embed = self.embedding(tf.expand_dims(sequence[:, i], axis=1))
+            embed = self.embedding(sequence[:, i, :])
+            embed_out.append(embed)
             
         embed_out = tf.concat(embed_out, axis=1)
-        
-        
+
         bot_sub_in = embed_out
         
         for i in range(self.num_layers):
@@ -173,10 +177,53 @@ class Decoder(tf.keras.Model):
             ffn_out = self.ffn_norm[i](ffn_out)
 
             bot_sub_in = ffn_out
-        
+
         logits = self.dense(ffn_out)
             
         return logits
+
+
+class Transformer(tf.keras.Model):
+    def __init__(self, config_dict):
+        super(Transformer, self).__init__()
+        self.config_dict = config_dict
+        self.mask = tf.keras.layers.Masking(
+            mask_value=0.,
+            input_shape=(self.config_dict['video_pad_length'], self.config_dict['feature_dim']))
+        self.model_size = self.config_dict['model_size']
+        self.nb_layers_enc = self.config_dict['nb_layers_enc']
+        self.nb_layers_dec = self.config_dict['nb_layers_dec']
+        self.nb_heads_enc = self.config_dict['nb_heads_enc']
+        self.nb_heads_dec = self.config_dict['nb_heads_dec']
+        self.model_size = self.config_dict['model_size']
+        self.encoder = Encoder(vocab_size=self.config_dict['feature_dim'],
+                               model_size=self.config_dict['model_size'],
+                               num_layers=self.config_dict['nb_layers_enc'],
+                               h=self.config_dict['nb_heads_enc'])
+        self.decoder = Decoder(vocab_size=self.config_dict['nb_labels'],
+                               model_size=self.config_dict['model_size'],
+                               num_layers=self.config_dict['nb_layers_dec'],
+                               h=self.config_dict['nb_heads_dec'])
+
+    def call(self, input_features, target_sequence):
+        # input_features = self.mask(input_features)
+        # target_sequence = self.mask(target_sequence)
+        encoder_output = self.encoder(input_features)
+        decoder_output = self.decoder(target_sequence, encoder_output)
+        return decoder_output
+
+
+def get_transformer_model(config_dict):
+    input_features = tf.keras.layers.Input(shape=(config_dict['video_pad_length'], 1))
+    target_sequence = tf.keras.layers.Input(shape=(config_dict['video_pad_length'], 1))
+
+    transformer = Transformer(config_dict)
+
+    decoder_output = transformer(input_features, target_sequence)
+
+    model = tf.keras.Model(inputs=[input_features, target_sequence], outputs=[decoder_output])
+    model.summary()
+    return model
 
 
 class BahdanauAttention(tf.keras.layers.Layer):
@@ -213,7 +260,10 @@ def get_gru_attention_model(config_dict):
     input_features = tf.keras.layers.Input(shape=(config_dict['video_pad_length'], 1))
 
     x = tf.keras.layers.Masking(
-        mask_value=0., input_shape=(config_dict['video_pad_length'], 1))(input_features)
+        mask_value=0.,
+        input_shape=(
+            config_dict['video_pad_length'], config_dict['feature_dim'])
+    )(input_features)
 
     for l_ind, l_units in enumerate(config_dict['layers']):
         # if l_ind == 0:
@@ -256,7 +306,7 @@ def get_gru_model(config_dict):
     return model
 
 
-def get_dense_model(config_dict):
+def get_gru_return_state_model(config_dict):
     input_features = tf.keras.layers.Input(shape=(config_dict['video_pad_length'], 1))
     # feature_enc1 = tf.keras.layers.GRU(32, return_sequences=True)
     for l_ind, l_units in enumerate(config_dict['layers']):
@@ -277,17 +327,17 @@ def get_dense_model(config_dict):
     return model
 
 
-# def get_dense_model(config_dict):
-#     input_features = tf.keras.layers.Input(shape=(config_dict['video_pad_length']))
-#     feature_enc1 = tf.keras.layers.Dense(2)
-#     feature_enc2 = tf.keras.layers.Dense(2)
-#     x = feature_enc1(input_features)
-#     x = feature_enc2(x)
-#     # x = tf.keras.layers.BatchNormalization()(x)
-#     x = tf.keras.layers.Activation('softmax')(x)
-#     model = tf.keras.Model(inputs=[input_features], outputs=[x]) 
-#     model.summary()
-#     return model
+def get_dense_model(config_dict):
+    input_features = tf.keras.layers.Input(shape=(config_dict['video_pad_length']))
+    feature_enc1 = tf.keras.layers.Dense(2)
+    feature_enc2 = tf.keras.layers.Dense(2)
+    x = feature_enc1(input_features)
+    x = feature_enc2(x)
+    # x = tf.keras.layers.BatchNormalization()(x)
+    x = tf.keras.layers.Activation('softmax')(x)
+    model = tf.keras.Model(inputs=[input_features], outputs=[x])
+    model.summary()
+    return model
 
 
 def get_identity_model(config_dict):
