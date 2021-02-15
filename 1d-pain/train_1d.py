@@ -44,7 +44,7 @@ def train_1d(train_dataset, val_dataset, model, optimizer, config_dict):
     def train_step(x, y, length):
         with tf.GradientTape() as tape:
             if config_dict['model_name'] == 'transformer':
-                preds_seq = model(x, y)
+                preds_seq = model([x, y])
             else:
                 preds_seq = model(x)
             preds_seq = train.mask_out_padding_predictions(
@@ -55,6 +55,7 @@ def train_1d(train_dataset, val_dataset, model, optimizer, config_dict):
             preds_mil = test_and_eval.evaluate_sparse_pain(
                 preds_seq, length, config_dict)
             loss = sparse_loss
+            y = y[:, 0, :]
             # loss = loss_fn(y, preds_seq)
         
         grads = tape.gradient(loss, model.trainable_weights)
@@ -69,7 +70,7 @@ def train_1d(train_dataset, val_dataset, model, optimizer, config_dict):
     #     tf.TensorSpec(shape=[config_dict['val_batch_size'],], dtype=tf.int32)))
     def val_step(x, y, length):
         if config_dict['model_name'] == 'transformer':
-            preds_seq = model(x, y)
+            preds_seq = model([x, y])
         else:
             preds_seq = model(x)
         preds_seq = train.mask_out_padding_predictions(
@@ -78,6 +79,7 @@ def train_1d(train_dataset, val_dataset, model, optimizer, config_dict):
             y, preds_seq, length, config_dict)
         preds_mil = test_and_eval.evaluate_sparse_pain(preds_seq, length, config_dict)
         loss = sparse_loss
+        y = y[:, 0, :]
         val_acc_metric.update_state(y, preds_mil)
     #     loss = loss_fn(y, preds_seq)
     #     val_acc_metric.update_state(y, preds_seq)

@@ -62,17 +62,18 @@ class Encoder(tf.keras.Model):
         self.ffn_norm = [tf.keras.layers.BatchNormalization() for _ in range(num_layers)]
 
     def call(self, sequence):
-        sub_in = []
-        for i in range(sequence.shape[1]):
-            # Compute the embedded vector
-            # embed = self.embedding(tf.expand_dims(sequence[:, i], axis=1))
-            embed = self.embedding(sequence[:, i, :])
+        # sub_in = []
+        # for i in range(sequence.shape[1]):
+        #     # Compute the embedded vector
+        #     # embed = self.embedding(tf.expand_dims(sequence[:, i], axis=1))
+        #     embed = self.embedding(sequence[:, i, :])
 
-            # Add positional encoding to the embedded vector
-            sub_in.append(embed)
+        #     # Add positional encoding to the embedded vector
+        #     sub_in.append(embed)
 
-        # Concatenate the result so that the shape is (batch_size, length, model_size)
-        sub_in = tf.concat(sub_in, axis=1)
+        # # Concatenate the result so that the shape is (batch_size, length, model_size)
+        # sub_in = tf.concat(sub_in, axis=1)
+        sub_in = sequence
         
         # We will have num_layers of (Attention + FFN)
         for i in range(self.num_layers):
@@ -118,6 +119,7 @@ class Decoder(tf.keras.Model):
         self.num_layers = num_layers
         self.h = h
         self.embedding = tf.keras.layers.Embedding(vocab_size, model_size, mask_zero=True)
+        self.my_embedding = tf.keras.layers.Dense(model_size)
         self.attention_bot = [MultiHeadAttention(model_size, h) for _ in range(num_layers)]
         self.attention_bot_norm = [tf.keras.layers.BatchNormalization() for _ in range(num_layers)]
         self.attention_mid = [MultiHeadAttention(model_size, h) for _ in range(num_layers)]
@@ -129,18 +131,20 @@ class Decoder(tf.keras.Model):
         
         self.dense = tf.keras.layers.Dense(vocab_size)
 
-    def call(self, sequence, encoder_output):
+    def call(self, target_sequence, encoder_output):
         # EMBEDDING AND POSITIONAL EMBEDDING
-        embed_out = []
-        for i in range(sequence.shape[1]):
-            # embed = self.embedding(tf.expand_dims(sequence[:, i], axis=1))
-            embed = self.embedding(sequence[:, i, :])
-            embed_out.append(embed)
-            
-        embed_out = tf.concat(embed_out, axis=1)
+        # embed_out = []
+        # for i in range(target_sequence.shape[1]):
+        #     # embed = self.embedding(tf.expand_dims(target_sequence[:, i], axis=1))
+        #     embed = self.embedding(target_sequence[:, i, :])
+        #     embed_out.append(embed)
 
-        bot_sub_in = embed_out
-        
+        # embed_out = tf.concat(embed_out, axis=1)
+        # bot_sub_in = embed_out
+
+        # The target sequence is (bs, seqlength, 2), need it to have model_size as last.
+        bot_sub_in = self.my_embedding(target_sequence)
+
         for i in range(self.num_layers):
             # BOTTOM MULTIHEAD SUB LAYER
             bot_sub_out = []
@@ -179,7 +183,7 @@ class Decoder(tf.keras.Model):
             bot_sub_in = ffn_out
 
         logits = self.dense(ffn_out)
-            
+
         return logits
 
 
@@ -187,9 +191,12 @@ class Transformer(tf.keras.Model):
     def __init__(self, config_dict):
         super(Transformer, self).__init__()
         self.config_dict = config_dict
-        self.mask = tf.keras.layers.Masking(
+        self.feature_mask = tf.keras.layers.Masking(
             mask_value=0.,
             input_shape=(self.config_dict['video_pad_length'], self.config_dict['feature_dim']))
+        self.target_mask = tf.keras.layers.Masking(
+            mask_value=0.,
+            input_shape=(self.config_dict['video_pad_length'], self.config_dict['nb_labels']))
         self.model_size = self.config_dict['model_size']
         self.nb_layers_enc = self.config_dict['nb_layers_enc']
         self.nb_layers_dec = self.config_dict['nb_layers_dec']
@@ -206,16 +213,16 @@ class Transformer(tf.keras.Model):
                                h=self.config_dict['nb_heads_dec'])
 
     def call(self, input_features, target_sequence):
-        # input_features = self.mask(input_features)
-        # target_sequence = self.mask(target_sequence)
+        input_features = self.feature_mask(input_features)
+        target_sequence = self.target_mask(target_sequence)
         encoder_output = self.encoder(input_features)
         decoder_output = self.decoder(target_sequence, encoder_output)
         return decoder_output
 
 
 def get_transformer_model(config_dict):
-    input_features = tf.keras.layers.Input(shape=(config_dict['video_pad_length'], 1))
-    target_sequence = tf.keras.layers.Input(shape=(config_dict['video_pad_length'], 1))
+    input_features = tf.keras.layers.Input(shape=(config_dict['video_pad_length'], config_dict['feature_dim']))
+    target_sequence = tf.keras.layers.Input(shape=(config_dict['video_pad_length'], config_dict['nb_labels']))
 
     transformer = Transformer(config_dict)
 

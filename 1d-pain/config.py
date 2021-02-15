@@ -16,11 +16,11 @@ config_dict = {
     # 'layers': [2],
     'layers': [32, 2],
     # Transformer settings
-    'model_size': 128,
-    'nb_layers_enc': 2,
-    'nb_layers_dec': 2,
-    'nb_heads_enc': 2,
-    'nb_heads_dec': 2,
+    'model_size': 8,
+    'nb_layers_enc': 1,
+    'nb_layers_dec': 1,
+    'nb_heads_enc': 1,
+    'nb_heads_dec': 1,
     # Data
     'feature_dim': 1,
     'video_pad_length': 266,
