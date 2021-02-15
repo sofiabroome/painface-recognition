@@ -54,6 +54,8 @@ def construct_dataset(nb_pain, nb_nopain, batch_size, config_dict, rng):
     print('first 5 pain seq lengths: ', p_lengths[:5])
     print('first 5 nopain seq lengths: ', np_lengths[:5])
     data = nopain + pain
+    # Standardize
+    data = (data - np.mean(data))/np.std(data)
     # values /= sum(values)
     labels = np.zeros(nb_nopain).tolist() + np.ones(nb_pain).tolist()
     dataset = tf.data.Dataset.from_generator(lambda: gen(nb_pain+nb_nopain, np_lengths + p_lengths, data, labels),
