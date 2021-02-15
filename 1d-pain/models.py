@@ -77,21 +77,9 @@ class Encoder(tf.keras.Model):
         
         # We will have num_layers of (Attention + FFN)
         for i in range(self.num_layers):
-            sub_out = []
-
-            # Iterate along the sequence length
-            for j in range(sub_in.shape[1]):
-                # Compute the context vector towards the whole sequence
-                attention = self.attention[i](
-                    tf.expand_dims(sub_in[:, j, :], axis=1), sub_in)
-
-                sub_out.append(attention)
-
-            # Concatenate the result to have shape (batch_size, length, model_size)
-            sub_out = tf.concat(sub_out, axis=1)
+            sub_out = self.attention[i](sub_in, sub_in)
 
             # Residual connection
-
             sub_out = sub_in + sub_out
             # Normalize the output
             sub_out = self.attention_norm[i](sub_out)
@@ -147,29 +135,14 @@ class Decoder(tf.keras.Model):
 
         for i in range(self.num_layers):
             # BOTTOM MULTIHEAD SUB LAYER
-            bot_sub_out = []
-            
-            for j in range(bot_sub_in.shape[1]):
-                values = bot_sub_in[:, :j, :]
-                attention = self.attention_bot[i](
-                    tf.expand_dims(bot_sub_in[:, j, :], axis=1), values)
-
-                bot_sub_out.append(attention)
-            bot_sub_out = tf.concat(bot_sub_out, axis=1)
+            bot_sub_out = self.attention_bot[i](bot_sub_in, bot_sub_in)
             bot_sub_out = bot_sub_in + bot_sub_out
             bot_sub_out = self.attention_bot_norm[i](bot_sub_out)
             
             # MIDDLE MULTIHEAD SUB LAYER
             mid_sub_in = bot_sub_out
-
-            mid_sub_out = []
-            for j in range(mid_sub_in.shape[1]):
-                attention = self.attention_mid[i](
-                    tf.expand_dims(mid_sub_in[:, j, :], axis=1), encoder_output)
-
-                mid_sub_out.append(attention)
-
-            mid_sub_out = tf.concat(mid_sub_out, axis=1)
+            
+            mid_sub_out = self.attention_mid[i](mid_sub_in, encoder_output)
             mid_sub_out = mid_sub_out + mid_sub_in
             mid_sub_out = self.attention_mid_norm[i](mid_sub_out)
 
