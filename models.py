@@ -518,14 +518,15 @@ class MyModel(tf.keras.Model):
     def get_transformer_model(self):
         input_features = tf.keras.layers.Input(shape=(self.config_dict['video_pad_length'], self.config_dict['feature_dim']))
         target_sequence = tf.keras.layers.Input(shape=(self.config_dict['video_pad_length'], self.config_dict['nb_labels']))
+        mask = tf.keras.layers.Input(shape=(1, 1, self.config_dict['video_pad_length']))
     
         transformer_model = transformer.Transformer(self.config_dict)
         
         # The decoder output is logits 
-        decoder_output = transformer_model(input_features, target_sequence)
+        decoder_output = transformer_model(input_features, target_sequence, mask)
         preds = Activation('softmax')(decoder_output)
     
-        model = tf.keras.Model(inputs=[input_features, target_sequence], outputs=[preds])
+        model = tf.keras.Model(inputs=[input_features, target_sequence, mask], outputs=[preds])
         model.summary()
         return model
 

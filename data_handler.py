@@ -190,7 +190,7 @@ class DataHandler:
         dataset = dataset.shuffle(
             self.config_dict['shuffle_buffer'], reshuffle_each_iteration=True)
         print('Split: {}, batch size: {}'.format(split, bs))
-        dataset = dataset.batch(bs, drop_remainder=True)
+        dataset = dataset.batch(bs, drop_remainder=False)
         dataset = dataset.prefetch(AUTOTUNE)
         print(dataset)
         return dataset

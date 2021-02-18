@@ -258,15 +258,17 @@ def evaluate_on_video_level(config_dict, model, model_path, test_dataset,
         model.load_weights(model_path)
 
     @tf.function
-    def test_step(x, preds, y, lengths):
+    def test_step(x, preds, y, lengths, mask):
         if config_dict['video_loss'] == 'cross_entropy':
             preds = model([x, preds], training=False)
         if config_dict['video_loss'] == 'mil':
             preds_seqs = []
             for i in range(config_dict['mc_dropout_samples']):
                 training=False if config_dict['mc_dropout_samples'] == 1 else True
-                preds_seq = model([x, preds], training=training)
-                preds_seq = train.mask_out_padding_predictions(preds_seq, lengths, config_dict['video_batch_size_test'], config_dict['video_pad_length'])
+                expanded_mask = tf.expand_dims(mask[:,:,0], axis=1)
+                expanded_mask = tf.expand_dims(expanded_mask, axis=1)
+                preds_seq = model([x, preds, expanded_mask], training=training)
+                preds_seq = preds_seq * mask
                 preds_seqs.append(preds_seq)
             preds_seq = tf.math.reduce_mean(preds_seqs, axis=0)
             preds_mil = evaluate_sparse_pain(preds_seq, lengths, config_dict)
@@ -291,9 +293,9 @@ def evaluate_on_video_level(config_dict, model, model_path, test_dataset,
             # step_start_time = time.time()
             feats_batch, preds_batch, labels_batch, video_id = sample
             # print('\nVideo ID being tested: ', video_id)
-            lengths_batch = train.get_nb_clips_per_video(video_id, df_video_lengths)
+            mask_batch, lengths_batch = train.get_mask_and_lengths(labels_batch)            
             # print('\n Video ID: ', video_id)
-            preds, y = test_step(feats_batch, preds_batch, labels_batch, lengths_batch)
+            preds, y = test_step(feats_batch, preds_batch, labels_batch, lengths_batch, mask_batch)
             all_preds.append(preds)
             all_y.append(y)
     all_preds = make_array(all_preds)

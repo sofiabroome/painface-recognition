@@ -22,7 +22,7 @@ class MultiHeadAttention(tf.keras.Model):
         # self.wv = [tf.keras.layers.Dense(self.value_size) for _ in range(h)]
         # self.wo = tf.keras.layers.Dense(model_size)
 
-    def call(self, decoder_output, encoder_output):
+    def call(self, decoder_output, encoder_output, mask=None):
         # query has shape (batch, query_len, model_size)
         # value has shape (batch, value_len, model_size)
 
@@ -46,9 +46,9 @@ class MultiHeadAttention(tf.keras.Model):
         score = tf.matmul(query, key, transpose_b=True)
         score /= tf.math.sqrt(tf.dtypes.cast(self.key_size, dtype=tf.float32))
 
-        # if mask is not None:
-        #     score *= mask
-        #     score = tf.where(tf.equal(score, 0), tf.ones_like(score) * -1e9, score)
+        if mask is not None:
+            score *= mask
+            score = tf.where(tf.equal(score, 0), tf.ones_like(score) * -1e9, score)
 
         alignment = tf.nn.softmax(score, axis=-1)
         context = tf.matmul(alignment, value)
@@ -89,7 +89,7 @@ class Encoder(tf.keras.Model):
         self.h = h
         
         # One Embedding layer
-        self.embedding = tf.keras.layers.Embedding(vocab_size, model_size, mask_zero=True)
+        self.embedding = tf.keras.layers.Embedding(vocab_size, model_size)
         self.my_embedding = tf.keras.layers.Dense(model_size)
         
         # num_layers Multi-Head Attention and Normalization layers
@@ -101,7 +101,7 @@ class Encoder(tf.keras.Model):
         self.dense_2 = [tf.keras.layers.Dense(model_size) for _ in range(num_layers)]
         self.ffn_norm = [tf.keras.layers.BatchNormalization() for _ in range(num_layers)]
 
-    def call(self, sequence):
+    def call(self, sequence, padding_mask):
         # sub_in = []
         # for i in range(sequence.shape[1]):
         #     # Compute the embedded vector
@@ -118,7 +118,7 @@ class Encoder(tf.keras.Model):
         
         # We will have num_layers of (Attention + FFN)
         for i in range(self.num_layers):
-            sub_out = self.attention[i](sub_in, sub_in)
+            sub_out = self.attention[i](sub_in, sub_in, padding_mask)
 
             # Residual connection
             sub_out = sub_in + sub_out
@@ -147,7 +147,7 @@ class Decoder(tf.keras.Model):
         self.model_size = model_size
         self.num_layers = num_layers
         self.h = h
-        self.embedding = tf.keras.layers.Embedding(vocab_size, model_size, mask_zero=True)
+        self.embedding = tf.keras.layers.Embedding(vocab_size, model_size)
         self.my_embedding = tf.keras.layers.Dense(model_size)
         self.attention_bot = [MultiHeadAttention(model_size, h) for _ in range(num_layers)]
         self.attention_bot_norm = [tf.keras.layers.BatchNormalization() for _ in range(num_layers)]
@@ -160,7 +160,7 @@ class Decoder(tf.keras.Model):
         
         self.dense = tf.keras.layers.Dense(vocab_size)
 
-    def call(self, target_sequence, encoder_output):
+    def call(self, target_sequence, encoder_output, padding_mask):
         # EMBEDDING AND POSITIONAL EMBEDDING
         # embed_out = []
         # for i in range(target_sequence.shape[1]):
@@ -176,14 +176,16 @@ class Decoder(tf.keras.Model):
 
         for i in range(self.num_layers):
             # BOTTOM MULTIHEAD SUB LAYER
-            bot_sub_out = self.attention_bot[i](bot_sub_in, bot_sub_in)
+            seq_len = bot_sub_in.shape[1]
+            look_left_only_mask = tf.linalg.band_part(tf.ones((seq_len, seq_len)), -1, 0)
+            bot_sub_out = self.attention_bot[i](bot_sub_in, bot_sub_in, look_left_only_mask)
             bot_sub_out = bot_sub_in + bot_sub_out
             bot_sub_out = self.attention_bot_norm[i](bot_sub_out)
             
             # MIDDLE MULTIHEAD SUB LAYER
             mid_sub_in = bot_sub_out
             
-            mid_sub_out = self.attention_mid[i](mid_sub_in, encoder_output)
+            mid_sub_out = self.attention_mid[i](mid_sub_in, encoder_output, padding_mask)
             mid_sub_out = mid_sub_out + mid_sub_in
             mid_sub_out = self.attention_mid_norm[i](mid_sub_out)
 
@@ -204,12 +206,6 @@ class Decoder(tf.keras.Model):
 class Transformer(tf.keras.Model):
     def __init__(self, config_dict):
         super(Transformer, self).__init__()
-        self.feature_mask = tf.keras.layers.Masking(
-            mask_value=0.,
-            input_shape=(config_dict['video_pad_length'], config_dict['feature_dim']))
-        self.target_mask = tf.keras.layers.Masking(
-            mask_value=0.,
-            input_shape=(config_dict['video_pad_length'], config_dict['nb_labels']))
         self.model_size = config_dict['model_size']
         self.nb_layers_enc = config_dict['nb_layers_enc']
         self.nb_layers_dec = config_dict['nb_layers_dec']
@@ -225,11 +221,9 @@ class Transformer(tf.keras.Model):
                                num_layers=config_dict['nb_layers_dec'],
                                h=config_dict['nb_heads_dec'])
 
-    def call(self, input_features, target_sequence):
-        input_features = self.feature_mask(input_features)
-        target_sequence = self.target_mask(target_sequence)
-        encoder_output = self.encoder(input_features)
-        decoder_output = self.decoder(target_sequence, encoder_output)
+    def call(self, input_features, target_sequence, mask):
+        encoder_output = self.encoder(input_features, mask)
+        decoder_output = self.decoder(target_sequence, encoder_output, mask)
         return decoder_output
 
 
