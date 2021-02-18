@@ -9,6 +9,7 @@ from tensorflow.keras.layers import Reshape
 from tensorflow.keras.layers import Lambda
 from tensorflow.keras import backend as K
 import tensorflow as tf
+import transformer
 import i3d
 
 
@@ -39,6 +40,8 @@ class MyModel(tf.keras.Model):
                 self.video_features_model = self.config_dict['video_features_model']
                 config_dict['model'] = self.video_features_model
                 self.model_name = 'only_train_video_feats'
+                if self.video_features_model == 'transformer':
+                    self.model = self.get_transformer_model()
                 if self.video_features_model == 'video_level_network':
                     self.model = self.video_level_network()
                 if self.video_features_model == 'video_level_preds_attn_network':
@@ -510,6 +513,22 @@ class MyModel(tf.keras.Model):
         model.summary()
 
         return model
+
+
+    def get_transformer_model(self):
+        input_features = tf.keras.layers.Input(shape=(self.config_dict['video_pad_length'], self.config_dict['feature_dim']))
+        target_sequence = tf.keras.layers.Input(shape=(self.config_dict['video_pad_length'], self.config_dict['nb_labels']))
+    
+        transformer_model = transformer.Transformer(self.config_dict)
+        
+        # The decoder output is logits 
+        decoder_output = transformer_model(input_features, target_sequence)
+        preds = Activation('softmax')(decoder_output)
+    
+        model = tf.keras.Model(inputs=[input_features, target_sequence], outputs=[preds])
+        model.summary()
+        return model
+
 
     def video_level_preds_attn_gru_network(self, training):
 
