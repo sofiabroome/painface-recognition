@@ -138,6 +138,9 @@ if __name__ == '__main__':
     wandb.save('train.py')
 
     all_subjects_df = pd.read_csv(args.subjects_overview)
+    if args.test_run == 1:
+        config_dict['epochs'] = 1
+        config_dict['video_nb_epochs'] = 1
 
     # Run the whole program, from preparing the data to evaluating
     # the model's test performance
