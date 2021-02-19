@@ -115,7 +115,7 @@ def get_k_max_scores_per_class(preds_batch, lengths_batch, config_dict):
     :param lengths_batch: tf.Tensor, shape=(batch_size,) dtype=int32
     :param batch_size: int
     :param config_dict: {}
-    :return: tf.Tensor: shape=(batch_size, nb_labels), dtype=float32
+    :return: tf.Tensor: shape=(batch_size, nb_labels), dtype=float32, scores which sum to 1.
     """
     batch_size = preds_batch.shape[0]  # last batch may be smaller
     k_batch = tf.cast(
@@ -126,17 +126,20 @@ def get_k_max_scores_per_class(preds_batch, lengths_batch, config_dict):
     for sample_index in range(batch_size):
 
         # Old version, take both classes into account.
-        # preds_sample = preds_batch[sample_index, :]
-        # preds_sample = tf.transpose(preds_sample)  # tf.math.top_k operates on rows.
-        # k_preds, inds = tf.math.top_k(preds_sample, k_batch[sample_index])
-        # avg_kmax_scores = tf.cast(1 / k_batch[sample_index], dtype=tf.float32) * tf.reduce_sum(k_preds, axis=1)
+        if config_dict['mil_version'] == 'mil_both':
+            preds_sample = preds_batch[sample_index, :]
+            preds_sample = tf.transpose(preds_sample)  # tf.math.top_k operates on rows.
+            k_preds, inds = tf.math.top_k(preds_sample, k_batch[sample_index])
+            avg_kmax_scores = tf.cast(1 / k_batch[sample_index], dtype=tf.float32) * tf.reduce_sum(k_preds, axis=1)
+            avg_kmax_scores = tf.keras.layers.Activation('softmax')(avg_kmax_scores)
 
         # Only compute the score for pain, to not punish no-pain detections.
-        pain_preds = preds_batch[sample_index, :, 1]
-        k_preds, inds = tf.math.top_k(pain_preds, k_batch[sample_index])
-        avg_kmax_pain = tf.cast(1 / k_batch[sample_index], dtype=tf.float32) * tf.reduce_sum(k_preds)
-        nopain_complement = 1.0 - avg_kmax_pain
-        avg_kmax_scores = [nopain_complement, avg_kmax_pain]
+        if config_dict['mil_version'] == 'mil_pain':
+            pain_preds = preds_batch[sample_index, :, 1]
+            k_preds, inds = tf.math.top_k(pain_preds, k_batch[sample_index])
+            avg_kmax_pain = tf.cast(1 / k_batch[sample_index], dtype=tf.float32) * tf.reduce_sum(k_preds)
+            nopain_complement = 1.0 - avg_kmax_pain
+            avg_kmax_scores = [nopain_complement, avg_kmax_pain]
 
         kmax_scores.append(avg_kmax_scores)
 
@@ -150,9 +153,8 @@ def get_mil_loss(kmax_scores, y_batch):
     :param y_batch: tf.Tensor, dtype=float32, shape [batch_size, nb_labels]
     :return: tf.float32
     """
-    kmax_distribution = tf.keras.layers.Activation('softmax')(kmax_scores)
     label_indices = tf.argmax(y_batch, axis=1)
-    mils = tf.gather(kmax_distribution, label_indices, batch_dims=1)
+    mils = tf.gather(kmax_scores, label_indices, batch_dims=1)
     mils_log = tf.math.log(mils)
     mils_sum = tf.reduce_sum(mils_log)
     return mils_sum
@@ -202,7 +204,7 @@ def get_sparse_pain_loss(y_batch, preds_batch, lengths_batch, config_dict):
         l1_nopain_scalar = tf.reduce_sum(l1_batch_vector)
         total_loss += l1_nopain_scalar
 
-    return total_loss, tv_pain, tv_nopain, mil
+    return kmax_scores, total_loss, tv_pain, tv_nopain, mil
 
 
 def get_mask_and_lengths(labels_batch):
@@ -244,8 +246,8 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
 
     @tf.function
     def train_step(x, preds, y):
+        mask, lengths = get_mask_and_lengths(y)            
         with tf.GradientTape() as tape:
-            mask, lengths = get_mask_and_lengths(y)            
             if config_dict['video_loss'] == 'cross_entropy':
                 preds = model([x, preds], training=True)
                 y = y[:, 0, :]
@@ -259,17 +261,15 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
                     preds_seq = preds_seq * mask
                     preds_seqs.append(preds_seq)
                 preds_seq = tf.math.reduce_mean(preds_seqs, axis=0)
-                sparse_loss, tv_p, tv_np, mil = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
+                preds_mil, sparse_loss, tv_p, tv_np, mil = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
                 loss = sparse_loss
-                preds_mil = test_and_eval.evaluate_sparse_pain(preds_seq, lengths, config_dict)
                 preds = preds_mil
                 y = y[:, 0, :]
             if config_dict['video_loss'] == 'mil_ce':
                 preds_seq, preds_one = model([x, preds], training=True)
                 y_one = y[:, 0, :]
                 ce_loss = loss_fn(y_one, preds_one)
-                sparse_loss, tv_p, tv_np, mil = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
-                preds_mil = test_and_eval.evaluate_sparse_pain(preds_seq, lengths, config_dict)
+                preds_mil, sparse_loss, tv_p, tv_np, mil = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
                 preds = preds_mil
                 y = y[:, 0, :]
                 loss = ce_loss + sparse_loss
@@ -302,9 +302,8 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
                 preds_seq = preds_seq * mask
                 preds_seqs.append(preds_seq)
             preds_seq = tf.math.reduce_mean(preds_seqs, axis=0)
-            sparse_loss, tv_p, tv_np, mil = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
+            preds_mil, sparse_loss, tv_p, tv_np, mil = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
             loss = sparse_loss
-            preds_mil = test_and_eval.evaluate_sparse_pain(preds_seq, lengths, config_dict)
             preds = preds_mil
             y = y[:, 0, :]
         if config_dict['video_loss'] == 'mil_ce':
@@ -313,9 +312,8 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
             preds_one = tf.keras.layers.Activation('softmax')(preds_one)
             y_one = y[:, 0, :]
             ce_loss = loss_fn(y_one, preds_one)
-            sparse_loss, tv_p, tv_np, mil  = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
+            preds_mil, sparse_loss, tv_p, tv_np, mil  = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
             loss = ce_loss + sparse_loss
-            preds_mil = test_and_eval.evaluate_sparse_pain(preds_seq, lengths, config_dict)
             preds = 1/2 * (preds_one + preds_mil)
             y = y[:, 0, :]
         val_acc_metric.update_state(y, preds)

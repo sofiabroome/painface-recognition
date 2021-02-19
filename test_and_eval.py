@@ -272,13 +272,13 @@ def evaluate_on_video_level(config_dict, model, model_path, test_dataset,
                 preds_seq *= mask
                 preds_seqs.append(preds_seq)
             preds_seq = tf.math.reduce_mean(preds_seqs, axis=0)
-            preds_mil = evaluate_sparse_pain(preds_seq, lengths, config_dict)
+            preds_mil = train.get_k_max_scores_per_class(preds_seq, lengths, config_dict)
             preds = preds_mil
         if config_dict['video_loss'] == 'mil_ce':
             preds_seq, preds_one = model([x, preds], training=False)
             preds_seq *= mask
             preds_one = tf.keras.layers.Activation('softmax')(preds_one)
-            preds_mil = evaluate_sparse_pain(preds_seq, lengths, config_dict)
+            preds_mil = train.get_k_max_scores_per_class(preds_seq, lengths, config_dict)
             preds = 1/2 * (preds_one + preds_mil)
         y = y[:, 0, :]
         # print('PRED: ', preds, 'Y :', y)
@@ -330,12 +330,6 @@ def evaluate_on_video_level(config_dict, model, model_path, test_dataset,
 def make_array(list_of_tensors):
     list_of_arrays = [lt.numpy() for lt in list_of_tensors]
     return np.concatenate(list_of_arrays)
-
-
-def evaluate_sparse_pain(preds_batch, lengths_batch, config_dict):
-    kmax_scores = train.get_k_max_scores_per_class(preds_batch, lengths_batch, config_dict)
-    batch_class_distribution = tf.keras.layers.Activation('softmax')(kmax_scores)
-    return batch_class_distribution
 
 
 def run_evaluation(config_dict, model, model_path,
