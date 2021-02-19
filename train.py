@@ -1,7 +1,6 @@
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, Callback
 from tensorflow.keras.optimizers import Adam, Adagrad, Adadelta, RMSprop
 from tensorflow.keras.optimizers import SGD
-from tf_slice_assign import slice_assign
 import tensorflow as tf
 from tqdm import tqdm
 import matplotlib
@@ -9,7 +8,6 @@ matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
-import models
 import wandb
 import time
 import os
@@ -109,14 +107,17 @@ def keras_train(model, ckpt_path, config_dict, train_steps, val_steps,
     plot_training(binacc_test_history, binacc_train_history, config_dict)
 
 
-def get_k_max_scores_per_class(preds_batch, lengths_batch, batch_size, config_dict):
+def get_k_max_scores_per_class(preds_batch, lengths_batch, config_dict):
     """
-    :param preds_batch: tf.Tensor, shape=(batch_size, video_pad_length, nb_labels), dtype=float32 Should be softmax scores, otherwise can interfere with padding. (0 needs to be the lowest number)
+    :param preds_batch: tf.Tensor, shape=(batch_size, video_pad_length, nb_labels),
+    dtype=float32 Should be softmax scores, otherwise can interfere with padding.
+    (0 needs to be the lowest number)
     :param lengths_batch: tf.Tensor, shape=(batch_size,) dtype=int32
     :param batch_size: int
     :param config_dict: {}
     :return: tf.Tensor: shape=(batch_size, nb_labels), dtype=float32
     """
+    batch_size = preds_batch.shape[0]  # last batch may be smaller
     k_batch = tf.cast(
         tf.math.ceil(config_dict['k_mil_fraction'] * tf.cast(lengths_batch, dtype=tf.float32)),
         dtype=tf.int32)
@@ -174,12 +175,11 @@ def batch_calc_TV_norm(batch_preds, lengths_batch, p=3, q=3):
 
 
 def get_sparse_pain_loss(y_batch, preds_batch, lengths_batch, config_dict):
-    batch_size = y_batch.shape[0]  # last batch may be smaller
 
     if len(y_batch.shape) == 3:
         y_batch = y_batch[:, 0, :]  # Take first (video-level label)
 
-    kmax_scores = get_k_max_scores_per_class(preds_batch, lengths_batch, batch_size, config_dict)
+    kmax_scores = get_k_max_scores_per_class(preds_batch, lengths_batch, config_dict)
     mil = get_mil_loss(kmax_scores, y_batch)
     batch_indicator_nopain = tf.cast(y_batch[:, 0], dtype=tf.float32)
     batch_indicator_pain = tf.cast(y_batch[:, 1], dtype=tf.float32)
@@ -237,8 +237,6 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
     last_ckpt_path = create_last_model_path(config_dict)
     best_ckpt_path = create_last_model_path(config_dict)
 
-    df_video_lengths = pd.read_csv('metadata/video_lengths.csv')
-
     train_steps = len([sample for sample in train_dataset])
     if not config_dict['val_mode'] == 'no_val':
         val_steps = len([sample for sample in val_dataset])
@@ -270,12 +268,13 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
                 preds_seq, preds_one = model([x, preds], training=True)
                 y_one = y[:, 0, :]
                 ce_loss = loss_fn(y_one, preds_one)
-                sparse_loss, tv_p, tv_np, mil  = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
+                sparse_loss, tv_p, tv_np, mil = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
                 preds_mil = test_and_eval.evaluate_sparse_pain(preds_seq, lengths, config_dict)
                 preds = preds_mil
                 y = y[:, 0, :]
                 loss = ce_loss + sparse_loss
-            l2_loss = config_dict['l2_weight'] * tf.reduce_sum([tf.nn.l2_loss(x) for x in model.trainable_weights if 'bias' not in x.name])
+            l2_loss = config_dict['l2_weight'] * tf.reduce_sum(
+                [tf.nn.l2_loss(x) for x in model.trainable_weights if 'bias' not in x.name])
             total_loss = loss + l2_loss
         grads = tape.gradient(total_loss, model.trainable_weights)
         grads_names = [tw.name for tw in model.trainable_weights]
@@ -310,7 +309,7 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
             y = y[:, 0, :]
         if config_dict['video_loss'] == 'mil_ce':
             preds_seq, preds_one = model([x, preds], training=False)
-            preds_seq = mask_out_padding_predictions(preds_seq, lengths, config_dict['video_batch_size_test'], config_dict['video_pad_length'])
+            preds_seq *= mask
             preds_one = tf.keras.layers.Activation('softmax')(preds_one)
             y_one = y[:, 0, :]
             ce_loss = loss_fn(y_one, preds_one)
@@ -608,8 +607,10 @@ def low_level_train(model, ckpt_path, last_ckpt_path, optimizer,
 
                 if step % config_dict['print_loss_every'] == 0:
                     # for i in range(5):
-                    #     wandb.log({"step_{}_frame_{}".format(step, i): [wandb.Image(x_batch_train[0,0,i,:], caption="frame")]})
-                    #     wandb.log({"step_{}_flow_{}".format(step, i): [wandb.Image(x_batch_train[0,1,i,:], caption="flow")]})
+                    #     wandb.log(
+                    # {"step_{}_frame_{}".format(step, i): [wandb.Image(x_batch_train[0,0,i,:], caption="frame")]})
+                    #     wandb.log(
+                    # {"step_{}_flow_{}".format(step, i): [wandb.Image(x_batch_train[0,1,i,:], caption="flow")]})
                     print(
                         "Training loss (for one batch) at step %d: %.4f"
                         % (step, float(loss_value.numpy()))

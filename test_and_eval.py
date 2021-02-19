@@ -61,23 +61,6 @@ class Evaluator:
 
         self.print_and_save_evaluations(y_test, y_pred, softmax_predictions, config_dict)
 
-    def look_at_classifications(self, y_true, y_pred, paths, softmax_predictions):
-        TP_ind = get_index_of_type_of_classification(y_true, y_pred, true=1, pred=1)
-        confidence_level = softmax_predictions[TP_ind]
-        print('Sequence starting with ', paths[TP_ind], 'was a true positive with confidence ', confidence_level)
-
-        FP_ind = get_index_of_type_of_classification(y_true, y_pred, true=0, pred=1)
-        confidence_level = softmax_predictions[FP_ind]
-        print('Sequence starting with ', paths[FP_ind], 'was a false positive with confidence ', confidence_level)
-
-        TN_ind = get_index_of_type_of_classification(y_true, y_pred, true=0, pred=0)
-        confidence_level = softmax_predictions[TN_ind]
-        print('Sequence starting with ', paths[TN_ind], 'was a true negative with confidence ', confidence_level)
-
-        FN_ind = get_index_of_type_of_classification(y_true, y_pred, true=1, pred=0)
-        confidence_level = softmax_predictions[FN_ind]
-        print('Sequence starting with ', paths[FN_ind], 'was a false negative with confidence ', confidence_level)
-
     def print_and_save_evaluations(self, y_test, y_pred, softmax_predictions, config_dict):
         """
         :params y_pred, y_test: 2D-arrays [nsamples, nclasses]
@@ -86,7 +69,7 @@ class Evaluator:
             cr = classification_report(y_test, y_pred,
                                        target_names=self.target_names,
                                        digits=NB_DECIMALS)
-            f = open(self._make_filename('classreport', config_dict), 'w')
+            f = open(make_filename('classreport', config_dict), 'w')
             print(cr, end="", file=f)
             f.close()
             print(cr)
@@ -106,7 +89,7 @@ class Evaluator:
             acc = round(correct/total_samples, NB_DECIMALS)
             wandb.log({'test accuracy' : acc})
             print(acc, ' acc.')
-            f = open(self._make_filename('confmat', config_dict), 'w')
+            f = open(make_filename('confmat', config_dict), 'w')
             print(cm,' ', acc, ' acc.', end="", file=f)
             f.close()
 
@@ -124,11 +107,12 @@ class Evaluator:
             wandb.log({'Test AUC macro': auc_macro})
             wandb.log({'Test AUC micro': auc_micro})
 
-    def _make_filename(self, thing_to_save, config_dict):
-        if not os.path.exists('results/'):
-            subprocess.call(['mkdir', 'results'])
-        return 'results/' + thing_to_save + config_dict['model'] + \
-               '_' + config_dict['job_identifier'] + '.txt'
+
+def make_filename(thing_to_save, config_dict):
+    if not os.path.exists('results/'):
+        subprocess.call(['mkdir', 'results'])
+    return 'results/' + thing_to_save + config_dict['model'] + \
+           '_' + config_dict['job_identifier'] + '.txt'
 
 
 def get_index_of_type_of_classification(y_true, y_pred, true=1, pred=1):
@@ -138,6 +122,24 @@ def get_index_of_type_of_classification(y_true, y_pred, true=1, pred=1):
             if np.argmax(value) == true:
                 if np.argmax(y_pred[index]) == pred:
                     return index
+
+
+def look_at_classifications(y_true, y_pred, paths, softmax_predictions):
+    TP_ind = get_index_of_type_of_classification(y_true, y_pred, true=1, pred=1)
+    confidence_level = softmax_predictions[TP_ind]
+    print('Sequence starting with ', paths[TP_ind], 'was a true positive with confidence ', confidence_level)
+
+    FP_ind = get_index_of_type_of_classification(y_true, y_pred, true=0, pred=1)
+    confidence_level = softmax_predictions[FP_ind]
+    print('Sequence starting with ', paths[FP_ind], 'was a false positive with confidence ', confidence_level)
+
+    TN_ind = get_index_of_type_of_classification(y_true, y_pred, true=0, pred=0)
+    confidence_level = softmax_predictions[TN_ind]
+    print('Sequence starting with ', paths[TN_ind], 'was a true negative with confidence ', confidence_level)
+
+    FN_ind = get_index_of_type_of_classification(y_true, y_pred, true=1, pred=0)
+    confidence_level = softmax_predictions[FN_ind]
+    print('Sequence starting with ', paths[FN_ind], 'was a false negative with confidence ', confidence_level)
 
 
 def get_majority_vote_for_sequence(sequence, nb_classes):
@@ -249,7 +251,6 @@ def compute_video_level_accuracy(majvotes):
 def evaluate_on_video_level(config_dict, model, model_path, test_dataset,
                             test_steps):
 
-    df_video_lengths = pd.read_csv('metadata/video_lengths.csv')
     test_acc_metric = tf.keras.metrics.BinaryAccuracy()
     model = model.model
     if config_dict['inference_only']:
@@ -264,18 +265,18 @@ def evaluate_on_video_level(config_dict, model, model_path, test_dataset,
         if config_dict['video_loss'] == 'mil':
             preds_seqs = []
             for i in range(config_dict['mc_dropout_samples']):
-                training=False if config_dict['mc_dropout_samples'] == 1 else True
+                training = False if config_dict['mc_dropout_samples'] == 1 else True
                 expanded_mask = tf.expand_dims(mask[:,:,0], axis=1)
                 expanded_mask = tf.expand_dims(expanded_mask, axis=1)
                 preds_seq = model([x, preds, expanded_mask], training=training)
-                preds_seq = preds_seq * mask
+                preds_seq *= mask
                 preds_seqs.append(preds_seq)
             preds_seq = tf.math.reduce_mean(preds_seqs, axis=0)
             preds_mil = evaluate_sparse_pain(preds_seq, lengths, config_dict)
             preds = preds_mil
         if config_dict['video_loss'] == 'mil_ce':
             preds_seq, preds_one = model([x, preds], training=False)
-            preds_seq = train.mask_out_padding_predictions(preds_seq, lengths, config_dict['video_batch_size_test'], config_dict['video_pad_length'])
+            preds_seq *= mask
             preds_one = tf.keras.layers.Activation('softmax')(preds_one)
             preds_mil = evaluate_sparse_pain(preds_seq, lengths, config_dict)
             preds = 1/2 * (preds_one + preds_mil)
@@ -283,6 +284,7 @@ def evaluate_on_video_level(config_dict, model, model_path, test_dataset,
         # print('PRED: ', preds, 'Y :', y)
         test_acc_metric.update_state(y, preds)
         return preds, y
+
     all_preds = []
     all_y = []
     with tqdm(total=test_steps) as pbar:
@@ -314,9 +316,9 @@ def evaluate_on_video_level(config_dict, model, model_path, test_dataset,
                                target_names=config_dict['target_names'],
                                digits=NB_DECIMALS,
                                output_dict=True)
-    wandb.log({'test f1-score' : cr['macro avg']['f1-score']})
-    wandb.log({'test_nopain_f1' : cr['NO_PAIN']['f1-score']})
-    wandb.log({'test_pain_f1' : cr['PAIN']['f1-score']})
+    wandb.log({'test f1-score': cr['macro avg']['f1-score']})
+    wandb.log({'test_nopain_f1': cr['NO_PAIN']['f1-score']})
+    wandb.log({'test_pain_f1': cr['PAIN']['f1-score']})
     test_acc = test_acc_metric.result()
     wandb.log({'test_acc': test_acc})
     print("Test acc keras metric: %.4f" % (float(test_acc),))
@@ -331,8 +333,7 @@ def make_array(list_of_tensors):
 
 
 def evaluate_sparse_pain(preds_batch, lengths_batch, config_dict):
-    batch_size = preds_batch.shape[0]  # last batch may be smaller
-    kmax_scores = train.get_k_max_scores_per_class(preds_batch, lengths_batch, batch_size, config_dict)
+    kmax_scores = train.get_k_max_scores_per_class(preds_batch, lengths_batch, config_dict)
     batch_class_distribution = tf.keras.layers.Activation('softmax')(kmax_scores)
     return batch_class_distribution
 
