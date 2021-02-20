@@ -131,7 +131,6 @@ def get_k_max_scores_per_class(preds_batch, lengths_batch, config_dict):
             preds_sample = tf.transpose(preds_sample)  # tf.math.top_k operates on rows.
             k_preds, inds = tf.math.top_k(preds_sample, k_batch[sample_index])
             avg_kmax_scores = tf.cast(1 / k_batch[sample_index], dtype=tf.float32) * tf.reduce_sum(k_preds, axis=1)
-            avg_kmax_scores = tf.keras.layers.Activation('softmax')(avg_kmax_scores)
 
         # Only compute the score for pain, to not punish no-pain detections.
         if config_dict['mil_version'] == 'mil_pain':
@@ -144,6 +143,7 @@ def get_k_max_scores_per_class(preds_batch, lengths_batch, config_dict):
         kmax_scores.append(avg_kmax_scores)
 
     kmax_scores = tf.convert_to_tensor(kmax_scores)
+    kmax_scores = tf.keras.layers.Activation('softmax')(kmax_scores)
     return kmax_scores
 
 
@@ -219,6 +219,22 @@ def get_mask_and_lengths(labels_batch):
     return mask, lengths #, zero_at_zero_rows
 
 
+class CustomSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
+  def __init__(self, d_model, warmup_steps=4000):
+    super(CustomSchedule, self).__init__()
+
+    self.d_model = d_model
+    self.d_model = tf.cast(self.d_model, tf.float32)
+
+    self.warmup_steps = warmup_steps
+
+  def __call__(self, step):
+    arg1 = tf.math.rsqrt(step)
+    arg2 = step * (self.warmup_steps ** -1.5)
+
+    return tf.math.rsqrt(self.d_model) * tf.math.minimum(arg1, arg2)
+
+
 def video_level_train(model, config_dict, train_dataset, val_dataset=None):
     """
     Train a simple model on features on video-level, since we have sparse
@@ -233,9 +249,13 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
         decay_steps=40,
         decay_rate=0.96,
         staircase=True)
-    optimizer = RMSprop(learning_rate=lr_schedule)
+    # optimizer = RMSprop(learning_rate=lr_schedule)
     # optimizer = Adam(learning_rate=lr_schedule)
     # optimizer = Adam()
+
+    learning_rate = CustomSchedule(config_dict['model_size'])
+    optimizer = tf.keras.optimizers.Adam(learning_rate, beta_1=0.9, beta_2=0.98, epsilon=1e-9)
+
     last_ckpt_path = create_last_model_path(config_dict)
     best_ckpt_path = create_last_model_path(config_dict)
 
@@ -369,10 +389,10 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
                 wandb.log({'train_loss': loss_value.numpy()})
                 wandb.log({'l2_loss': l2_loss.numpy()})
                 if step % config_dict['print_loss_every'] == 0:
-                    for ind, g in enumerate(grads):
-                        wandb.log({'grad_' + grads_names[ind].numpy().decode("utf-8"): wandb.Histogram(g.numpy())})
-                    for ind, tw in enumerate(trainable_weights):
-                        wandb.log({'param_' + grads_names[ind].numpy().decode("utf-8"): wandb.Histogram(tw.numpy())})
+                    # for ind, g in enumerate(grads):
+                    #     wandb.log({'grad_' + grads_names[ind].numpy().decode("utf-8"): wandb.Histogram(g.numpy())})
+                    # for ind, tw in enumerate(trainable_weights):
+                    #     wandb.log({'param_' + grads_names[ind].numpy().decode("utf-8"): wandb.Histogram(tw.numpy())})
 
                     print(
                         "Training loss (for one batch) at step %d: %.4f"
