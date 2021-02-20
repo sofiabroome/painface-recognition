@@ -43,6 +43,12 @@ def parse_arguments():
                         help='')
     parser.add_argument('--nb-lstm-units', nargs='?', type=int,
                         help='')
+    parser.add_argument('--nb-layers-enc', nargs='?', type=int,
+                        help='')
+    parser.add_argument('--nb-heads-enc', nargs='?', type=int,
+                        help='')
+    parser.add_argument('--model-size', nargs='?', type=int,
+                        help='')
     parser.add_argument('--optimizer', nargs='?', type=str,
                         help='')
     parser.add_argument('--nb-pain-train', nargs='?', type=int,
