@@ -1,6 +1,7 @@
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, Callback
 from tensorflow.keras.optimizers import Adam, Adagrad, Adadelta, RMSprop
 from tensorflow.keras.optimizers import SGD
+import tensorflow_addons as tfa
 import tensorflow as tf
 from tqdm import tqdm
 import matplotlib
@@ -147,17 +148,20 @@ def get_k_max_scores_per_class(preds_batch, lengths_batch, config_dict):
     return kmax_scores
 
 
-def get_mil_loss(kmax_scores, y_batch):
+def get_mil_crossentropy_loss(kmax_scores, y_batch, binary_ce):
     """
     :param kmax_scores: tf.Tensor, dtype=float32, shape [batch_size, nb_labels]
     :param y_batch: tf.Tensor, dtype=float32, shape [batch_size, nb_labels]
+    :param binary_ce: tf.keras.losses.BinaryCrossentropy
     :return: tf.float32
     """
+    # import pdb; pdb.set_trace()
     label_indices = tf.argmax(y_batch, axis=1)
     mils = tf.gather(kmax_scores, label_indices, batch_dims=1)
     mils_log = tf.math.log(mils)
     mils_sum = tf.reduce_sum(mils_log)
-    return mils_sum
+    return -mils_sum
+    # return binary_ce(y_batch, kmax_scores)
 
 
 def batch_calc_TV_norm(batch_preds, lengths_batch, p=3, q=3):
@@ -176,13 +180,13 @@ def batch_calc_TV_norm(batch_preds, lengths_batch, p=3, q=3):
     return tot_var
 
 
-def get_sparse_pain_loss(y_batch, preds_batch, lengths_batch, config_dict):
+def get_sparse_pain_loss(y_batch, preds_batch, lengths_batch, config_dict, binary_ce):
 
     if len(y_batch.shape) == 3:
         y_batch = y_batch[:, 0, :]  # Take first (video-level label)
 
     kmax_scores = get_k_max_scores_per_class(preds_batch, lengths_batch, config_dict)
-    mil = get_mil_loss(kmax_scores, y_batch)
+    mil = get_mil_crossentropy_loss(kmax_scores, y_batch, binary_ce)
     batch_indicator_nopain = tf.cast(y_batch[:, 0], dtype=tf.float32)
     batch_indicator_pain = tf.cast(y_batch[:, 1], dtype=tf.float32)
 
@@ -198,7 +202,7 @@ def get_sparse_pain_loss(y_batch, preds_batch, lengths_batch, config_dict):
     else:
         tv_pain = config_dict['tv_weight_pain'] * tf.reduce_sum(
             batch_indicator_pain * pain_tv)
-    total_loss = tv_nopain + tv_pain - mil
+    total_loss = tv_nopain + tv_pain + mil
     if config_dict['l1_nopain']:
         l1_batch_vector = batch_indicator_nopain * tf.reduce_sum(preds_batch[:, :, 1], axis=1)
         l1_nopain_scalar = tf.reduce_sum(l1_batch_vector)
@@ -240,24 +244,36 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
     Train a simple model on features on video-level, since we have sparse
     pain behavior in the LPS data.
     """
-    loss_fn = tf.keras.losses.BinaryCrossentropy()
-    train_acc_metric = tf.keras.metrics.BinaryAccuracy()
-    val_acc_metric = tf.keras.metrics.BinaryAccuracy()
+    binary_ce = tf.keras.losses.BinaryCrossentropy(label_smoothing=config_dict['label_smoothing'])
+
+    if config_dict['monitor'] == 'val_binary_accuracy':
+        train_acc_metric = tf.keras.metrics.BinaryAccuracy()
+        val_acc_metric = tf.keras.metrics.BinaryAccuracy()
+    if config_dict['monitor'] == 'val_f1':
+        train_acc_metric = tfa.metrics.F1Score(num_classes=2, threshold=None, average='macro')
+        val_acc_metric = tfa.metrics.F1Score(num_classes=2, threshold=None, average='macro')
+
     val_acc_old = -1
     lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
         config_dict['lr'],
         decay_steps=40,
         decay_rate=0.96,
         staircase=True)
-    # optimizer = RMSprop(learning_rate=lr_schedule)
-    # optimizer = Adam(learning_rate=lr_schedule)
-    # optimizer = Adam()
 
-    learning_rate = CustomSchedule(config_dict['model_size'])
-    optimizer = tf.keras.optimizers.Adam(learning_rate, beta_1=0.9, beta_2=0.98, epsilon=1e-9)
+    if config_dict['optimizer'] == 'rmsprop_lrdecay':
+        optimizer = RMSprop(learning_rate=lr_schedule)
+    if config_dict['optimizer'] == 'rmsprop':
+        optimizer = RMSprop(learning_rate=config_dict['lr'])
+    if config_dict['optimizer'] == 'adam_warmup_decay':
+        optimizer = Adam(learning_rate=lr_schedule)
+    if config_dict['optimizer'] == 'adam':
+        optimizer = Adam()
+
+    # learning_rate = CustomSchedule(config_dict['model_size'])
+    # optimizer = tf.keras.optimizers.Adam(learning_rate, beta_1=0.9, beta_2=0.98, epsilon=1e-9)
 
     last_ckpt_path = create_last_model_path(config_dict)
-    best_ckpt_path = create_last_model_path(config_dict)
+    best_ckpt_path = create_best_model_path(config_dict)
 
     train_steps = len([sample for sample in train_dataset])
     if not config_dict['val_mode'] == 'no_val':
@@ -281,7 +297,7 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
                     preds_seq = preds_seq * mask
                     preds_seqs.append(preds_seq)
                 preds_seq = tf.math.reduce_mean(preds_seqs, axis=0)
-                preds_mil, sparse_loss, tv_p, tv_np, mil = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
+                preds_mil, sparse_loss, tv_p, tv_np, mil = get_sparse_pain_loss(y, preds_seq, lengths, config_dict, binary_ce)
                 loss = sparse_loss
                 preds = preds_mil
                 y = y[:, 0, :]
@@ -322,7 +338,7 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
                 preds_seq = preds_seq * mask
                 preds_seqs.append(preds_seq)
             preds_seq = tf.math.reduce_mean(preds_seqs, axis=0)
-            preds_mil, sparse_loss, tv_p, tv_np, mil = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
+            preds_mil, sparse_loss, tv_p, tv_np, mil = get_sparse_pain_loss(y, preds_seq, lengths, config_dict, binary_ce)
             loss = sparse_loss
             preds = preds_mil
             y = y[:, 0, :]
@@ -443,6 +459,7 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
 
             if val_acc > val_acc_old:
                 print('The validation acc improved, saving checkpoint...')
+                wandb.log({'best_val': val_acc})
                 epochs_not_improved = 0
                 model.save_weights(best_ckpt_path)
                 val_acc_old = val_acc
@@ -457,6 +474,8 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
         print('\n Saving checkpoint to {} after epoch {}'.format(last_ckpt_path, epoch))
         model.save_weights(last_ckpt_path)
         print("Epoch time taken: %.2fs" % (time.time() - start_time))
+    if config_dict['val_mode'] == 'no_val':
+        best_ckpt_path = last_ckpt_path
     return best_ckpt_path
 
 
