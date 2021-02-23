@@ -40,7 +40,7 @@ config_dict = {
     'nb_lstm_units': 32,
     'nb_lstm_layers': 4,
     'kernel_size': 5,
-    'dropout_1': 0.1,
+    'dropout_1': 0,
     'dropout_2': 0,
     'return_last_clstm' : True,
     # Transformer settings
@@ -81,8 +81,8 @@ config_dict = {
     'k_mil_fraction_decrement_step': 0.05,
     'k_mil_fraction_nb_epochs_to_decrease': 1,
     'tv_weight_pain': 0,
-    'tv_weight_nopain': 0.1,
-    'l1_nopain': True,
+    'tv_weight_nopain': 0,
+    'l1_nopain': False,
     'l2_weight': 0,
     'mc_dropout_samples': 1,
     # Parameters for functional API C-LSTM
