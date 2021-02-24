@@ -4,7 +4,7 @@ import os
 import helpers
 
 
-def get_train_test(dataset):
+def get_train_test(dataset, avoid_sir_holger):
     if avoid_sir_holger:
         horses_lps = ['aslan', 'brava', 'herrera', 'inkasso', 'julia',
                       'kastanjett', 'naughty_but_nice']
@@ -55,7 +55,7 @@ def get_val(dataset, test_subject):
 
 def make_commands(dataset, nb_repetitions):
     
-    train_horses, test_horses = get_train_test(dataset)
+    train_horses, test_horses = get_train_test(dataset, avoid_sir_holger=avoid_sir_holger)
 
     for rep in range(nb_repetitions):
         commands = []
@@ -82,7 +82,7 @@ def make_commands(dataset, nb_repetitions):
 
 def make_jobarray_configs(dataset, nb_repetitions):
     
-    train_horses, test_horses = get_train_test(dataset)
+    train_horses, test_horses = get_train_test(dataset, avoid_sir_holger=avoid_sir_holger)
     output_dir = os.path.join('../run_scripts', job_name)
     helpers.mkdir(output_dir)
 
