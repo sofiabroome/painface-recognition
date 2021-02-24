@@ -7,10 +7,10 @@ import helpers
 def get_train_test(dataset):
     if avoid_sir_holger:
         horses_lps = ['aslan', 'brava', 'herrera', 'inkasso', 'julia',
-                           'kastanjett', 'naughty_but_nice']
+                      'kastanjett', 'naughty_but_nice']
     else:
         horses_lps = ['aslan', 'brava', 'herrera', 'inkasso', 'julia',
-                           'kastanjett', 'naughty_but_nice', 'sir_holger']
+                      'kastanjett', 'naughty_but_nice', 'sir_holger']
     horses_pf = ['horse_1', 'horse_2', 'horse_3', 'horse_4', 'horse_5', 'horse_6']
     
     if dataset == 'all':
@@ -27,6 +27,7 @@ def get_train_test(dataset):
         test_horses = horses_lps
 
     return train_horses, test_horses
+
 
 def get_val(dataset, test_subject):
 
@@ -50,6 +51,7 @@ def get_val(dataset, test_subject):
             val_horses = ['brava']
 
     return val_horses
+
 
 def make_commands(dataset, nb_repetitions):
     

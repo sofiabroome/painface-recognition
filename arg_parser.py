@@ -25,6 +25,8 @@ def parse_arguments():
                         help="List of subject-id:s to validate on, choosing from range(0,6): ex [4,5]")
     parser.add_argument('--test-subjects', nargs='?', type=str,
                         help="List of subject-id:s to test on, choosing from range(0,6): ex [4,5]")
+    parser.add_argument('--dataset-str', nargs='?', type=str,
+                        help="Which dataset to get subjects from 'lps224', 'lps', 'lps_pftrain_224'")
     parser.add_argument('--subjects-overview', nargs='?', type=str,
                         help="List with ID:s of subjects in dataset.")
     parser.add_argument('--job-identifier', nargs='?', type=str,
