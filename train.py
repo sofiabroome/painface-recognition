@@ -460,6 +460,7 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
             if val_acc > val_acc_old:
                 print('The validation acc improved, saving checkpoint...')
                 wandb.log({'best_val': val_acc})
+                wandb.log({'best_epoch': epoch})
                 epochs_not_improved = 0
                 model.save_weights(best_ckpt_path)
                 val_acc_old = val_acc
