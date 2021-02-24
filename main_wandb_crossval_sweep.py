@@ -35,6 +35,9 @@ def run():
 
     for ind, test_subject in enumerate(test_horses):
 
+        config_dict['job_identifier'] = datetime.now().strftime('%Y%m-%d%H-%M%S-') + str(uuid4())
+        print('Job identifier: ', config_dict['job_identifier'])
+
         if config_dict['val_mode'] == 'subject':
             val_subjects = make_crossval_commands.get_val(args.dataset_str, test_subject)
         if config_dict['val_mode'] == 'no_val':
@@ -69,7 +72,7 @@ def run():
 
         if config_dict['do_evaluate']:
             if config_dict['video_level_mode']:
-                test_dataset = dh.features_to_dataset(test_subject, split='test')
+                test_dataset = dh.features_to_dataset([test_subject], split='test')
                 test_paths = [sample[3].numpy().tolist() for sample in test_dataset]
                 test_steps = len(test_paths)
 
@@ -86,9 +89,18 @@ def run():
     avg_f1 = np.mean(f1s)
     avg_nopain_f1 = np.mean(nopain_f1s)
     avg_pain_f1 = np.mean(pain_f1s)
+
+    std_f1 = np.std(f1s)
+    std_nopain_f1 = np.std(nopain_f1s)
+    std_pain_f1 = np.std(pain_f1s)
+
     wandb.log({'avg_f1': avg_f1})
     wandb.log({'avg_nopain_f1': avg_nopain_f1})
     wandb.log({'avg_pain_f1': avg_pain_f1})
+
+    wandb.log({'std_f1': std_f1})
+    wandb.log({'std_nopain_f1': std_nopain_f1})
+    wandb.log({'std_pain_f1': std_pain_f1})
 
 
 def overwrite_hyperparams_in_config():
@@ -110,13 +122,9 @@ if __name__ == '__main__':
         assert (config_dict['train_mode'] == 'low_level'), \
                 'no_val requires low level train mode'
 
-    # config_dict['job_identifier'] = args.job_identifier
-    config_dict['job_identifier'] = datetime.now().strftime('%Y%m-%d%H-%M%S-') + str(uuid4())
-
     overwrite_hyperparams_in_config()
     config_dict['nb_layers_dec'] = config_dict['nb_layers_enc'] 
     config_dict['nb_heads_dec'] = config_dict['nb_heads_enc'] 
-    print('Job identifier: ', args.job_identifier)
     wandb.init(project='pfr', config=config_dict)
 
     all_subjects_df = pd.read_csv(args.subjects_overview)
