@@ -325,6 +325,7 @@ def evaluate_on_video_level(config_dict, model, model_path, test_dataset,
     test_acc = accuracy
     wandb.log({'test_acc_manual': test_acc})
     print("Test acc manual: %.4f" % (float(test_acc),))
+    return cr
 
 
 def make_array(list_of_tensors):

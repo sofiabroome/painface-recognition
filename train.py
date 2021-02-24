@@ -327,11 +327,11 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
         if config_dict['video_loss'] == 'cross_entropy':
             preds = model([x, preds], training=False)
             y = y[:, 0, :]
-            loss = loss_fn(y, preds)
+            loss = binary_ce(y, preds)
         if config_dict['video_loss'] == 'mil':
             preds_seqs = []
             for i in range(config_dict['mc_dropout_samples']):
-                training=False if config_dict['mc_dropout_samples'] == 1 else True
+                training = False if config_dict['mc_dropout_samples'] == 1 else True
                 expanded_mask = tf.expand_dims(mask[:,:,0], axis=1)
                 expanded_mask = tf.expand_dims(expanded_mask, axis=1)
                 preds_seq = model([x, preds, expanded_mask], training=training)
@@ -347,8 +347,8 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
             preds_seq *= mask
             preds_one = tf.keras.layers.Activation('softmax')(preds_one)
             y_one = y[:, 0, :]
-            ce_loss = loss_fn(y_one, preds_one)
-            preds_mil, sparse_loss, tv_p, tv_np, mil  = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
+            ce_loss = binary_ce(y_one, preds_one)
+            preds_mil, sparse_loss, tv_p, tv_np, mil = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
             loss = ce_loss + sparse_loss
             preds = 1/2 * (preds_one + preds_mil)
             y = y[:, 0, :]

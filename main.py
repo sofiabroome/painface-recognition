@@ -92,10 +92,8 @@ def run():
             test_dataset = dh.features_to_dataset(test_subjects, split='test')
             test_paths = [sample[3].numpy().tolist() for sample in test_dataset]
             test_steps = len(test_paths)
-            test_paths = np.array(test_paths, dtype=object)
-            test_labels = np.array([sample[2].numpy().tolist() for sample in test_dataset])
 
-            test_and_eval.evaluate_on_video_level(
+            _ = test_and_eval.evaluate_on_video_level(
                 config_dict=config_dict,
                 model=model,
                 model_path=best_model_path,
