@@ -36,19 +36,17 @@ def run():
     for ind, test_subject in enumerate(test_horses):
 
         if config_dict['val_mode'] == 'subject':
-            val_horses = make_crossval_commands.get_val(args.dataset_str, test_subject)
+            val_subjects = make_crossval_commands.get_val(args.dataset_str, test_subject)
         if config_dict['val_mode'] == 'no_val':
-            val_horses = ''
-        train_subjects = [x for x in train_subjects
+            val_subjects = ''
+        train_subjects = [x for x in train_horses
                           if x is not test_subject
-                          and x not in val_horses]
+                          and x not in val_subjects]
         print('Subjects to train on: ', train_subjects)
-        print('Subject to validate on: ', val_horses)
+        print('Subject to validate on: ', val_subjects)
         print('Subject to test on: ', test_subject)
         config_dict['train_subjects'] = train_subjects
         config_dict['test_subjects'] = test_subject
-        if config_dict['val_mode'] == 'subject':
-            val_subjects = re.split('/', args.val_subjects)
 
         # Train the model
 
@@ -103,7 +101,8 @@ if __name__ == '__main__':
     arg_parser = arg_parser.ArgParser(len(sys.argv))
     args = arg_parser.parse()
 
-    train_horses, test_horses = make_crossval_commands.get_train_test(args.dataset_str)
+    train_horses, test_horses = make_crossval_commands.get_train_test(
+        args.dataset_str, avoid_sir_holger=True)
 
     config_dict_module = helpers.load_module(args.config_file)
     config_dict = config_dict_module.config_dict
