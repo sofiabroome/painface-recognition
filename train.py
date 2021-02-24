@@ -287,13 +287,16 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
             if config_dict['video_loss'] == 'cross_entropy':
                 preds = model([x, preds], training=True)
                 y = y[:, 0, :]
-                loss = loss_fn(y, preds)
+                loss = binary_ce(y, preds)
             if config_dict['video_loss'] == 'mil':
                 preds_seqs = []
                 for i in range(config_dict['mc_dropout_samples']):
-                    expanded_mask = tf.expand_dims(mask[:,:,0], axis=1)
-                    expanded_mask = tf.expand_dims(expanded_mask, axis=1)
-                    preds_seq = model([x, preds, expanded_mask], training=True)
+                    if 'transformer' in config_dict['video_features_model']:
+                        expanded_mask = tf.expand_dims(mask[:, :, 0], axis=1)
+                        expanded_mask = tf.expand_dims(expanded_mask, axis=1)
+                        preds_seq = model([x, preds, expanded_mask], training=True)
+                    else:
+                        preds_seq = model([x, preds, mask], training=True)
                     preds_seq = preds_seq * mask
                     preds_seqs.append(preds_seq)
                 preds_seq = tf.math.reduce_mean(preds_seqs, axis=0)
@@ -304,7 +307,7 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
             if config_dict['video_loss'] == 'mil_ce':
                 preds_seq, preds_one = model([x, preds], training=True)
                 y_one = y[:, 0, :]
-                ce_loss = loss_fn(y_one, preds_one)
+                ce_loss = binary_ce(y_one, preds_one)
                 preds_mil, sparse_loss, tv_p, tv_np, mil = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
                 preds = preds_mil
                 y = y[:, 0, :]
@@ -332,9 +335,12 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
             preds_seqs = []
             for i in range(config_dict['mc_dropout_samples']):
                 training = False if config_dict['mc_dropout_samples'] == 1 else True
-                expanded_mask = tf.expand_dims(mask[:,:,0], axis=1)
-                expanded_mask = tf.expand_dims(expanded_mask, axis=1)
-                preds_seq = model([x, preds, expanded_mask], training=training)
+                if 'transformer' in config_dict['video_features_model']:
+                    expanded_mask = tf.expand_dims(mask[:,:,0], axis=1)
+                    expanded_mask = tf.expand_dims(expanded_mask, axis=1)
+                    preds_seq = model([x, preds, expanded_mask], training=training)
+                else:
+                    preds_seq = model([x, preds, mask], training=True)
                 preds_seq = preds_seq * mask
                 preds_seqs.append(preds_seq)
             preds_seq = tf.math.reduce_mean(preds_seqs, axis=0)

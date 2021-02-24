@@ -266,9 +266,12 @@ def evaluate_on_video_level(config_dict, model, model_path, test_dataset,
             preds_seqs = []
             for i in range(config_dict['mc_dropout_samples']):
                 training = False if config_dict['mc_dropout_samples'] == 1 else True
-                expanded_mask = tf.expand_dims(mask[:,:,0], axis=1)
-                expanded_mask = tf.expand_dims(expanded_mask, axis=1)
-                preds_seq = model([x, preds, expanded_mask], training=training)
+                if 'transformer' in config_dict['video_features_model']:
+                    expanded_mask = tf.expand_dims(mask[:,:,0], axis=1)
+                    expanded_mask = tf.expand_dims(expanded_mask, axis=1)
+                    preds_seq = model([x, preds, expanded_mask], training=training)
+                else:
+                    preds_seq = model([x, preds, mask], training=True)
                 preds_seq *= mask
                 preds_seqs.append(preds_seq)
             preds_seq = tf.math.reduce_mean(preds_seqs, axis=0)
