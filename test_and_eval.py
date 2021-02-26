@@ -252,6 +252,7 @@ def evaluate_on_video_level(config_dict, model, model_path, test_dataset,
                             test_steps):
 
     test_acc_metric = tf.keras.metrics.BinaryAccuracy()
+    binary_ce = tf.keras.losses.BinaryCrossentropy(label_smoothing=config_dict['label_smoothing'])
     model = model.model
     if config_dict['inference_only']:
         model.load_weights(model_path).expect_partial()
@@ -271,18 +272,19 @@ def evaluate_on_video_level(config_dict, model, model_path, test_dataset,
                     expanded_mask = tf.expand_dims(expanded_mask, axis=1)
                     preds_seq = model([x, preds, expanded_mask], training=training)
                 else:
-                    preds_seq = model([x, preds, mask], training=True)
+                    preds_seq = model([x, preds, mask], training=False)
                 preds_seq *= mask
                 preds_seqs.append(preds_seq)
             preds_seq = tf.math.reduce_mean(preds_seqs, axis=0)
             preds_mil = train.get_k_max_scores_per_class(preds_seq, lengths, config_dict)
             preds = preds_mil
         if config_dict['video_loss'] == 'mil_ce':
-            preds_seq, preds_one = model([x, preds], training=False)
+            expanded_mask = tf.expand_dims(mask[:,:,0], axis=1)
+            expanded_mask = tf.expand_dims(expanded_mask, axis=1)
+            preds_seq, preds_one = model([x, preds, mask, expanded_mask], training=False)
             preds_seq *= mask
-            preds_one = tf.keras.layers.Activation('softmax')(preds_one)
             preds_mil = train.get_k_max_scores_per_class(preds_seq, lengths, config_dict)
-            preds = 1/2 * (preds_one + preds_mil)
+            preds = 1/10 * preds_one + 9/10 * preds_mil
         y = y[:, 0, :]
         # print('PRED: ', preds, 'Y :', y)
         test_acc_metric.update_state(y, preds)
@@ -297,8 +299,13 @@ def evaluate_on_video_level(config_dict, model, model_path, test_dataset,
             pbar.update(1)
             # step_start_time = time.time()
             feats_batch, preds_batch, labels_batch, video_id = sample
-            # print('\nVideo ID being tested: ', video_id)
-            mask_batch, lengths_batch = train.get_mask_and_lengths(labels_batch)            
+            if config_dict['video_batch_size_test'] == 1:
+                video_id = video_id.numpy()[0].decode('utf-8') 
+                print('\nVideo ID being tested: ', video_id)
+                # if video_id in ['H_20190105_IND2_STA_2', 'I_20190331_IND4_STA_2', 'J_20190331_IND7_STA_1',
+                #                 'J_20190329_IND1_STA_2', 'K_20181208_IND1_STA_1', 'K_20181208_IND1_STA_2']:
+                #     continue
+            mask_batch, lengths_batch = train.get_mask_and_lengths(labels_batch)
             # print('\n Video ID: ', video_id)
             preds, y = test_step(feats_batch, preds_batch, labels_batch, lengths_batch, mask_batch)
             all_preds.append(preds)
