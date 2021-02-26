@@ -155,7 +155,6 @@ def get_mil_crossentropy_loss(kmax_scores, y_batch, binary_ce):
     :param binary_ce: tf.keras.losses.BinaryCrossentropy
     :return: tf.float32
     """
-    # import pdb; pdb.set_trace()
     label_indices = tf.argmax(y_batch, axis=1)
     mils = tf.gather(kmax_scores, label_indices, batch_dims=1)
     mils_log = tf.math.log(mils)
@@ -265,12 +264,11 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
     if config_dict['optimizer'] == 'rmsprop':
         optimizer = RMSprop(learning_rate=config_dict['lr'])
     if config_dict['optimizer'] == 'adam_warmup_decay':
-        optimizer = Adam(learning_rate=lr_schedule)
+        learning_rate = CustomSchedule(config_dict['model_size'])
+        optimizer = Adam(learning_rate, beta_1=0.9, beta_2=0.98, epsilon=1e-9)
     if config_dict['optimizer'] == 'adam':
-        optimizer = Adam()
+        optimizer = Adam(learning_rate=config_dict['lr'])
 
-    # learning_rate = CustomSchedule(config_dict['model_size'])
-    # optimizer = tf.keras.optimizers.Adam(learning_rate, beta_1=0.9, beta_2=0.98, epsilon=1e-9)
 
     last_ckpt_path = create_last_model_path(config_dict)
     best_ckpt_path = create_best_model_path(config_dict)
@@ -291,12 +289,12 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
             if config_dict['video_loss'] == 'mil':
                 preds_seqs = []
                 for i in range(config_dict['mc_dropout_samples']):
+                    expanded_mask = tf.expand_dims(mask[:, :, 0], axis=1)
+                    expanded_mask = tf.expand_dims(expanded_mask, axis=1)
                     if 'transformer' in config_dict['video_features_model']:
-                        expanded_mask = tf.expand_dims(mask[:, :, 0], axis=1)
-                        expanded_mask = tf.expand_dims(expanded_mask, axis=1)
                         preds_seq = model([x, preds, expanded_mask], training=True)
                     else:
-                        preds_seq = model([x, preds, mask], training=True)
+                        preds_seq = model([x, preds, mask, expanded_mask], training=True)
                     preds_seq = preds_seq * mask
                     preds_seqs.append(preds_seq)
                 preds_seq = tf.math.reduce_mean(preds_seqs, axis=0)
@@ -305,13 +303,20 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
                 preds = preds_mil
                 y = y[:, 0, :]
             if config_dict['video_loss'] == 'mil_ce':
-                preds_seq, preds_one = model([x, preds], training=True)
+                expanded_mask = tf.expand_dims(mask[:, :, 0], axis=1)
+                expanded_mask = tf.expand_dims(expanded_mask, axis=1)
+                if 'transformer' in config_dict['video_features_model']:
+                    preds_seq = model([x, preds, expanded_mask], training=True)
+                else:
+                    preds_seq, preds_one = model([x, preds, mask, expanded_mask], training=True)
+                    # preds_seq, preds_one = model([x, preds], training=True)
+                preds_seq = preds_seq * mask
                 y_one = y[:, 0, :]
                 ce_loss = binary_ce(y_one, preds_one)
-                preds_mil, sparse_loss, tv_p, tv_np, mil = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
-                preds = preds_mil
+                preds_mil, sparse_loss, tv_p, tv_np, mil = get_sparse_pain_loss(y, preds_seq, lengths, config_dict, binary_ce)
+                preds = 1/10 * preds_one + 9/10 * preds_mil
                 y = y[:, 0, :]
-                loss = ce_loss + sparse_loss
+                loss = 1/10 * ce_loss + 9/10 * sparse_loss
             l2_loss = config_dict['l2_weight'] * tf.reduce_sum(
                 [tf.nn.l2_loss(x) for x in model.trainable_weights if 'bias' not in x.name])
             total_loss = loss + l2_loss
@@ -340,7 +345,7 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
                     expanded_mask = tf.expand_dims(expanded_mask, axis=1)
                     preds_seq = model([x, preds, expanded_mask], training=training)
                 else:
-                    preds_seq = model([x, preds, mask], training=True)
+                    preds_seq = model([x, preds, mask], training=False)
                 preds_seq = preds_seq * mask
                 preds_seqs.append(preds_seq)
             preds_seq = tf.math.reduce_mean(preds_seqs, axis=0)
@@ -349,14 +354,15 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
             preds = preds_mil
             y = y[:, 0, :]
         if config_dict['video_loss'] == 'mil_ce':
-            preds_seq, preds_one = model([x, preds], training=False)
+            expanded_mask = tf.expand_dims(mask[:,:,0], axis=1)
+            expanded_mask = tf.expand_dims(expanded_mask, axis=1)
+            preds_seq, preds_one = model([x, preds, mask, expanded_mask], training=False)
             preds_seq *= mask
-            preds_one = tf.keras.layers.Activation('softmax')(preds_one)
             y_one = y[:, 0, :]
             ce_loss = binary_ce(y_one, preds_one)
-            preds_mil, sparse_loss, tv_p, tv_np, mil = get_sparse_pain_loss(y, preds_seq, lengths, config_dict)
-            loss = ce_loss + sparse_loss
-            preds = 1/2 * (preds_one + preds_mil)
+            preds_mil, sparse_loss, tv_p, tv_np, mil = get_sparse_pain_loss(y, preds_seq, lengths, config_dict, binary_ce)
+            loss = 1/10 * ce_loss + 9/10 * sparse_loss
+            preds = 1/10 * preds_one + 9/10 * preds_mil
             y = y[:, 0, :]
         val_acc_metric.update_state(y, preds)
         if 'mil' in config_dict['video_loss']:
@@ -422,8 +428,9 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
                     )
                     print("Seen so far: %d samples" %
                           ((step + 1) * config_dict['batch_size']))
-                    print('\n GRADS:')
-                    print([grad.numpy() for grad in grads][0])
+                    if not len(grads) == 0:
+                        print('\n GRADS:')
+                        print([grad.numpy() for grad in grads][0])
                     print('\n Video ID: ', video_id)
                     print(feats_batch.shape, preds_batch.shape, labels_batch.shape)
 
@@ -443,6 +450,11 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
                     pbar.update(1)
                     # step_start_time = time.time()
                     feats_batch, preds_batch, labels_batch, video_id = sample
+                    if config_dict['video_batch_size_test'] == 1:
+                        video_id = video_id.numpy()[0].decode('utf-8') 
+                        # if video_id in ['H_20190105_IND2_STA_2', 'I_20190331_IND4_STA_2', 'J_20190331_IND7_STA_1',
+                        #                 'J_20190329_IND1_STA_2', 'K_20181208_IND1_STA_1', 'K_20181208_IND1_STA_2']:
+                        #     continue
                     # print('\n Video ID: ', video_id)
                     if 'mil' in config_dict['video_loss']:
                         loss_value, tv_p, tv_np, mil = validation_step(
