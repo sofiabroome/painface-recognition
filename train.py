@@ -282,10 +282,10 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
     def train_step(x, preds, y):
         mask, lengths = get_mask_and_lengths(y)            
         with tf.GradientTape() as tape:
+                y_one = y[:, 0, :]  # Same label for all clips (weak label)
             if config_dict['video_loss'] == 'cross_entropy':
                 preds = model([x, preds], training=True)
-                y = y[:, 0, :]
-                loss = binary_ce(y, preds)
+                loss = binary_ce(y_one, preds)
             if config_dict['video_loss'] == 'mil':
                 preds_seqs = []
                 for i in range(config_dict['mc_dropout_samples']):
@@ -301,7 +301,6 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
                 preds_mil, sparse_loss, tv_p, tv_np, mil = get_sparse_pain_loss(y, preds_seq, lengths, config_dict, binary_ce)
                 loss = sparse_loss
                 preds = preds_mil
-                y = y[:, 0, :]
             if config_dict['video_loss'] == 'mil_ce':
                 expanded_mask = tf.expand_dims(mask[:, :, 0], axis=1)
                 expanded_mask = tf.expand_dims(expanded_mask, axis=1)
@@ -311,19 +310,20 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
                     preds_seq, preds_one = model([x, preds, mask, expanded_mask], training=True)
                     # preds_seq, preds_one = model([x, preds], training=True)
                 preds_seq = preds_seq * mask
-                y_one = y[:, 0, :]
-                ce_loss = binary_ce(y_one, preds_one)
                 preds_mil, sparse_loss, tv_p, tv_np, mil = get_sparse_pain_loss(y, preds_seq, lengths, config_dict, binary_ce)
+                ce_loss = binary_ce(y_one, preds_one)
                 preds = 1/10 * preds_one + 9/10 * preds_mil
-                y = y[:, 0, :]
-                loss = 1/10 * ce_loss + 9/10 * sparse_loss
+                # ce_loss = binary_ce(preds_mil, preds_one)
+                # ce_pseudo_loss = binary_ce(preds_mil, preds_one)
+                # loss = ce_loss + sparse_loss + ce_pseudo_loss
+                loss = ce_loss + sparse_loss
             l2_loss = config_dict['l2_weight'] * tf.reduce_sum(
                 [tf.nn.l2_loss(x) for x in model.trainable_weights if 'bias' not in x.name])
             total_loss = loss + l2_loss
         grads = tape.gradient(total_loss, model.trainable_weights)
         grads_names = [tw.name for tw in model.trainable_weights]
         optimizer.apply_gradients(zip(grads, model.trainable_weights))
-        train_acc_metric.update_state(y, preds)
+        train_acc_metric.update_state(y_one, preds)
         if 'mil' in config_dict['video_loss']:
             return grads, model.trainable_weights, grads_names, total_loss, l2_loss, tv_p, tv_np, mil
         else:
@@ -332,10 +332,10 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
     @tf.function
     def validation_step(x, preds, y):
         mask, lengths = get_mask_and_lengths(y)            
+        y_one = y[:, 0, :]
         if config_dict['video_loss'] == 'cross_entropy':
             preds = model([x, preds], training=False)
-            y = y[:, 0, :]
-            loss = binary_ce(y, preds)
+            loss = binary_ce(y_one, preds)
         if config_dict['video_loss'] == 'mil':
             preds_seqs = []
             for i in range(config_dict['mc_dropout_samples']):
@@ -352,19 +352,20 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
             preds_mil, sparse_loss, tv_p, tv_np, mil = get_sparse_pain_loss(y, preds_seq, lengths, config_dict, binary_ce)
             loss = sparse_loss
             preds = preds_mil
-            y = y[:, 0, :]
         if config_dict['video_loss'] == 'mil_ce':
             expanded_mask = tf.expand_dims(mask[:,:,0], axis=1)
             expanded_mask = tf.expand_dims(expanded_mask, axis=1)
             preds_seq, preds_one = model([x, preds, mask, expanded_mask], training=False)
             preds_seq *= mask
             y_one = y[:, 0, :]
-            ce_loss = binary_ce(y_one, preds_one)
             preds_mil, sparse_loss, tv_p, tv_np, mil = get_sparse_pain_loss(y, preds_seq, lengths, config_dict, binary_ce)
-            loss = 1/10 * ce_loss + 9/10 * sparse_loss
+            ce_loss = binary_ce(y_one, preds_one)
+            # ce_loss = binary_ce(preds_mil, preds_one)
+            # ce_pseudo_loss = binary_ce(preds_mil, preds_one)
+            # loss = ce_loss + sparse_loss + ce_pseudo_loss
+            loss = ce_loss + sparse_loss
             preds = 1/10 * preds_one + 9/10 * preds_mil
-            y = y[:, 0, :]
-        val_acc_metric.update_state(y, preds)
+        val_acc_metric.update_state(y_one, preds)
         if 'mil' in config_dict['video_loss']:
             return loss, tv_p, tv_np, mil
         else:
