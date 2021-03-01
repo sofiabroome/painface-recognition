@@ -91,7 +91,6 @@ class Encoder(tf.keras.Model):
         self.h = h
         
         # One Embedding layer
-        self.embedding = tf.keras.layers.Embedding(vocab_size, model_size)
         self.my_embedding = tf.keras.layers.Dense(model_size)
         self.pos_encoding = positional_encoding(maximum_position_encoding, 
                                                 self.model_size)
@@ -160,7 +159,6 @@ class Decoder(tf.keras.Model):
         self.h = h
         
         # Embedding
-        self.embedding = tf.keras.layers.Embedding(vocab_size, model_size)
         self.my_embedding = tf.keras.layers.Dense(model_size)
         self.pos_encoding = positional_encoding(maximum_position_encoding, 
                                                 self.model_size)
