@@ -40,8 +40,8 @@ config_dict = {
     'nb_lstm_units': 32,
     'nb_lstm_layers': 4,
     'kernel_size': 5,
-    'dropout_1': 0.25,
-    'dropout_2': 0.5,
+    'dropout_1': 0.2,
+    'dropout_2': 0,
     'return_last_clstm' : True,
     'model_size': 64,
     # Model for videolevel features
@@ -49,16 +49,13 @@ config_dict = {
     # 'video_features_model' : 'video_fc_model',
     # 'video_features_model' : 'video_conv_seq_model',
     # 'video_loss' : 'cross_entropy',
-    # 'video_features_model' : 'video_level_mil_feats',
-    'video_features_model' : 'video_level_preds_attn_gru_network',
-    # 'video_features_model' : 'video_level_preds_attn_network',
-    # 'video_features_model': 'transformer',
+    # 'video_features_model' : 'video_level_preds_attn_gru_network',
+    'video_features_model': 'transformer',
     'merge_attn': 'add',
-    # 'video_loss' : 'mil',
-    'mil_version' : 'mil_both',  # 'mil_pain'|'mil_both'
+    'mil_version' : 'mil_pain',  # 'mil_pain'|'mil_both'
     'label_smoothing': 0,
     # 'video_features_model' : 'video_level_mil_feats_preds',
-    'video_loss' : 'mil_ce',
+    'video_loss' : 'mil',  # 'mil' | 'mil_ce' | 'cross_entropy' | 'pseudo_labels'
     'nb_layers' : 1,
     'nb_units_1' : 64,
     'nb_units_2' : 32,
@@ -68,11 +65,11 @@ config_dict = {
     'video_batch_size_test' : 1,
     'video_pad_length' : 266,
     'video_nb_epochs': 600,
-    'video_early_stopping': 75,
+    'video_early_stopping': 150,
     'shuffle_buffer': 150,
     'k_mil_fraction': 0.5,  # This is to be updated using below params
-    'k_mil_fraction_start': 0.01,
-    'k_mil_fraction_end': 0.01,
+    'k_mil_fraction_start': 0.05,
+    'k_mil_fraction_end': 0.05,
     'k_mil_fraction_decrement_step': 0.05,
     'k_mil_fraction_nb_epochs_to_decrease': 1,
     'tv_weight_pain': 0,
@@ -81,11 +78,11 @@ config_dict = {
     'l2_weight': 0,
     'mc_dropout_samples': 1,
     # Transformer settings
-    'model_size': 32,
-    'nb_heads_enc': 2,
-    'nb_heads_dec': 2,
-    'nb_layers_enc': 2,
-    'nb_layers_dec': 2,
+    'model_size': 4,
+    'nb_heads_enc': 4,
+    'nb_heads_dec': 4,
+    'nb_layers_enc': 4,
+    'nb_layers_dec': 4,
     # Parameters for functional API C-LSTM
     'kernel_regularizer' : None,
     'padding_clstm' : 'valid',
@@ -106,7 +103,7 @@ config_dict = {
     'batch_size': 8,
     'nb_input_dims': 5,
     'val_fraction_value': 0.0,
-    'monitor': 'val_binary_accuracy',  # 'val_binary_accuracy' | 'val_f1'
+    'monitor': 'val_f1',  # 'val_binary_accuracy' | 'val_f1'
     'monitor_mode': 'max',
     'data_type': 'rgb',
     'aug_flip': 0,

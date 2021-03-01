@@ -260,9 +260,9 @@ def evaluate_on_video_level(config_dict, model, model_path, test_dataset,
         model.load_weights(model_path)
 
     @tf.function
-    def test_step(x, preds, y, lengths, mask):
+    def test_step(x, transferred_preds, y, lengths, mask):
         if config_dict['video_loss'] == 'cross_entropy':
-            preds = model([x, preds], training=False)
+            preds = model([x, transferred_preds], training=False)
         if config_dict['video_loss'] == 'mil':
             preds_seqs = []
             for i in range(config_dict['mc_dropout_samples']):
@@ -270,18 +270,28 @@ def evaluate_on_video_level(config_dict, model, model_path, test_dataset,
                 if 'transformer' in config_dict['video_features_model']:
                     expanded_mask = tf.expand_dims(mask[:,:,0], axis=1)
                     expanded_mask = tf.expand_dims(expanded_mask, axis=1)
-                    preds_seq = model([x, preds, expanded_mask], training=training)
+                    preds_seq = model([x, transferred_preds, expanded_mask], training=training)
                 else:
-                    preds_seq = model([x, preds, mask], training=False)
+                    preds_seq = model([x, transferred_preds, mask], training=False)
                 preds_seq *= mask
                 preds_seqs.append(preds_seq)
             preds_seq = tf.math.reduce_mean(preds_seqs, axis=0)
             preds_mil = train.get_k_max_scores_per_class(preds_seq, lengths, config_dict)
             preds = preds_mil
+        if config_dict['video_loss'] == 'pseudo_labels':
+            expanded_mask = tf.expand_dims(mask[:, :, 0], axis=1)
+            expanded_mask = tf.expand_dims(expanded_mask, axis=1)
+            if 'transformer' in config_dict['video_features_model']:
+                preds_seq = model([x, transferred_preds, expanded_mask], training=False)
+            else:
+                preds_seq = model([x, transferred_preds, mask, expanded_mask], training=False)
+                # preds_seq, preds_one = model([x, preds], training=True)
+            preds_seq *= mask
+            preds = train.get_k_max_scores_per_class(preds_seq, lengths, config_dict)
         if config_dict['video_loss'] == 'mil_ce':
             expanded_mask = tf.expand_dims(mask[:,:,0], axis=1)
             expanded_mask = tf.expand_dims(expanded_mask, axis=1)
-            preds_seq, preds_one = model([x, preds, mask, expanded_mask], training=False)
+            preds_seq, preds_one = model([x, transferred_preds, mask, expanded_mask], training=False)
             preds_seq *= mask
             preds_mil = train.get_k_max_scores_per_class(preds_seq, lengths, config_dict)
             preds = 1/10 * preds_one + 9/10 * preds_mil

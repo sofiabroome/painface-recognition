@@ -244,6 +244,7 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
     pain behavior in the LPS data.
     """
     binary_ce = tf.keras.losses.BinaryCrossentropy(label_smoothing=config_dict['label_smoothing'])
+    sparsecat_ce = tf.keras.losses.SparseCategoricalCrossentropy()
 
     if config_dict['monitor'] == 'val_binary_accuracy':
         train_acc_metric = tf.keras.metrics.BinaryAccuracy()
@@ -287,12 +288,13 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
                 preds = model([x, transferred_preds], training=True)
                 loss = binary_ce(y_one, preds)
             if config_dict['video_loss'] == 'mil':
+                pseudo_labels = 1/2 * tf.cast(y, dtype=tf.float32) + 1/2 * transferred_preds
                 preds_seqs = []
                 for i in range(config_dict['mc_dropout_samples']):
                     expanded_mask = tf.expand_dims(mask[:, :, 0], axis=1)
                     expanded_mask = tf.expand_dims(expanded_mask, axis=1)
                     if 'transformer' in config_dict['video_features_model']:
-                        preds_seq = model([x, transferred_preds, expanded_mask], training=True)
+                        preds_seq = model([x, pseudo_labels, expanded_mask], training=True)
                     else:
                         preds_seq, preds_one = model([x, transferred_preds, mask, expanded_mask], training=True)
                     preds_seq = preds_seq * mask
@@ -301,6 +303,22 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
                 preds_mil, sparse_loss, tv_p, tv_np, mil = get_sparse_pain_loss(y, preds_seq, lengths, config_dict, binary_ce)
                 loss = sparse_loss
                 preds = preds_mil
+            if config_dict['video_loss'] == 'pseudo_labels':
+                pseudo_labels = 1/2 * tf.cast(y, dtype=tf.float32) + 1/2 * transferred_preds
+                expanded_mask = tf.expand_dims(mask[:, :, 0], axis=1)
+                expanded_mask = tf.expand_dims(expanded_mask, axis=1)
+                if 'transformer' in config_dict['video_features_model']:
+                    preds_seq = model([x, transferred_preds, expanded_mask], training=True)
+                else:
+                    preds_seq = model([x, transferred_preds, mask, expanded_mask], training=True)
+                    # preds_seq, preds_one = model([x, preds], training=True)
+                preds_seq *= mask
+                preds = get_k_max_scores_per_class(preds_seq, lengths, config_dict)
+                # loss = sparsecat_ce(transferred_preds, preds_seq)
+                # pseudo_labels = tf.cast(y, dtype=tf.float32)
+                batch_loss = tf.keras.losses.mean_squared_error(pseudo_labels, preds_seq)
+                # loss = tf.reduce_mean(batch_loss, axis=0)
+                loss = tf.reduce_sum(batch_loss, axis=[0,1])
             if config_dict['video_loss'] == 'mil_ce':
                 expanded_mask = tf.expand_dims(mask[:, :, 0], axis=1)
                 expanded_mask = tf.expand_dims(expanded_mask, axis=1)
@@ -352,6 +370,21 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
             preds_mil, sparse_loss, tv_p, tv_np, mil = get_sparse_pain_loss(y, preds_seq, lengths, config_dict, binary_ce)
             loss = sparse_loss
             preds = preds_mil
+        if config_dict['video_loss'] == 'pseudo_labels':
+            expanded_mask = tf.expand_dims(mask[:, :, 0], axis=1)
+            expanded_mask = tf.expand_dims(expanded_mask, axis=1)
+            if 'transformer' in config_dict['video_features_model']:
+                preds_seq = model([x, transferred_preds, expanded_mask], training=False)
+            else:
+                preds_seq = model([x, transferred_preds, mask, expanded_mask], training=False)
+                # preds_seq, preds_one = model([x, preds], training=True)
+            preds_seq *= mask
+            preds = get_k_max_scores_per_class(preds_seq, lengths, config_dict)
+            # loss = sparsecat_ce(transferred_preds, preds_seq)
+            pseudo_labels = 1/2 * tf.cast(y, dtype=tf.float32) + 1/2 * transferred_preds
+            # pseudo_labels = tf.cast(y, dtype=tf.float32)
+            batch_loss = tf.keras.losses.mean_squared_error(pseudo_labels, preds_seq)
+            loss = tf.reduce_sum(batch_loss, axis=[0,1])
         if config_dict['video_loss'] == 'mil_ce':
             expanded_mask = tf.expand_dims(mask[:,:,0], axis=1)
             expanded_mask = tf.expand_dims(expanded_mask, axis=1)
@@ -422,7 +455,6 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
                     #     wandb.log({'grad_' + grads_names[ind].numpy().decode("utf-8"): wandb.Histogram(g.numpy())})
                     # for ind, tw in enumerate(trainable_weights):
                     #     wandb.log({'param_' + grads_names[ind].numpy().decode("utf-8"): wandb.Histogram(tw.numpy())})
-
                     print(
                         "Training loss (for one batch) at step %d: %.4f"
                         % (step, float(loss_value.numpy()))

@@ -541,9 +541,11 @@ class MyModel(tf.keras.Model):
         expanded_mask = tf.keras.layers.Input(shape=(1, 1, self.config_dict['video_pad_length']))
     
         transformer_model = transformer.Transformer(self.config_dict)
-        encoded_feats = transformer_model.encoder(input_features, expanded_mask)
-        encoded_feats = tf.keras.layers.Flatten()(encoded_feats)
-        feats_logits = tf.keras.layers.Dense(units=self.config_dict['nb_labels'])(encoded_feats)
+        # encoded_feats = transformer_model.encoder(input_features, expanded_mask)
+        decoder_output = transformer_model(input_features, input_preds, expanded_mask)
+        # encoded_feats = tf.keras.layers.Flatten()(encoded_feats)
+        # feats_logits = tf.keras.layers.Dense(units=self.config_dict['nb_labels'])(encoded_feats)
+        feats_logits = tf.keras.layers.Dense(units=self.config_dict['nb_labels'])(decoder_output)
         feats_pred = Activation('softmax')(feats_logits)
         
         # The decoder output is logits 
@@ -578,7 +580,7 @@ class MyModel(tf.keras.Model):
         # x = tf.keras.layers.GlobalAveragePooling1D()(x)
         # x = Activation('softmax')(x)
 
-        model = tf.keras.Model(inputs=[input_features, input_preds, mask, expanded_mask], outputs=[input_preds, feats_pred])
+        model = tf.keras.Model(inputs=[input_features, input_preds, mask, expanded_mask], outputs=[feats_pred])
         model.summary()
 
         return model
