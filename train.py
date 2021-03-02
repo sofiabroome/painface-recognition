@@ -297,7 +297,7 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
                         preds_seq = model([x, pseudo_labels, expanded_mask], training=True)
                     else:
                         preds_seq, preds_one = model([x, transferred_preds, mask, expanded_mask], training=True)
-                    preds_seq = preds_seq * mask
+                    preds_seq *= mask
                     preds_seqs.append(preds_seq)
                 preds_seq = tf.math.reduce_mean(preds_seqs, axis=0)
                 preds_mil, sparse_loss, tv_p, tv_np, mil = get_sparse_pain_loss(y, preds_seq, lengths, config_dict, binary_ce)
@@ -762,6 +762,10 @@ def save_features(model, config_dict, steps, dataset):
         predictions, features = model(x, training=False)
         # # Downsample further with one MP layer, strides and kernel 2x2
         # # The result per frame is 4x4x32, if 128x128. 7x7x32 if 224x224.
+        features = tf.keras.layers.TimeDistributed(
+            tf.keras.layers.MaxPool2D())(features)
+        features = tf.keras.layers.TimeDistributed(
+            tf.keras.layers.MaxPool2D())(features)
         features = tf.keras.layers.TimeDistributed(
             tf.keras.layers.MaxPool2D())(features)
         # # The result per frame is 1x32.
