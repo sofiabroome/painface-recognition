@@ -272,7 +272,8 @@ def evaluate_on_video_level(config_dict, model, model_path, test_dataset,
                     expanded_mask = tf.expand_dims(expanded_mask, axis=1)
                     preds_seq = model([x, transferred_preds, expanded_mask], training=training)
                 else:
-                    preds_seq = model([x, transferred_preds, mask], training=False)
+                    # preds_seq = model([x, transferred_preds, mask], training=False)
+                    preds_seq = model([x, transferred_preds], training=True)
                 preds_seq *= mask
                 preds_seqs.append(preds_seq)
             preds_seq = tf.math.reduce_mean(preds_seqs, axis=0)

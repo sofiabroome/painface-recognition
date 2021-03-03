@@ -41,21 +41,21 @@ config_dict = {
     'nb_lstm_layers': 4,
     'kernel_size': 5,
     'dropout_1': 0,
-    'dropout_2': 0,
+    'dropout_2': 0.5,
     'return_last_clstm' : True,
     'model_size': 64,
     # Model for videolevel features
-    # 'video_features_model' : 'video_level_network',
+    'video_features_model' : 'video_level_network',
     # 'video_features_model' : 'video_fc_model',
     # 'video_features_model' : 'video_conv_seq_model',
     # 'video_loss' : 'cross_entropy',
-    'video_features_model' : 'video_level_preds_attn_gru_network',
+    # 'video_features_model' : 'video_level_preds_attn_gru_network',
     # 'video_features_model': 'transformer',
     'merge_attn': 'add',
-    'mil_version' : 'mil_pain',  # 'mil_pain'|'mil_both'
+    'mil_version' : 'mil_both',  # 'mil_pain'|'mil_both'
     'label_smoothing': 0,
     # 'video_features_model' : 'video_level_mil_feats_preds',
-    'video_loss' : 'pseudo_labels',  # 'mil' | 'mil_ce' | 'cross_entropy' | 'pseudo_labels'
+    'video_loss' : 'mil',  # 'mil' | 'mil_ce' | 'cross_entropy' | 'pseudo_labels'
     'nb_layers' : 1,
     'nb_units_1' : 64,
     'nb_units_2' : 32,
@@ -68,13 +68,14 @@ config_dict = {
     'video_early_stopping': 150,
     'shuffle_buffer': 150,
     'k_mil_fraction': 0.5,  # This is to be updated using below params
-    'k_mil_fraction_start': 0.05,
+    'k_mil_fraction_start': 0.5,
     'k_mil_fraction_end': 0.05,
     'k_mil_fraction_decrement_step': 0.05,
     'k_mil_fraction_nb_epochs_to_decrease': 1,
     'tv_weight_pain': 0,
-    'tv_weight_nopain': 0.1,
-    'l1_nopain': True,
+    'tv_weight_nopain': 0,
+    'minor_class_weight': True,
+    'l1_nopain': False,
     'l2_weight': 0,
     'mc_dropout_samples': 1,
     # Transformer settings

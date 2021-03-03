@@ -163,7 +163,7 @@ def get_scores_per_class(preds_batch, config_dict):
     return scores
 
 
-def get_mil_crossentropy_loss(kmax_scores, y_batch, binary_ce):
+def get_mil_crossentropy_loss(kmax_scores, y_batch, binary_ce, minor_class_weight):
     """
     :param kmax_scores: tf.Tensor, dtype=float32, shape [batch_size, nb_labels]
     :param y_batch: tf.Tensor, dtype=float32, shape [batch_size, nb_labels]
@@ -173,6 +173,12 @@ def get_mil_crossentropy_loss(kmax_scores, y_batch, binary_ce):
     label_indices = tf.argmax(y_batch, axis=1)
     mils = tf.gather(kmax_scores, label_indices, batch_dims=1)
     mils_log = tf.math.log(mils)
+    if minor_class_weight:
+        pain_weight = 62/38
+        reweighted_pain = pain_weight * tf.cast(label_indices, dtype=tf.float32) * mils_log
+        inverted_labels = 1 - label_indices 
+        reweighted_all = reweighted_pain + tf.cast(inverted_labels, dtype=tf.float32) * mils_log
+        mils_log = reweighted_all
     mils_sum = tf.reduce_sum(mils_log)
     return -mils_sum
     # return binary_ce(y_batch, kmax_scores)
@@ -200,7 +206,7 @@ def get_sparse_pain_loss(y_batch, preds_batch, lengths_batch, config_dict, binar
         y_batch = y_batch[:, 0, :]  # Take first (video-level label)
 
     kmax_scores = get_k_max_scores_per_class(preds_batch, lengths_batch, config_dict)
-    mil = get_mil_crossentropy_loss(kmax_scores, y_batch, binary_ce)
+    mil = get_mil_crossentropy_loss(kmax_scores, y_batch, binary_ce, config_dict['minor_class_weight'])
     batch_indicator_nopain = tf.cast(y_batch[:, 0], dtype=tf.float32)
     batch_indicator_pain = tf.cast(y_batch[:, 1], dtype=tf.float32)
 
@@ -303,7 +309,7 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
                 preds = model([x, transferred_preds], training=True)
                 loss = binary_ce(y_one, preds)
             if config_dict['video_loss'] == 'mil':
-                pseudo_labels = 1/2 * tf.cast(y, dtype=tf.float32) + 1/2 * transferred_preds
+                # pseudo_labels = 1/2 * tf.cast(y, dtype=tf.float32) + 1/2 * transferred_preds
                 preds_seqs = []
                 for i in range(config_dict['mc_dropout_samples']):
                     expanded_mask = tf.expand_dims(mask[:, :, 0], axis=1)
@@ -311,7 +317,8 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
                     if 'transformer' in config_dict['video_features_model']:
                         preds_seq = model([x, pseudo_labels, expanded_mask], training=True)
                     else:
-                        preds_seq, preds_one = model([x, transferred_preds, mask, expanded_mask], training=True)
+                        # preds_seq, preds_one = model([x, transferred_preds, mask, expanded_mask], training=True)
+                        preds_seq = model([x, transferred_preds], training=True)
                     preds_seq *= mask
                     preds_seqs.append(preds_seq)
                 preds_seq = tf.math.reduce_mean(preds_seqs, axis=0)
@@ -382,7 +389,8 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
                 if 'transformer' in config_dict['video_features_model']:
                     preds_seq = model([x, transferred_preds, expanded_mask], training=training)
                 else:
-                    preds_seq, preds_one = model([x, transferred_preds, mask, expanded_mask], training=False)
+                    # preds_seq, preds_one = model([x, transferred_preds, mask, expanded_mask], training=False)
+                    preds_seq = model([x, transferred_preds], training=True)
                 preds_seq *= mask
                 preds_seqs.append(preds_seq)
             preds_seq = tf.math.reduce_mean(preds_seqs, axis=0)
