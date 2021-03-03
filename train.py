@@ -114,7 +114,6 @@ def get_k_max_scores_per_class(preds_batch, lengths_batch, config_dict):
     dtype=float32 Should be softmax scores, otherwise can interfere with padding.
     (0 needs to be the lowest number)
     :param lengths_batch: tf.Tensor, shape=(batch_size,) dtype=int32
-    :param batch_size: int
     :param config_dict: {}
     :return: tf.Tensor: shape=(batch_size, nb_labels), dtype=float32, scores which sum to 1.
     """
@@ -146,6 +145,22 @@ def get_k_max_scores_per_class(preds_batch, lengths_batch, config_dict):
     kmax_scores = tf.convert_to_tensor(kmax_scores)
     kmax_scores = tf.keras.layers.Activation('softmax')(kmax_scores)
     return kmax_scores
+
+
+def get_scores_per_class(preds_batch, config_dict):
+    """
+    :param preds_batch: tf.Tensor, shape=(batch_size, video_pad_length, nb_labels),
+    dtype=float32 Should be softmax scores, otherwise can interfere with padding.
+    (0 needs to be the lowest number)
+    :param config_dict: {}
+    :return: tf.Tensor: shape=(batch_size, nb_labels), dtype=float32, scores which sum to 1.
+    """
+
+    sum_per_class = tf.reduce_sum(preds_batch, axis=1)
+    scores = tf.argmax(sum_per_class, axis=1)
+    scores = tf.one_hot(scores, depth=config_dict['nb_labels'])
+
+    return scores
 
 
 def get_mil_crossentropy_loss(kmax_scores, y_batch, binary_ce):
@@ -313,11 +328,15 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
                     preds_seq = model([x, transferred_preds, mask, expanded_mask], training=True)
                     # preds_seq, preds_one = model([x, preds], training=True)
                 preds_seq *= mask
-                preds = get_k_max_scores_per_class(preds_seq, lengths, config_dict)
+                preds = get_scores_per_class(preds_seq, config_dict)
+                # preds_mil, sparse_loss, tv_p, tv_np, mil = get_sparse_pain_loss(y, preds_seq, lengths, config_dict, binary_ce)
+                # preds_mil_transferred = get_k_max_scores_per_class(transferred_preds, lengths, config_dict)
+                # preds = 3/10 * preds + 2/10 * preds_mil + 5/10 * preds_mil_transferred
                 # loss = sparsecat_ce(transferred_preds, preds_seq)
                 # pseudo_labels = tf.cast(y, dtype=tf.float32)
                 batch_loss = tf.keras.losses.mean_squared_error(pseudo_labels, preds_seq)
                 # loss = tf.reduce_mean(batch_loss, axis=0)
+                # loss = tf.reduce_sum(batch_loss, axis=[0,1]) + sparse_loss
                 loss = tf.reduce_sum(batch_loss, axis=[0,1])
             if config_dict['video_loss'] == 'mil_ce':
                 expanded_mask = tf.expand_dims(mask[:, :, 0], axis=1)
@@ -379,7 +398,8 @@ def video_level_train(model, config_dict, train_dataset, val_dataset=None):
                 preds_seq = model([x, transferred_preds, mask, expanded_mask], training=False)
                 # preds_seq, preds_one = model([x, preds], training=True)
             preds_seq *= mask
-            preds = get_k_max_scores_per_class(preds_seq, lengths, config_dict)
+            # preds = get_k_max_scores_per_class(preds_seq, lengths, config_dict)
+            preds = get_scores_per_class(preds_seq, config_dict)
             # loss = sparsecat_ce(transferred_preds, preds_seq)
             pseudo_labels = 1/2 * tf.cast(y, dtype=tf.float32) + 1/2 * transferred_preds
             # pseudo_labels = tf.cast(y, dtype=tf.float32)

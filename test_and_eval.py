@@ -287,7 +287,8 @@ def evaluate_on_video_level(config_dict, model, model_path, test_dataset,
                 preds_seq = model([x, transferred_preds, mask, expanded_mask], training=False)
                 # preds_seq, preds_one = model([x, preds], training=True)
             preds_seq *= mask
-            preds = train.get_k_max_scores_per_class(preds_seq, lengths, config_dict)
+            # preds = train.get_k_max_scores_per_class(preds_seq, lengths, config_dict)
+            preds = train.get_scores_per_class(preds_seq, config_dict)
         if config_dict['video_loss'] == 'mil_ce':
             expanded_mask = tf.expand_dims(mask[:,:,0], axis=1)
             expanded_mask = tf.expand_dims(expanded_mask, axis=1)
