@@ -43,7 +43,7 @@ class MyModel(tf.keras.Model):
                 if self.video_features_model == 'transformer':
                     self.model = self.get_transformer_model()
                 if self.video_features_model == 'video_level_network':
-                    self.model = self.video_level_network()
+                    self.model = self.video_level_network(training=training)
                 if self.video_features_model == 'video_level_preds_attn_network':
                     self.model = self.video_level_preds_attn_network(training=training)
                 if self.video_features_model == 'video_level_preds_attn_gru_network':
