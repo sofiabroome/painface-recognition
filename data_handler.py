@@ -702,7 +702,7 @@ class DataHandler:
                     y_array = tf.keras.utils.to_categorical(y_array, num_classes=self.nb_labels)
                 yield [X_array, flow_array], y_array, path_array
 
-    def get_sequences_from_frame_df(self, df):
+    def get_sequences_from_frame_df(self, df, resample=True):
         """
         Given a dataframe of all frame paths, video IDs and labels,
         and some sequence length and stride, return a list of
@@ -839,15 +839,17 @@ class DataHandler:
 
         diff = len(no_pain_sequence_dfs) - len(pain_sequence_dfs)
 
-        print('Diff: {}, nb. no pain sequences: {}, nb. pain sequences: {}'.format(
-            diff, len(no_pain_sequence_dfs), len(pain_sequence_dfs)
-        ))
+        if resample and abs(diff) > 0:
 
-        minor_class = 'pain' if diff > 0 else 'no_pain'
-        resample_start_ind = int(
-            self.config_dict['resample_start_fraction_of_seq_length']
-            * self.config_dict['seq_length'])
-        if abs(diff) > 0:
+            print('Diff: {}, nb. no pain sequences: {}, nb. pain sequences: {}'.format(
+                diff, len(no_pain_sequence_dfs), len(pain_sequence_dfs)
+            ))
+
+            minor_class = 'pain' if diff > 0 else 'no_pain'
+            resample_start_ind = int(
+                self.config_dict['resample_start_fraction_of_seq_length']
+                * self.config_dict['seq_length'])
+
             print('Resampling from the {}th index within a window...'.format(
                 resample_start_ind))
             extra_seqs_for_minor_class = get_extra_sequences(
@@ -855,12 +857,12 @@ class DataHandler:
                 video_ids=class_dfs_dict[minor_class][1],
                 start_ind=resample_start_ind,
                 nb_extra=abs(diff))
+
+            print('Sampled {} extra sequences from the minor pain={} class'.format(
+                len(extra_seqs_for_minor_class), minor_class
+            ))
         else:
             extra_seqs_for_minor_class = []
-
-        print('Sampled {} extra sequences from the minor pain={} class'.format(
-            len(extra_seqs_for_minor_class), minor_class
-        ))
 
         all_seqs = no_pain_sequence_dfs + pain_sequence_dfs + extra_seqs_for_minor_class
 

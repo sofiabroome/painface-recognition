@@ -1,15 +1,17 @@
 import sys
 sys.path.append('..')
-import os
-import numpy as np
-import pandas as pd
+
 import tensorflow as tf
+import pandas as pd
+import numpy as np
 import arg_parser
-import random
 import helpers
 import models
 import wandb
+import os
+
 from interpretability import mask, gradcam as gc, interpretability_viz as viz
+from data_handler import get_video_id_from_frame_path
 from data_scripts import make_df_for_testclips
 
 
@@ -24,15 +26,30 @@ def run():
     optimizer = tf.keras.optimizers.Adam(
         learning_rate=config_dict['lr'])
 
+    gt_human_clips_lps_path = '../data/lps/random_clips_lps/ground_truth_randomclips_lps.csv'
+    gt_human_clips_df = pd.read_csv(gt_human_clips_lps_path)
+
+    results_list = []
+    col_headers = ['test_clip_id', 'video_id', 'cps_score', 'label', 'prediction', 'confidence']
+
+    results_folder = os.path.join(config_dict['output_folder'], str(config_dict['job_identifier']))
+
     for sample_ind, sample in enumerate(dataset):
         print(sample_ind)
         if sample_ind == nb_steps_assuming_bs1:
             break
         tf.compat.v1.global_variables_initializer()
 
-        video_id = 'clip_' + str(sample_ind)
+        input_var, label, paths = sample
+        first_frame_path = paths[0][0].numpy().decode('utf-8')
+        test_clip_id = get_video_id_from_frame_path(first_frame_path)
 
-        input_var, label = sample
+        clip_index = int(test_clip_id.split('_')[-1])
+        video_id = str(gt_human_clips_df.loc[gt_human_clips_df['ind'] == clip_index]['video_id'].values[0])
+        cps_score = gt_human_clips_df.loc[gt_human_clips_df['ind'] == clip_index]['pain'].values[0]
+
+        print('Test clip {}, video ID {}, with CPS score {}'.format(test_clip_id, video_id, cps_score))
+
         input_var = tf.cast(input_var, tf.float32)
         print('\n Input var shape: {}, label shape: {}'.format(
             input_var.shape, label.shape))
@@ -122,10 +139,8 @@ def run():
         true_class_score = preds[:, true_class]
         print('preds before save', preds)
         save_path = os.path.join(
-            config_dict['output_folder'],
-            str(config_dict['job_identifier']),
-            video_id + '_' + str(true_class) + 'g_' +
-            # str(random.randint(1, 10000)) + '_' + str(true_class) + video_id + 'g_' +
+            results_folder,
+            test_clip_id + '_' + str(true_class) + 'g_' +
             str(np.argmax(preds)) +
             '_cs%5.4f' % true_class_score +
             'gs%5.4f' % guessed_score,
@@ -133,10 +148,13 @@ def run():
 
         print(save_path)
 
+        result_list = [test_clip_id, video_id, cps_score, true_class, np.argmax(preds), guessed_score[0]]
+        results_list.append(result_list)
+
         if not os.path.exists(save_path):
             os.makedirs(save_path)
 
-        f = open(save_path + '/class_score_freeze_case' + video_id + '.txt', 'w+')
+        f = open(save_path + '/class_score_freeze_case' + test_clip_id + '.txt', 'w+')
         f.write(str(classlossvalue))
         f.close()
 
@@ -147,7 +165,7 @@ def run():
             after_softmax_rev, _ = model(perturbed_sequence)
             class_loss_rev = after_softmax_rev[np.argmax(label)]
 
-            f = open(save_path + '/class_score_reverse_case' + video_id + '.txt', 'w+')
+            f = open(save_path + '/class_score_reverse_case' + test_clip_id + '.txt', 'w+')
             f.write(str(class_loss_rev))
             f.close()
 
@@ -175,7 +193,7 @@ def run():
             viz.create_image_arrays(
                 config_dict,
                 input_var, gradcam, time_mask.numpy(),
-                save_path, video_id, 'freeze',
+                save_path, test_clip_id, 'freeze',
                 config_dict['input_height'], config_dict['input_width'])
 
             if config_dict['temporal_mask_type'] == 'reverse':
@@ -183,7 +201,7 @@ def run():
                 viz.create_image_arrays(
                     config_dict,
                     input_var, gradcam, time_mask.numpy(),
-                    save_path, video_id, 'reverse',
+                    save_path, test_clip_id, 'reverse',
                     config_dict['input_height'], config_dict['input_width'])
         else:
             continue
@@ -193,6 +211,9 @@ def run():
             #     input_var,
             #     mask.perturb_sequence(input_var, time_mask, perb_type='reverse'),
             #     time_mask, root_dir=save_path, case=video_id, mark_imgs=True, iter_test=False)
+
+    results_df = pd.DataFrame(results_list, columns=col_headers)
+    results_df.to_csv(results_folder + 'results_summary.csv')
 
 
 if __name__ == '__main__':
