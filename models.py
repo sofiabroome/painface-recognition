@@ -392,19 +392,33 @@ class MyModel(tf.keras.Model):
 
         return model
 
-    def video_level_network(self):
-        input_features = Input(shape=(None, self.config_dict['feature_dim']))
-        input_preds = Input(shape=(None, 2))
+    def video_level_network(self, training):
+        input_features = Input(shape=(self.config_dict['video_pad_length'], self.config_dict['feature_dim']))
+        input_preds = Input(shape=(self.config_dict['video_pad_length'], self.config_dict['nb_labels']))
         gru = tf.keras.layers.GRU(
             self.config_dict['nb_units_1'], return_sequences=True)
         gru_2 = tf.keras.layers.GRU(
-            self.config_dict['nb_labels'], return_sequences=False)
+            self.config_dict['nb_labels'], return_sequences=True)
+        # preds = tf.keras.layers.Dense(units=self.config_dict['nb_labels'])(input_preds)
+        preds_enc = tf.keras.layers.GRU(
+            self.config_dict['nb_labels'], return_sequences=True)
+        preds = preds_enc(input_preds)
+
         x = gru(input_features)
+        if training:
+            x = Dropout(self.config_dict['dropout_2'])(x)
+        # x = gru_2(x*mask)
         x = gru_2(x)
-        x = tf.keras.layers.Flatten()(x)
-        x = tf.keras.layers.Dense(units=self.config_dict['nb_labels'])(x)
+
+        if self.config_dict['merge_attn'] == 'mult':
+            x = tf.keras.layers.multiply([x, preds])
+        if self.config_dict['merge_attn'] == 'add':
+            x = tf.keras.layers.add([x, preds])
+
+        x = tf.keras.layers.BatchNormalization()(x)
         x = Activation('softmax')(x)
 
+        # model = tf.keras.Model(inputs=[input_features, input_preds, mask], outputs=[x])
         model = tf.keras.Model(inputs=[input_features, input_preds], outputs=[x])
         model.summary()
 
@@ -412,14 +426,24 @@ class MyModel(tf.keras.Model):
 
     def video_fc_model(self):
         input_features = Input(shape=(self.config_dict['video_pad_length'], self.config_dict['feature_dim']))
-        input_preds = Input(shape=(self.config_dict['video_pad_length'], 2))
-        x_preds = tf.keras.layers.Flatten()(input_preds)
+        input_preds = Input(shape=(self.config_dict['video_pad_length'], self.config_dict['nb_labels']))
+
+        # x_preds = tf.keras.layers.Flatten()(input_preds)
         # x_feats = tf.keras.layers.Flatten()(input_features)
         # x = tf.keras.layers.concatenate([x_preds, x_feats], axis=1)
         # x = tf.keras.layers.GlobalAveragePooling1D()(input_features)
 
-        x = tf.keras.layers.Dense(units=self.config_dict['nb_units_2'])(x_preds)
+        x = tf.keras.layers.Dense(units=self.config_dict['nb_units_2'])(input_features)
+        x = tf.keras.layers.BatchNormalization()(x)
         x = tf.keras.layers.Dense(units=self.config_dict['nb_labels'])(x)
+        preds = tf.keras.layers.Dense(units=self.config_dict['nb_labels'])(input_preds)
+
+        if self.config_dict['merge_attn'] == 'mult':
+            x = tf.keras.layers.multiply([x, preds])
+        if self.config_dict['merge_attn'] == 'add':
+            x = tf.keras.layers.add([x, preds])
+
+
         x = Activation('softmax')(x)
 
         model = tf.keras.Model(inputs=[input_features, input_preds], outputs=[x])
@@ -535,47 +559,52 @@ class MyModel(tf.keras.Model):
 
         input_features = Input(shape=(self.config_dict['video_pad_length'], self.config_dict['feature_dim']))
         input_preds = Input(shape=(self.config_dict['video_pad_length'], 2))
+        mask = Input(shape=(self.config_dict['video_pad_length'], 2))
 
-        reg = tf.keras.regularizers.l2(self.config_dict['l2_weight'])
+        # reg = tf.keras.regularizers.l2(self.config_dict['l2_weight'])
+        expanded_mask = tf.keras.layers.Input(shape=(1, 1, self.config_dict['video_pad_length']))
+    
+        transformer_model = transformer.Transformer(self.config_dict)
+        encoded_feats = transformer_model.encoder(input_features, expanded_mask)
+        # decoder_output = transformer_model(input_features, input_preds, expanded_mask)
+        # encoded_feats = tf.keras.layers.Flatten()(encoded_feats)
+        feats_logits = tf.keras.layers.Dense(units=self.config_dict['nb_labels'])(encoded_feats)
+        # feats_logits = tf.keras.layers.Dense(units=self.config_dict['nb_labels'])(decoder_output)
+        feats_pred = Activation('softmax')(feats_logits)
         
-        # FEATURES
+        # The decoder output is logits 
+        
         # feature_enc1 = tf.keras.layers.GRU(
         #     self.config_dict['nb_units_1'],
-        #     kernel_regularizer=reg,
-        #     recurrent_regularizer=reg,
         #     return_sequences=True)
-        feature_enc1 = tf.keras.layers.GRU(
-            self.config_dict['nb_units_1'],
-            return_sequences=True)
-        # feature_enc11 = tf.keras.layers.GRU(
-        #     self.config_dict['nb_units_2'], return_sequences=True)
-        feature_enc2 = tf.keras.layers.GRU(
-            self.config_dict['nb_labels'], return_sequences=True)
 
-        x = feature_enc1(input_features)
-        if training:
-            x = Dropout(self.config_dict['dropout_2'])(x)
-        # x = feature_enc11(x)
-        x = feature_enc2(x)
+        # feature_enc2 = tf.keras.layers.GRU(
+        #     self.config_dict['nb_labels'], return_sequences=True)
+
+        # # x = feature_enc1(input_features)
+        # # if training:
+        # #     x = Dropout(self.config_dict['dropout_2'])(x)
+        # # # x = feature_enc11(x)
+        # x = feature_enc2(input_features)
         
         # PREDS
-        preds_enc = tf.keras.layers.GRU(
-            self.config_dict['nb_labels'], return_sequences=True)
+        # preds_enc = tf.keras.layers.GRU(
+        #     self.config_dict['nb_labels'], return_sequences=True)
 
-        preds = preds_enc(input_preds)
+        # x = preds_enc(input_preds)
+        # x = input_preds
         
-        if self.config_dict['merge_attn'] == 'mult':
-            x = tf.keras.layers.multiply([x, preds])
-        if self.config_dict['merge_attn'] == 'add':
-            x = tf.keras.layers.add([x, preds])
+        # if self.config_dict['merge_attn'] == 'mult':
+        #     x = tf.keras.layers.multiply([x, preds])
+        # if self.config_dict['merge_attn'] == 'add':
+        #     x = tf.keras.layers.add([x, preds])
 
-        x = tf.keras.layers.BatchNormalization()(x, training=training)
+        # x = tf.keras.layers.BatchNormalization()(x, training=training)
         # x = tf.keras.layers.GlobalMaxPooling1D()(x)
         # x = tf.keras.layers.GlobalAveragePooling1D()(x)
-        # x = tf.keras.layers.Dense(units=self.config_dict['nb_labels'])(x)
-        x = Activation('softmax')(x)
+        # x = Activation('softmax')(x)
 
-        model = tf.keras.Model(inputs=[input_features, input_preds], outputs=[x])
+        model = tf.keras.Model(inputs=[input_features, input_preds, mask, expanded_mask], outputs=[feats_pred])
         model.summary()
 
         return model

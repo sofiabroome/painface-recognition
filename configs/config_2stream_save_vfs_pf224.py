@@ -26,8 +26,8 @@ config_dict = {
     'pixel_mean': pixel_means.pf_rgb['mean'],
     'pixel_std': pixel_means.pf_rgb['std'],
     'checkpoint': 'models/pf224_115epochs/169250_last_model_2stream_5d_add.ckpt',
-    'clip_features_path': 'models/pf224_115epochs/169250_pf_saved_features_15680dims.npz',
-    'save_video_features_folder': 'pf/video_level_features_169250_115ep_15680dim_zeropad266_noresample/',
+    'clip_features_path': 'models/pf224_115epochs/169250_pf_saved_features_320dims.npz',
+    'save_video_features_folder': 'pf/video_level_features_169250_115ep_320dim_zeropad266_noresample/',
     # Model
     'model': '2stream_5d_add',
     'rgb_period': 1,  # Set to 10 if simonyan-like model
@@ -45,7 +45,7 @@ config_dict = {
     'return_last_clstm': True,
     # Model for video level features
     'video_features_model': 'video_level_network',
-    'feature_dim': 15680,
+    'feature_dim': 320,
     'nb_layers': 1,
     'nb_units_1': 8,
     'nb_units_2': 8,

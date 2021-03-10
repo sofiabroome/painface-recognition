@@ -1,7 +1,9 @@
 import tensorflow as tf
+import numpy as np
 
-# Encoder, decoder and mh-attention classes from
+# Encoder, decoder and mh-attention classes modified from
 # https://trungtran.io/2019/04/29/create-the-transformer-with-tensorflow-2-0/
+# Positional encoding from https://www.tensorflow.org/tutorials/text/transformer
 
 
 class MultiHeadAttention(tf.keras.Model):
@@ -82,15 +84,16 @@ class MultiHeadAttention(tf.keras.Model):
 
 
 class Encoder(tf.keras.Model):
-    def __init__(self, vocab_size, model_size, num_layers, h):
+    def __init__(self, vocab_size, model_size, num_layers, h, rate, maximum_position_encoding):
         super(Encoder, self).__init__()
         self.model_size = model_size
         self.num_layers = num_layers
         self.h = h
         
         # One Embedding layer
-        self.embedding = tf.keras.layers.Embedding(vocab_size, model_size)
         self.my_embedding = tf.keras.layers.Dense(model_size)
+        self.pos_encoding = positional_encoding(maximum_position_encoding, 
+                                                self.model_size)
         
         # num_layers Multi-Head Attention and Normalization layers
         self.attention = [MultiHeadAttention(model_size, h) for _ in range(num_layers)]
@@ -101,7 +104,10 @@ class Encoder(tf.keras.Model):
         self.dense_2 = [tf.keras.layers.Dense(model_size) for _ in range(num_layers)]
         self.ffn_norm = [tf.keras.layers.BatchNormalization() for _ in range(num_layers)]
 
-    def call(self, sequence, padding_mask):
+        self.dropout_1 = tf.keras.layers.Dropout(rate)
+        self.dropout_2 = tf.keras.layers.Dropout(rate)
+
+    def call(self, sequence, padding_mask, training):
         # sub_in = []
         # for i in range(sequence.shape[1]):
         #     # Compute the embedded vector
@@ -114,11 +120,13 @@ class Encoder(tf.keras.Model):
         # # Concatenate the result so that the shape is (batch_size, length, model_size)
         # sub_in = tf.concat(sub_in, axis=1)
         sub_in = self.my_embedding(sequence)
+        sub_in += self.pos_encoding
         # sub_in = sequence
         
         # We will have num_layers of (Attention + FFN)
         for i in range(self.num_layers):
             sub_out = self.attention[i](sub_in, sub_in, padding_mask)
+            sub_out = self.dropout_1(sub_out, training=training)
 
             # Residual connection
             sub_out = sub_in + sub_out
@@ -129,6 +137,8 @@ class Encoder(tf.keras.Model):
             ffn_in = sub_out
 
             ffn_out = self.dense_2[i](self.dense_1[i](ffn_in))
+            ffn_out = self.dropout_2(ffn_out, training=training)
+
             # Add the residual connection
             ffn_out = ffn_in + ffn_out
             # Normalize the output
@@ -142,25 +152,34 @@ class Encoder(tf.keras.Model):
 
 
 class Decoder(tf.keras.Model):
-    def __init__(self, vocab_size, model_size, num_layers, h):
+    def __init__(self, vocab_size, model_size, num_layers, h, rate, maximum_position_encoding):
         super(Decoder, self).__init__()
         self.model_size = model_size
         self.num_layers = num_layers
         self.h = h
-        self.embedding = tf.keras.layers.Embedding(vocab_size, model_size)
+        
+        # Embedding
         self.my_embedding = tf.keras.layers.Dense(model_size)
+        self.pos_encoding = positional_encoding(maximum_position_encoding, 
+                                                self.model_size)
+        # Attention layers
         self.attention_bot = [MultiHeadAttention(model_size, h) for _ in range(num_layers)]
         self.attention_bot_norm = [tf.keras.layers.BatchNormalization() for _ in range(num_layers)]
         self.attention_mid = [MultiHeadAttention(model_size, h) for _ in range(num_layers)]
         self.attention_mid_norm = [tf.keras.layers.BatchNormalization() for _ in range(num_layers)]
-        
+       
+        # Dense layers 
         self.dense_1 = [tf.keras.layers.Dense(model_size * 4, activation='relu') for _ in range(num_layers)]
         self.dense_2 = [tf.keras.layers.Dense(model_size) for _ in range(num_layers)]
         self.ffn_norm = [tf.keras.layers.BatchNormalization() for _ in range(num_layers)]
         
         self.dense = tf.keras.layers.Dense(vocab_size)
 
-    def call(self, target_sequence, encoder_output, padding_mask):
+        self.dropout_1 = tf.keras.layers.Dropout(rate)
+        self.dropout_2 = tf.keras.layers.Dropout(rate)
+        self.dropout_3 = tf.keras.layers.Dropout(rate)
+
+    def call(self, target_sequence, encoder_output, padding_mask, training):
         # EMBEDDING AND POSITIONAL EMBEDDING
         # embed_out = []
         # for i in range(target_sequence.shape[1]):
@@ -173,12 +192,15 @@ class Decoder(tf.keras.Model):
 
         # The target sequence is (bs, seqlength, 2), need it to have model_size as last.
         bot_sub_in = self.my_embedding(target_sequence)
+        bot_sub_in += self.pos_encoding
 
         for i in range(self.num_layers):
             # BOTTOM MULTIHEAD SUB LAYER
             seq_len = bot_sub_in.shape[1]
             look_left_only_mask = tf.linalg.band_part(tf.ones((seq_len, seq_len)), -1, 0)
             bot_sub_out = self.attention_bot[i](bot_sub_in, bot_sub_in, look_left_only_mask)
+            # bot_sub_out = self.attention_bot[i](bot_sub_in, bot_sub_in, padding_mask)
+            bot_sub_out = self.dropout_1(bot_sub_out, training=training)
             bot_sub_out = bot_sub_in + bot_sub_out
             bot_sub_out = self.attention_bot_norm[i](bot_sub_out)
             
@@ -186,6 +208,7 @@ class Decoder(tf.keras.Model):
             mid_sub_in = bot_sub_out
             
             mid_sub_out = self.attention_mid[i](mid_sub_in, encoder_output, padding_mask)
+            mid_sub_out = self.dropout_2(mid_sub_out, training=training)
             mid_sub_out = mid_sub_out + mid_sub_in
             mid_sub_out = self.attention_mid_norm[i](mid_sub_out)
 
@@ -193,6 +216,7 @@ class Decoder(tf.keras.Model):
             ffn_in = mid_sub_out
 
             ffn_out = self.dense_2[i](self.dense_1[i](ffn_in))
+            ffn_out = self.dropout_3(ffn_out, training=training)
             ffn_out = ffn_out + ffn_in
             ffn_out = self.ffn_norm[i](ffn_out)
 
@@ -215,15 +239,38 @@ class Transformer(tf.keras.Model):
         self.encoder = Encoder(vocab_size=config_dict['feature_dim'],
                                model_size=config_dict['model_size'],
                                num_layers=config_dict['nb_layers_enc'],
-                               h=config_dict['nb_heads_enc'])
+                               h=config_dict['nb_heads_enc'],
+                               rate=config_dict['dropout_1'],
+                               maximum_position_encoding=config_dict['video_pad_length'])
         self.decoder = Decoder(vocab_size=config_dict['nb_labels'],
                                model_size=config_dict['model_size'],
                                num_layers=config_dict['nb_layers_dec'],
-                               h=config_dict['nb_heads_dec'])
+                               h=config_dict['nb_heads_dec'],
+                               rate=config_dict['dropout_1'],
+                               maximum_position_encoding=config_dict['video_pad_length'])
 
-    def call(self, input_features, target_sequence, mask):
-        encoder_output = self.encoder(input_features, mask)
-        decoder_output = self.decoder(target_sequence, encoder_output, mask)
+    def call(self, input_features, target_sequence, mask, training):
+        encoder_output = self.encoder(input_features, mask, training)
+        decoder_output = self.decoder(target_sequence, encoder_output, mask, training)
         return decoder_output
 
 
+def positional_encoding(position, d_model):
+    angle_rads = get_angles(np.arange(position)[:, np.newaxis],
+                            np.arange(d_model)[np.newaxis, :],
+                            d_model)
+  
+    # apply sin to even indices in the array; 2i
+    angle_rads[:, 0::2] = np.sin(angle_rads[:, 0::2])
+  
+    # apply cos to odd indices in the array; 2i+1
+    angle_rads[:, 1::2] = np.cos(angle_rads[:, 1::2])
+  
+    pos_encoding = angle_rads[np.newaxis, ...]
+  
+    return tf.cast(pos_encoding, dtype=tf.float32)
+
+
+def get_angles(pos, i, d_model):
+    angle_rates = 1 / np.power(10000, (2 * (i//2)) / np.float32(d_model))
+    return pos * angle_rates
