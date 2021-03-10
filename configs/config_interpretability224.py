@@ -8,7 +8,7 @@ config_dict = {
     'get_raw_sequence_data': True,
     'inference_only': False,
     'fine_tune': False,
-    'save_features': False,
+    'save_features': True,
     'save_features_per_video': False,
     'video_level_mode': False,
     'train_video_level_features': False,
@@ -79,7 +79,7 @@ config_dict = {
     'inference_only': True,
     'normalization_mode': 'sequence',  # 'frame' | 'sequence'
     'temporal_mask_type': 'freeze',
-    'nb_iterations_graddescent': 25,
+    'nb_iterations_graddescent': 1,
     'focus_type': 'guessed',
     'lambda_1': 1,
     'lambda_2': 0.02,
