@@ -197,9 +197,9 @@ class Decoder(tf.keras.Model):
         for i in range(self.num_layers):
             # BOTTOM MULTIHEAD SUB LAYER
             seq_len = bot_sub_in.shape[1]
-            look_left_only_mask = tf.linalg.band_part(tf.ones((seq_len, seq_len)), -1, 0)
-            bot_sub_out = self.attention_bot[i](bot_sub_in, bot_sub_in, look_left_only_mask)
-            # bot_sub_out = self.attention_bot[i](bot_sub_in, bot_sub_in, padding_mask)
+            # look_left_only_mask = tf.linalg.band_part(tf.ones((seq_len, seq_len)), -1, 0)
+            # bot_sub_out = self.attention_bot[i](bot_sub_in, bot_sub_in, look_left_only_mask)
+            bot_sub_out = self.attention_bot[i](bot_sub_in, bot_sub_in, padding_mask)
             bot_sub_out = self.dropout_1(bot_sub_out, training=training)
             bot_sub_out = bot_sub_in + bot_sub_out
             bot_sub_out = self.attention_bot_norm[i](bot_sub_out)

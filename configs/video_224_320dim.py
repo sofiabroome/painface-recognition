@@ -28,6 +28,7 @@ config_dict = {
     'checkpoint': 'models/206260_last_model_video_level_preds_attn_gru_network.ckpt',
     'save_video_features_folder': 'lps/video_level_features_320dim_noresample/',
     'tfr_file': 'tfrecords/pflps_video_level_features_169250_320dim_zeropad266_noresample/videofeats_2stream_flat',
+    'minor_class_weight': 62/38,
     # Model
     'model': '2stream_5d_add',
     'rgb_period': 1,  # Set to 10 if simonyan-like model
@@ -45,17 +46,18 @@ config_dict = {
     'return_last_clstm' : True,
     'model_size': 64,
     # Model for videolevel features
-    'video_features_model' : 'video_level_network',
+    # 'video_features_model' : 'video_level_network',
     # 'video_features_model' : 'video_fc_model',
     # 'video_features_model' : 'video_conv_seq_model',
     # 'video_loss' : 'cross_entropy',
-    # 'video_features_model' : 'video_level_preds_attn_gru_network',
+    'video_features_model' : 'video_level_preds_attn_gru_network',
     # 'video_features_model': 'transformer',
     'merge_attn': 'add',
-    'mil_version' : 'mil_both',  # 'mil_pain'|'mil_both'
+    'mil_version' : 'mil_pain',  # 'mil_pain'|'mil_both'
     'label_smoothing': 0,
     # 'video_features_model' : 'video_level_mil_feats_preds',
-    'video_loss' : 'mil',  # 'mil' | 'mil_ce' | 'cross_entropy' | 'pseudo_labels'
+    'video_loss' : 'cross_entropy_scores',  # 'mil' | 'mil_ce' | 'cross_entropy' | 'pseudo_labels' | 'cross_entropy_scores'
+    # 'video_loss' : 'pseudo_labels',  # 'mil' | 'mil_ce' | 'cross_entropy' | 'pseudo_labels' | 'cross_entropy_scores'
     'nb_layers' : 1,
     'nb_units_1' : 64,
     'nb_units_2' : 32,
@@ -64,18 +66,18 @@ config_dict = {
     'video_batch_size_train' : 20,
     'video_batch_size_test' : 1,
     'video_pad_length' : 266,
-    'video_nb_epochs': 600,
-    'video_early_stopping': 150,
+    'video_nb_epochs': 1000,
+    'video_early_stopping': 200,
     'shuffle_buffer': 150,
     'k_mil_fraction': 0.5,  # This is to be updated using below params
-    'k_mil_fraction_start': 0.5,
-    'k_mil_fraction_end': 0.05,
+    'k_mil_fraction_start': 0.01,
+    'k_mil_fraction_end': 0.01,
     'k_mil_fraction_decrement_step': 0.05,
     'k_mil_fraction_nb_epochs_to_decrease': 1,
     'tv_weight_pain': 0,
-    'tv_weight_nopain': 0,
-    'minor_class_weight': True,
-    'l1_nopain': False,
+    'tv_weight_nopain': 0.1,
+    'do_minor_class_weight': True,
+    'l1_nopain': True,
     'l2_weight': 0,
     'mc_dropout_samples': 1,
     # Transformer settings
@@ -93,7 +95,7 @@ config_dict = {
     'return_sequences' : [True, True, True, True],
     'only_last_element_for_fc' : 'no',
     # Training
-    'optimizer': 'adam_warmup_decay',  # 'rmsprop_lrdecay' | 'rmsprop' | 'adam' | 'adam_warmup_decay'
+    'optimizer': 'rmsprop_lrdecay',  # 'rmsprop_lrdecay' | 'rmsprop' | 'adam' | 'adam_warmup_decay' | 'SGD'
     'lr': 0.00001,
     'nb_epochs': 2,
     'early_stopping': 15,

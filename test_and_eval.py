@@ -257,31 +257,34 @@ def evaluate_on_video_level(config_dict, model, model_path, test_dataset,
     if config_dict['inference_only']:
         model.load_weights(model_path).expect_partial()
     else:
-        model.load_weights(model_path)
+        model.load_weights(model_path).expect_partial()
 
     @tf.function
     def test_step(x, transferred_preds, y, lengths, mask):
+        expanded_mask = tf.expand_dims(mask[:,:,0], axis=1)
+        expanded_mask = tf.expand_dims(expanded_mask, axis=1)
         if config_dict['video_loss'] == 'cross_entropy':
             preds = model([x, transferred_preds], training=False)
+        if config_dict['video_loss'] == 'cross_entropy_scores':
+            preds_seq = model([x, transferred_preds, mask, expanded_mask], training=True)
+            preds = train.get_scores_per_class(preds_seq, config_dict)
         if config_dict['video_loss'] == 'mil':
             preds_seqs = []
             for i in range(config_dict['mc_dropout_samples']):
                 training = False if config_dict['mc_dropout_samples'] == 1 else True
+                pseudo_labels = 1/2 * tf.cast(y, dtype=tf.float32) + 1/2 * transferred_preds
                 if 'transformer' in config_dict['video_features_model']:
-                    expanded_mask = tf.expand_dims(mask[:,:,0], axis=1)
-                    expanded_mask = tf.expand_dims(expanded_mask, axis=1)
                     preds_seq = model([x, transferred_preds, expanded_mask], training=training)
                 else:
                     # preds_seq = model([x, transferred_preds, mask], training=False)
-                    preds_seq = model([x, transferred_preds], training=True)
+                    preds_seq = model([x, transferred_preds, mask, expanded_mask], training=training)
+                    # preds_seq = model([x, transferred_preds], training=True)
                 preds_seq *= mask
                 preds_seqs.append(preds_seq)
             preds_seq = tf.math.reduce_mean(preds_seqs, axis=0)
             preds_mil = train.get_k_max_scores_per_class(preds_seq, lengths, config_dict)
             preds = preds_mil
         if config_dict['video_loss'] == 'pseudo_labels':
-            expanded_mask = tf.expand_dims(mask[:, :, 0], axis=1)
-            expanded_mask = tf.expand_dims(expanded_mask, axis=1)
             if 'transformer' in config_dict['video_features_model']:
                 preds_seq = model([x, transferred_preds, expanded_mask], training=False)
             else:
@@ -290,9 +293,8 @@ def evaluate_on_video_level(config_dict, model, model_path, test_dataset,
             preds_seq *= mask
             # preds = train.get_k_max_scores_per_class(preds_seq, lengths, config_dict)
             preds = train.get_scores_per_class(preds_seq, config_dict)
+            preds = 1/2 * preds + 1/2 * train.get_k_max_scores_per_class(transferred_preds, lengths, config_dict)
         if config_dict['video_loss'] == 'mil_ce':
-            expanded_mask = tf.expand_dims(mask[:,:,0], axis=1)
-            expanded_mask = tf.expand_dims(expanded_mask, axis=1)
             preds_seq, preds_one = model([x, transferred_preds, mask, expanded_mask], training=False)
             preds_seq *= mask
             preds_mil = train.get_k_max_scores_per_class(preds_seq, lengths, config_dict)
@@ -314,9 +316,9 @@ def evaluate_on_video_level(config_dict, model, model_path, test_dataset,
             if config_dict['video_batch_size_test'] == 1:
                 video_id = video_id.numpy()[0].decode('utf-8') 
                 print('\nVideo ID being tested: ', video_id)
-                # if video_id in ['H_20190105_IND2_STA_2', 'I_20190331_IND4_STA_2', 'J_20190331_IND7_STA_1',
-                #                 'J_20190329_IND1_STA_2', 'K_20181208_IND1_STA_1', 'K_20181208_IND1_STA_2']:
-                #     continue
+                if video_id in ['H_20190105_IND2_STA_2', 'I_20190331_IND4_STA_2', 'J_20190331_IND7_STA_1',
+                                'J_20190329_IND1_STA_2', 'K_20181208_IND1_STA_1', 'K_20181208_IND1_STA_2']:
+                    continue
             mask_batch, lengths_batch = train.get_mask_and_lengths(labels_batch)
             # print('\n Video ID: ', video_id)
             preds, y = test_step(feats_batch, preds_batch, labels_batch, lengths_batch, mask_batch)
