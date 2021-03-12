@@ -155,14 +155,16 @@ if __name__ == '__main__':
     # str_csv = 'data/lps/interpretability_results/top_k/A_20190104_IND3_STA_2/top_3_pain.csv'
     all_subjects_df = pd.read_csv('../metadata/horse_subjects.csv')
     data_columns = ['pain', 'observer']
+    data_root = '/Midgard/Data/sbroome/painface-recognition/' 
+    # data_root = '../data/' 
 
-    clip_csv_path = '../data/lps/random_clips_lps/ground_truth_randomclips_lps.csv'
+    clip_csv_path = os.path.join(data_root, 'lps/random_clips_lps/ground_truth_randomclips_lps.csv')
     df_clip_csv = pd.read_csv(clip_csv_path)
 
     print('just tests')
     fps = 2
-    frames_path = '../data/lps/random_clips_lps/jpg_224_224_{}fps/'.format(fps)
-    flow_frames_path = '../data/lps/random_clips_lps/jpg_224_224_25fps_OF_magnitude_{}fpsrate/'.format(fps)
+    frames_path = os.path.join(data_root, 'lps/random_clips_lps/jpg_224_224_{}fps/'.format(fps))
+    flow_frames_path = os.path.join(data_root, 'lps/random_clips_lps/jpg_224_224_25fps_OF_magnitude_{}fpsrate/'.format(fps))
 
     frames_csv_path = frames_path + 'test_clip_frames.csv'
     flow_frames_csv_path = flow_frames_path + 'test_clip_frames.csv'

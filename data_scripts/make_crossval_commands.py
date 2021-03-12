@@ -13,7 +13,7 @@ def get_train_test(dataset, avoid_sir_holger):
                       'kastanjett', 'naughty_but_nice', 'sir_holger']
     horses_pf = ['horse_1', 'horse_2', 'horse_3', 'horse_4', 'horse_5', 'horse_6']
     
-    if dataset == 'all':
+    if dataset == 'all' or dataset == 'all224':
         train_horses = horses_lps + horses_pf
         test_horses = horses_lps + horses_pf
     if dataset == 'pf' or dataset == 'pf224':
@@ -31,24 +31,24 @@ def get_train_test(dataset, avoid_sir_holger):
 
 def get_val(dataset, test_subject):
 
-    if dataset == 'all':
-        val_horses = ['kastanjett', 'horse_5']
+    if dataset == 'all' or dataset == 'all224':
+        val_horses = ['naughty_but_nice', 'horse_5']
         if test_subject == 'horse_5':
-            val_horses = ['kastanjett', 'horse_1']
-        if test_subject == 'kastanjett':
-            val_horses = ['brava', 'horse_5']
+            val_horses = ['naughty_but_nice', 'horse_1']
+        if test_subject == 'naughty_but_nice':
+            val_horses = ['herrera', 'horse_5']
     if dataset == 'pf' or dataset == 'pf224':
         val_horses = ['horse_5']
         if test_subject == 'horse_5':
             val_horses = ['horse_1']
     if dataset == 'lps' or dataset == 'lps224':
-        val_horses = ['kastanjett']
-        if test_subject == 'kastanjett':
-            val_horses = ['brava']
+        val_horses = ['naughty_but_nice']
+        if test_subject == 'naughty_but_nice':
+            val_horses = ['herrera']
     if dataset == 'lps_pftrain' or dataset == 'lps_pftrain_224':
-        val_horses = ['kastanjett']
-        if test_subject == 'kastanjett':
-            val_horses = ['brava']
+        val_horses = ['naughty_but_nice']
+        if test_subject == 'naughty_but_nice':
+            val_horses = ['herrera']
 
     return val_horses
 
@@ -126,8 +126,9 @@ if __name__=='__main__':
     # dataset_str = 'pf'
     # dataset_str = 'pf224'
     # dataset_str = 'lps'
-    dataset_str = 'lps224'
+    # dataset_str = 'lps224'
     # dataset_str = 'all'
+    dataset_str = 'all224'
     # dataset_str = 'lps_pftrain'
     # dataset_str = 'lps_pftrain_224'
 
@@ -147,10 +148,10 @@ if __name__=='__main__':
         config_file = 'configs/config_i3d_pf.py'
 
     # # VIDEO LEVEL uncomment these 3 lines
-    job_str = 'best'
+    # job_str = 'video_224_320dim'
     # config_file = 'configs/{}.py'.format(job_str)
-    config_file = 'configs/config_videolevel_224.py'
-    job_name = 'configs_to_run_{}_{}_videofeats'.format(dataset_str, job_str)
+    # # config_file = 'configs/gru_224.py'
+    # job_name = 'configs_to_run_val_nbn{}_{}_videofeats'.format(dataset_str, job_str)
     
     # UNTRAINED uncomment these 2 lines
     # config_file = 'configs/config_video_level_training_untrained_pftrain.py'
@@ -161,7 +162,7 @@ if __name__=='__main__':
     # job_name = 'configs_to_run_{}_videofeats_i3d_pftrain'.format(dataset_str)
 
     # DENSE SUPERVISION uncomment the line below
-    # job_name = 'configs_to_run_{}_{}_crossval'.format(model, dataset_str)
+    job_name = 'configs_to_run_{}_{}_crossval'.format(model, dataset_str)
     
     config_dict_module = helpers.load_module('../' + config_file)
     config_dict = config_dict_module.config_dict

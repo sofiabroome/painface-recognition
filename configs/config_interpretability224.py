@@ -1,7 +1,8 @@
 import configs.pixel_means as pixel_means
 
 # data_path = '/local_storage/users/sbroome/painface-recognition/'
-data_path = '../data/'
+# data_path = '../data/'
+data_path = '/Midgard/Data/sbroome/painface-recognition/'
 
 config_dict = {
     # Program components
@@ -47,7 +48,8 @@ config_dict = {
     'nb_epochs': 100,
     'early_stopping': 15,
     'optimizer': 'adadelta',
-    'lr': 0.1,
+    'lr': 0.01,
+    'lr_decay_steps': 75,
     'round_to_batch': True,
     'seq_length': 10,
     'seq_stride': 10,
@@ -79,10 +81,11 @@ config_dict = {
     'inference_only': True,
     'normalization_mode': 'sequence',  # 'frame' | 'sequence'
     'temporal_mask_type': 'freeze',
-    'nb_iterations_graddescent': 1,
+    'nb_iterations_graddescent': 600,
     'focus_type': 'guessed',
-    'lambda_1': 1,
-    'lambda_2': 0.02,
+    'init_mode': 'central',
+    'lambda_1': 0,
+    'lambda_2': 0,
     'tv_norm_p': 3,
     'tv_norm_q': 3,
     'verbose': True,

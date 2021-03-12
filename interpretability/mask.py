@@ -133,7 +133,7 @@ def perturb_sequence(seq, mask, perturbation_type='freeze', snap_values=False):
     return perturbed_seq
 
 
-def init_mask(seq, target, model, config_dict, thresh=0.9, mode="central"):
+def init_mask(seq, target, model, config_dict, thresh=0.9):
     """
     Initiaizes the first value of the mask where the gradient descent
     methods for finding the masks starts. Central finds the smallest
@@ -154,7 +154,7 @@ def init_mask(seq, target, model, config_dict, thresh=0.9, mode="central"):
             score, _ = model(perturb_sequence(x, mask))
         return score
 
-    if mode == 'random':
+    if config_dict['init_mode'] == 'random':
         mask_init_length = 3
         mask = np.ones(config_dict['seq_length'])
         last_valid_start = config_dict['seq_length']-mask_init_length
@@ -162,7 +162,7 @@ def init_mask(seq, target, model, config_dict, thresh=0.9, mode="central"):
         mask[:start_index] = 0
         mask[start_index+mask_init_length:] = 0
 
-    if mode == 'central':
+    if config_dict['init_mode'] == 'central':
 
         # get the class score for the fully perturbed sequence
         full_pert_score = perturb_one_or_two_streams(seq, np.ones(config_dict['seq_length'], dtype='float32'))

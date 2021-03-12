@@ -23,10 +23,16 @@ def run():
     model = models.MyModel(config_dict=config_dict).model
     model.load_weights(config_dict['checkpoint']).expect_partial()
 
-    optimizer = tf.keras.optimizers.Adam(
-        learning_rate=config_dict['lr'])
+    lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
+        config_dict['lr'],
+        decay_steps=config_dict['lr_decay_steps'],
+        decay_rate=0.96,
+        staircase=True)
 
-    gt_human_clips_lps_path = '../data/lps/random_clips_lps/ground_truth_randomclips_lps.csv'
+    optimizer = tf.keras.optimizers.Adam(
+        learning_rate=lr_schedule)
+
+    gt_human_clips_lps_path = '/Midgard/Data/sbroome/painface-recognition/lps/random_clips_lps/ground_truth_randomclips_lps.csv'
     gt_human_clips_df = pd.read_csv(gt_human_clips_lps_path)
 
     results_list = []
@@ -66,7 +72,7 @@ def run():
 
         # The mask is what we optimize over
         mask_var = tf.Variable(
-            mask.init_mask(input_var, label, model, config_dict, thresh=0.9, mode="random"),
+            mask.init_mask(input_var, label, model, config_dict, thresh=0.9),
             name='mask',
             trainable=True,
             dtype=tf.float32)
