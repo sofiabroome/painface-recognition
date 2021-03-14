@@ -161,9 +161,12 @@ class MyModel(tf.keras.Model):
         # Classification block
         print('\nCLASSIFICATION HEAD SHAPES: ')
         print(x.shape)
-        # x = AveragePooling3D((2, 7, 7), strides=(1, 1, 1), padding='valid', name='global_avg_pool')(x)
-        x = AveragePooling3D((2, 4, 4), strides=(1, 1, 1), padding='valid',
-            name='global_avg_pool_{}'.format(name_str))(x)
+        if self.height == 224:
+            x = AveragePooling3D((2, 7, 7), strides=(1, 1, 1), padding='valid',
+                name='global_avg_pool_{}'.format(name_str))(x)
+        if self.height == 128:
+            x = AveragePooling3D((2, 4, 4), strides=(1, 1, 1), padding='valid',
+                name='global_avg_pool_{}'.format(name_str))(x)
         print(x.shape)
         x = Dropout(dropout_prob)(x)
         x = i3d.conv3d_bn(x, classes, 1, 1, 1, padding='same', 
