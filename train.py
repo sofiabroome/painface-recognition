@@ -63,6 +63,8 @@ def train(model_instance, config_dict, train_steps, val_steps,
         low_level_train(model_instance.model, best_model_path, last_model_path,
                         optimizer, config_dict, train_steps,
                         val_steps, train_dataset, val_dataset)
+        if config_dict['val_mode'] == 'no_val':
+            best_model_path = last_model_path
 
     return best_model_path
 
@@ -713,6 +715,13 @@ def low_level_train(model, ckpt_path, last_ckpt_path, optimizer,
     val_acc_metric = tf.keras.metrics.BinaryAccuracy()
     val_acc_old = -1
 
+    if config_dict['fine_tune'] and config_dict['model'] == '2stream_5d_add':
+        for ind, l in enumerate(model.layers):
+            if 'sequential' in l.name:
+                model.layers[ind].trainable = False
+        print(model.summary())
+
+
     @tf.function
     def train_step(x, y):
         with tf.GradientTape() as tape:
@@ -733,6 +742,7 @@ def low_level_train(model, ckpt_path, last_ckpt_path, optimizer,
     epochs_not_improved = 0
     print('\n Saving checkpoint to {} before first epoch'.format(last_ckpt_path))
     model.save_weights(last_ckpt_path)
+
     for epoch in range(config_dict['nb_epochs']):
         print('\nStart of epoch %d' % (epoch,))
         wandb.log({'epoch': epoch})
@@ -794,6 +804,8 @@ def low_level_train(model, ckpt_path, last_ckpt_path, optimizer,
             if val_acc > val_acc_old:
                 print('The validation acc improved, saving checkpoint...')
                 model.save_weights(ckpt_path)
+                wandb.log({'best_val': val_acc})
+                wandb.log({'best_epoch': epoch})
                 print('Resetting epochs not improved.')
                 epochs_not_improved = 0
                 val_acc_old = val_acc
