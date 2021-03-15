@@ -126,9 +126,9 @@ if __name__=='__main__':
     # dataset_str = 'pf'
     # dataset_str = 'pf224'
     # dataset_str = 'lps'
-    # dataset_str = 'lps224'
+    dataset_str = 'lps224'
     # dataset_str = 'all'
-    dataset_str = 'all224'
+    # dataset_str = 'all224'
     # dataset_str = 'lps_pftrain'
     # dataset_str = 'lps_pftrain_224'
 
@@ -137,15 +137,21 @@ if __name__=='__main__':
     nb_reps = 5
 
     # model = 'i3d_2stream'
-    model = '2stream'
+    model = 'i3d_2stream_finetune'
+    # model = '2stream'
+    # model = '2stream_finetune'
     # model = 'clstm1'
 
     if model == '2stream':
         config_file = 'configs/config_2stream_{}.py'.format(dataset_str)
+    if model == '2stream_finetune':
+        config_file = 'configs/config_2stream_{}finetune.py'.format(dataset_str)
+    if model == 'i3d_2stream':
+        config_file = 'configs/config_i3d_{}.py'.format(dataset_str)
+    if model == 'i3d_2stream_finetune':
+        config_file = 'configs/config_i3d_{}finetune.py'.format(dataset_str)
     if model == 'clstm1':
         config_file = 'configs/config_clstm.py'
-    if model == 'i3d_2stream':
-        config_file = 'configs/config_i3d_pf.py'
 
     # # VIDEO LEVEL uncomment these 3 lines
     # job_str = 'video_224_320dim'
