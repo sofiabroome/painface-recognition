@@ -77,11 +77,18 @@ def run():
             trainable=True,
             dtype=tf.float32)
 
+        mask_clip = tf.Variable(
+            np.ones(config_dict['seq_length']),
+            name='mask_clip',
+            trainable=True,
+            dtype=tf.float32)
+
         @tf.function
         def train_step(x, y):
             with tf.GradientTape() as tape:
                 # The mask should always be "clipped" here.
-                mask_clip = tf.sigmoid(mask_var)
+                # mask_clip = tf.sigmoid(mask_var)
+                mask_clip.assign(tf.sigmoid(mask_var))
                 if config_dict['model'] == '2stream_5d_add':
                     perturbed_rgb = mask.perturb_sequence(x[:, 0, :], mask_clip)
                     perturbed_flow = mask.perturb_sequence(x[:, 1, :], mask_clip)
@@ -105,8 +112,10 @@ def run():
                     mask_clip, config_dict)
                 loss = l1 + tv + class_loss
                 # loss = class_loss
-            gradients = tape.gradient(loss, mask_var)
+            # gradients = tape.gradient(loss, mask_var)
+            gradients = tape.gradient(loss, mask_clip)
             optimizer.apply_gradients(zip([gradients], [mask_var]))
+            # optimizer.apply_gradients(zip([gradients], [mask_clip]))
             return gradients, [loss, l1, tv, class_loss], mask_clip
             # return gradients, [loss, class_loss], mask_var
 
