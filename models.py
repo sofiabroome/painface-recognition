@@ -184,6 +184,10 @@ class MyModel(tf.keras.Model):
         return logits
 
     def i3d_2stream(self, fusion, train=True):
+        if train:
+            dropout_prob = self.dropout_2
+        else:
+            dropout_prob = 0 
 
         rgb_model = i3d.Inception_Inflated3d(
             include_top=False,
@@ -193,7 +197,7 @@ class MyModel(tf.keras.Model):
         input_array = Input(shape=(None, self.config_dict['seq_length'], self.height, self.width, 3))
         encoded_image = rgb_model(input_array[:, 0, :])
         rgb_logits = self.i3d_classification_block(encoded_image,
-            dropout_prob=self.dropout_2, classes=self.nb_labels, name_str='rgb')
+            dropout_prob=dropout_prob, classes=self.nb_labels, name_str='rgb')
 
         flow_model = i3d.Inception_Inflated3d(
             include_top=False,
@@ -202,7 +206,7 @@ class MyModel(tf.keras.Model):
             classes=self.nb_labels)
         encoded_flow = flow_model(input_array[:, 1, :, :, :, :2])
         flow_logits = self.i3d_classification_block(encoded_flow,
-            dropout_prob=self.dropout_2, classes=self.nb_labels, name_str='flow')
+            dropout_prob=dropout_prob, classes=self.nb_labels, name_str='flow')
 
         features = encoded_image + encoded_flow
 

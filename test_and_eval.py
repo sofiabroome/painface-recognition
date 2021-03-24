@@ -205,6 +205,33 @@ def get_per_video_vote(y_pred, y_paths, ground_truth, confidence_threshold=0):
     return majority_votes
 
 
+def get_per_subject_f1(y_pred, y_paths, ground_truth, config_dict):
+    all_subjects_df = pd.read_csv('metadata/horse_subjects.csv')
+    nb_sequences = y_pred.shape[0]
+    per_subject_data = {}
+    for i in range(nb_sequences):
+        seq_path = y_paths[i]
+        video_id = data_handler.get_video_id_from_frame_path(seq_path)
+        subject = all_subjects_df[all_subjects_df['code'] == video_id[0]]['subject'].values[0]
+        subject_preds = per_subject_data.get(subject, {'labels': [], 'preds': []})
+        subject_preds['labels'].append(ground_truth[i])
+        subject_preds['preds'].append(y_pred[i])
+        per_subject_data[subject] = subject_preds
+    
+    per_subject_f1s = {}
+    for subject in per_subject_data:
+        y_test = np.argmax(np.array(per_subject_data[subject]['labels']), axis=1)
+        y_pred = np.argmax(np.array(per_subject_data[subject]['preds']), axis=1)
+        print('Subject: {}, y pred shape: {}'.format(subject, y_pred.shape))
+        cr = classification_report(y_test, y_pred,
+                                   target_names=config_dict['target_names'],
+                                   digits=NB_DECIMALS,
+                                   output_dict=True)
+        per_subject_f1s[subject] = cr['macro avg']['f1-score']
+    return per_subject_f1s
+
+
+
 def compute_video_level_accuracy(majvotes):
     nb_correct = 0
     total = 0
@@ -363,6 +390,7 @@ def run_evaluation(config_dict, model, model_path,
 
     model = model.model
     if config_dict['inference_only']:
+        # model.load_weights(model_path)
         model.load_weights(model_path).expect_partial()
     else:
         model.load_weights(model_path)
@@ -390,6 +418,10 @@ def run_evaluation(config_dict, model, model_path,
             confidence_threshold=confthresh)
 
         compute_video_level_accuracy(majvotes)
+
+    per_subject_f1s = get_per_subject_f1(
+        y_pred=y_preds, y_paths=y_paths, ground_truth=y_test, config_dict=config_dict)
+    print('\n PER SUBJECT f1 scores: \n', per_subject_f1s)
 
     # Take argmax of the probabilities.
     y_preds_argmax = np.argmax(y_preds, axis=1)
