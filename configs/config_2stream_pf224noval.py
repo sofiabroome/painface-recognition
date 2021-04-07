@@ -47,8 +47,8 @@ config_dict = {
     'video_early_stopping': 15,
     'shuffle_buffer': 150,
     # Training
-    'nb_epochs': 75,
-    'early_stopping': 75,
+    'nb_epochs': 115,
+    'early_stopping': 115,
     'optimizer': 'adadelta',
     'lr': 0.001,
     'round_to_batch': True,
