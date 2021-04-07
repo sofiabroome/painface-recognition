@@ -169,19 +169,19 @@ class MyModel(tf.keras.Model):
                 name='global_avg_pool_{}'.format(name_str))(x)
         print(x.shape)
         x = Dropout(dropout_prob)(x)
-        x = i3d.conv3d_bn(x, classes, 1, 1, 1, padding='same', 
+        last_conv = i3d.conv3d_bn(x, classes, 1, 1, 1, padding='same',
             use_bias=True, use_activation_fn=False, use_bn=False,
             name='Conv3d_6a_1x1_{}'.format(name_str))
-        print(x.shape)
+        print(last_conv.shape)
  
-        num_frames_remaining = int(x.shape[1])
+        num_frames_remaining = int(last_conv.shape[1])
         print('num_frames_remaining :', num_frames_remaining)
-        x = Reshape((num_frames_remaining, classes))(x)
+        x = Reshape((num_frames_remaining, classes))(last_conv)
 
         # logits (raw scores for each class)
         logits = Lambda(lambda x: K.mean(x, axis=1, keepdims=False),
                    output_shape=lambda s: (s[0], s[2]))(x)
-        return logits
+        return logits, last_conv
 
     def i3d_2stream(self, fusion, train=True):
 
@@ -192,7 +192,7 @@ class MyModel(tf.keras.Model):
             classes=self.nb_labels)
         input_array = Input(shape=(None, self.config_dict['seq_length'], self.height, self.width, 3))
         encoded_image = rgb_model(input_array[:, 0, :])
-        rgb_logits = self.i3d_classification_block(encoded_image,
+        rgb_logits, rgb_last_conv = self.i3d_classification_block(encoded_image,
             dropout_prob=self.dropout_2, classes=self.nb_labels, name_str='rgb')
 
         flow_model = i3d.Inception_Inflated3d(
@@ -201,9 +201,10 @@ class MyModel(tf.keras.Model):
             input_shape=(self.config_dict['seq_length'], self.height, self.width, 2),
             classes=self.nb_labels)
         encoded_flow = flow_model(input_array[:, 1, :, :, :, :2])
-        flow_logits = self.i3d_classification_block(encoded_flow,
+        flow_logits, flow_last_conv = self.i3d_classification_block(encoded_flow,
             dropout_prob=self.dropout_2, classes=self.nb_labels, name_str='flow')
 
+        # features = rgb_last_conv + flow_last_conv
         features = encoded_image + encoded_flow
 
         logits = rgb_logits + flow_logits  # How it's done in the deepmind repo.
