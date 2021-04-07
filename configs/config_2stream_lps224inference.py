@@ -24,10 +24,10 @@ config_dict = {
     'pixel_mean': pixel_means.lps_rgb['mean'],
     'pixel_std': pixel_means.lps_rgb['std'],
     # 'checkpoint': 'models/211721_best_model_2stream_5d_add.ckpt',
-    'checkpoint': 'models/212036_last_model_i3d_2stream.ckpt',
+    # 'checkpoint': 'models/212036_last_model_i3d_2stream.ckpt',
+    'checkpoint': 'models/pf224_115epochs/169250_last_model_2stream_5d_add.ckpt',
     # Model
-    # 'model': '2stream_5d_add',
-    'model': 'i3d_2stream',
+    'model': '2stream_5d_add',
     # 'model': 'convolutional_LSTM',
     'rgb_period': 1,  # Set to 10 if simonyan-like model
     'flow_period': 1,

@@ -24,8 +24,8 @@ config_dict = {
     'pixel_mean': pixel_means.pf_rgb['mean'],
     'pixel_std': pixel_means.pf_rgb['std'],
     # 'checkpoint': 'models/211721_best_model_i3d_2stream.ckpt',
-    'checkpoint': 'models/211966_last_model_i3d_2stream.ckpt',
-    # 'checkpoint': 'models/212036_last_model_i3d_2stream.ckpt',
+    # 'checkpoint': 'models/213601_last_model_i3d_2stream.ckpt',
+    'checkpoint': 'models/213876_last_model_i3d_2stream.ckpt',
     # Model
     'model': 'i3d_2stream',
     'rgb_period': 1,  # Set to 10 if simonyan-like model

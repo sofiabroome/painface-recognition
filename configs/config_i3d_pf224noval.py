@@ -43,8 +43,8 @@ config_dict = {
     'nb_units' : 16,
     'shuffle_buffer': 150,
     # Training
-    'nb_epochs': 115,
-    'early_stopping': 115,
+    'nb_epochs': 200,
+    'early_stopping': 200,
     'optimizer': 'adam',
     'lr': 0.001,
     'round_to_batch': True,
