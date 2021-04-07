@@ -47,7 +47,7 @@ def get_macro_avg_f1_from_confmat(cm):
 
     macro_avg_f1 = (nopain_f1 + pain_f1)/2
 
-    return macro_avg_f1
+    return macro_avg_f1, nopain_f1, pain_f1
 
 nb_pain = int(input('Nb pain: '))
 nb_nopain = int(input('Nb nopain: '))
@@ -57,8 +57,8 @@ print('Best case cm: ', best_case_cm)
 worst_case_cm = construct_random_confusion_matrix(nb_pain, nb_nopain, best_case=False)
 print('Worst case cm: ', worst_case_cm)
 
-best_case_f1 = get_macro_avg_f1_from_confmat(best_case_cm)
-worst_case_f1 = get_macro_avg_f1_from_confmat(worst_case_cm)
+best_case_f1, _, _ = get_macro_avg_f1_from_confmat(best_case_cm)
+worst_case_f1, _, _ = get_macro_avg_f1_from_confmat(worst_case_cm)
 
 print('Best case macro avg F1: ', round(best_case_f1, 4))
 print('Worst case macro avg F1: ', round(worst_case_f1, 4))
