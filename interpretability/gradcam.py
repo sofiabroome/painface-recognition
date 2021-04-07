@@ -32,7 +32,10 @@ def get_gradcam(config_dict, model, input_var, target_index,
 
     gradients = tape.gradient(y_c, conv_output)
 
-    assert (gradients.shape[1] == config_dict['seq_length'])
+    if config_dict['model'] == 'i3d_stream':
+        config_dict['seq_length'] = gradients.shape[1]
+    # else:
+    #     assert (gradients.shape[1] == config_dict['seq_length'])
 
     # Get CAMs (class activation mappings) for all clips
     # and save max for normalization across clip.

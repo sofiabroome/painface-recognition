@@ -32,7 +32,8 @@ def run():
     optimizer = tf.keras.optimizers.Adam(
         learning_rate=lr_schedule)
 
-    gt_human_clips_lps_path = '/Midgard/Data/sbroome/painface-recognition/lps/random_clips_lps/ground_truth_randomclips_lps.csv'
+    # gt_human_clips_lps_path = '/Midgard/Data/sbroome/painface-recognition/lps/random_clips_lps/ground_truth_randomclips_lps.csv'
+    gt_human_clips_lps_path = '../data/lps/random_clips_lps/ground_truth_randomclips_lps.csv'
     gt_human_clips_df = pd.read_csv(gt_human_clips_lps_path)
 
     results_list = []
@@ -77,19 +78,19 @@ def run():
             trainable=True,
             dtype=tf.float32)
 
-        mask_clip = tf.Variable(
-            np.ones(config_dict['seq_length']),
-            name='mask_clip',
-            trainable=True,
-            dtype=tf.float32)
+        # mask_clip = tf.Variable(
+        #     np.ones(config_dict['seq_length']),
+        #     name='mask_clip',
+        #     trainable=True,
+        #     dtype=tf.float32)
 
-        @tf.function
+        # @tf.function
         def train_step(x, y):
             with tf.GradientTape() as tape:
                 # The mask should always be "clipped" here.
-                # mask_clip = tf.sigmoid(mask_var)
-                mask_clip.assign(tf.sigmoid(mask_var))
-                if config_dict['model'] == '2stream_5d_add':
+                mask_clip = tf.sigmoid(mask_var)
+                # mask_clip.assign(tf.sigmoid(mask_var))
+                if config_dict['model'] == '2stream_5d_add' or config_dict['model'] == 'i3d_2stream':
                     perturbed_rgb = mask.perturb_sequence(x[:, 0, :], mask_clip)
                     perturbed_flow = mask.perturb_sequence(x[:, 1, :], mask_clip)
                     concat_streams = tf.concat([perturbed_rgb, perturbed_flow], axis=0)
@@ -112,8 +113,8 @@ def run():
                     mask_clip, config_dict)
                 loss = l1 + tv + class_loss
                 # loss = class_loss
-            # gradients = tape.gradient(loss, mask_var)
-            gradients = tape.gradient(loss, mask_clip)
+            gradients = tape.gradient(loss, mask_var)
+            # gradients = tape.gradient(loss, mask_clip)
             optimizer.apply_gradients(zip([gradients], [mask_var]))
             # optimizer.apply_gradients(zip([gradients], [mask_clip]))
             return gradients, [loss, l1, tv, class_loss], mask_clip

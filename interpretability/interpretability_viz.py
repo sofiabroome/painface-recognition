@@ -80,6 +80,18 @@ def visualize_results_on_gradcam(config_dict, gradcam_images, mask, root_dir,
     f.close()
 
 
+def visualize_results_gradcam_only(gradcam_images, root_dir, case="0"):
+    if not os.path.exists(root_dir):
+        os.makedirs(root_dir)
+
+    for i in range(len(gradcam_images)):
+
+            tmp = cv2.cvtColor(gradcam_images[i], cv2.COLOR_BGR2RGB)
+            result = Image.fromarray(tmp.astype(np.uint8))
+            # result.save(root_dir + "/case" + case + "_" + str(i) + ".png")
+            result.save(root_dir + "/case" + case + "_" + str(i) + ".jpg")
+
+
 def find_temp_mask_red_dots(image_width, image_height, mask, round_up_mask):
     mask_len = len(mask)
     dot_width = int(image_width // (mask_len + 4))
@@ -191,5 +203,40 @@ def create_image_arrays(config_dict, input_sequence, gradcams, time_mask,
     # os.system("convert -delay 10 -loop 0 {}.jpg {}".format(
     #     os.path.join(output_folder, "*"),
     #     path_to_combined_gif))
+
+    return combined_images
+
+
+def create_gradcam_only_image_arrays(
+        config_dict, input_sequence, gradcams,
+        output_folder, video_id, mask_type):
+    combined_images = []
+    sequence = input_sequence[:, 0, :, :, :, :]
+    sequence = prepare_for_image_write(sequence)
+
+    flow_sequence = input_sequence[:, 1, :, :, :, :]
+    flow_sequence = prepare_for_image_write(flow_sequence)
+
+    for i in range(config_dict['seq_length']):
+        frame = cv2.cvtColor(sequence[0, i, :], cv2.COLOR_BGR2RGB)
+        frame = Image.fromarray(frame)
+
+        flow = cv2.cvtColor(flow_sequence[0, i, :], cv2.COLOR_BGR2RGB)
+        flow = Image.fromarray(flow)
+
+        combined_img = np.concatenate((frame,
+                                       flow,
+                                       np.uint8(gradcams[i])),
+                                      axis=1)
+
+        combined_images.append(combined_img)
+
+    visualize_results_gradcam_only(combined_images, output_folder, case=mask_type + video_id)
+
+    path_to_combined_gif = os.path.join(output_folder, "mygif.gif")
+    fp_in = os.path.join(output_folder, '*.jpg')
+    img, *imgs = [Image.open(f) for f in sorted(glob.glob(fp_in))]
+    img.save(fp=path_to_combined_gif, format='GIF', append_images=imgs,
+             save_all=True, duration=1000, loop=0)
 
     return combined_images

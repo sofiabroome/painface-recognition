@@ -143,7 +143,7 @@ def init_mask(seq, target, model, config_dict, thresh=0.9):
     (Does not give very conclusive results so far).
     """
     def perturb_one_or_two_streams(x, mask):
-        if config_dict['model'] == '2stream_5d_add':
+        if config_dict['model'] == '2stream_5d_add' or config_dict['model'] == 'i3d_2stream':
             perturbed_rgb = perturb_sequence(x[:, 0, :], mask)
             perturbed_flow = perturb_sequence(x[:, 1, :], mask)
             concat_streams = tf.concat([perturbed_rgb, perturbed_flow], axis=0)
