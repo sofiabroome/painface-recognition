@@ -791,13 +791,18 @@ class DataHandler:
 
         def get_extra_sequences(class_df, video_ids, start_ind, nb_extra):
             sequence_dfs = []
+            nb_videos = len(video_ids)
             if len(class_df) != 0:
-                if nb_extra < len(video_ids):
+                if nb_extra < nb_videos:
                     nb_per_video_to_sample = 1
+                    to_sample_from_indices = np.random.choice(nb_videos, nb_extra, replace=False)
                 else:
                     nb_per_video_to_sample = int(nb_extra/len(video_ids))
                 nb_sequences_collected = 0
-                for video_id in video_ids:
+                for ind, video_id in enumerate(video_ids):
+                    if nb_extra < nb_videos:
+                        if ind not in to_sample_from_indices:
+                            continue
                     video_frame_df = class_df.loc[class_df['video_id'] == video_id]
                     sequence_dfs_from_video = build_sequences_from_frames(
                         start_ind=start_ind,
