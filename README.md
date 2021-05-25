@@ -1,10 +1,20 @@
-# Dynamics are Important for the Recognition of Equine Pain in Video
+Code accompanying:
 
-Pain recognition in videos of horses.
+## Dynamics are Important for the Recognition of Equine Pain in Video (CVPR 2019)
+### and
+## Sharing Pain: Using Domain Transfer Between Pain Types for Recognition of Sparse Pain Expressions in Horses (arXiv 2021)
 
-*NOTE*: Please use the branch `CVPR19` for the code described in this readme. This repository has undergone many updates since then (especially the data pipeline, adapting it to a new horse dataset), and I have transferred the code to tensorflow, tf.data and tf.keras. This means that the current state of the repo is better, and more readable, but the below description is not yet updated. Hoping to get that done soon.
+for pain recognition in videos of horses.
 
-This repository contains the code for our [paper](http://openaccess.thecvf.com/content_CVPR_2019/html/Broome_Dynamics_Are_Important_for_the_Recognition_of_Equine_Pain_in_CVPR_2019_paper.html):
+*NOTE*:
+This repository has undergone many updates since 2019 (especially the data pipeline,
+adapting it to a new horse dataset), and I have transferred the code to tensorflow,
+tf.data and tf.keras. This means that the current state of the repo is better, and more readable.
+If you specifically want to look at the state of the code in 2019, please use the branch `CVPR19`. Note that all experiments from then are possible to conduct in this version as well.
+
+This repository contains the code for the following two papers on automatic pain recognition in horses.
+
+[CVPR 2019](http://openaccess.thecvf.com/content_CVPR_2019/html/Broome_Dynamics_Are_Important_for_the_Recognition_of_Equine_Pain_in_CVPR_2019_paper.html):
 
 `   @InProceedings{Broome_2019_CVPR,
     author = {Broome, Sofia and Gleerup, Karina Bech and Andersen, Pia Haubro and Kjellstrom, Hedvig},
@@ -13,7 +23,18 @@ This repository contains the code for our [paper](http://openaccess.thecvf.com/c
     month = {June},
     year = {2019}}`
 
-If you find the code useful for your research, please cite it.
+[arXiv 2021](https://arxiv.org/abs/2105.10313):
+
+`@misc{broomé2021sharing,
+      title={Sharing Pain: Using Domain Transfer Between Pain Types for Recognition of Sparse Pain Expressions in Horses}, 
+      author={Sofia Broomé and Katrina Ask and Maheen Rashid and Pia Haubro Andersen and Hedvig Kjellström},
+      year={2021},
+      eprint={2105.10313},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV}
+}`
+
+If you find the code useful for your research, please the paper that is most relevant for you.
 
 The best performing model for the task was the two-stream convolutional LSTM shown below, which is a fully recurrent deep network maintaining the spatial structure of the frames throughout the recurrences.
 
@@ -22,40 +43,31 @@ The best performing model for the task was the two-stream convolutional LSTM sho
 
 ## Training
 
-Look at the different shell-scripts available in `run_scripts` and `test_scripts` folders. An execution line with all flags specified may look like this
+An execution line for training may look like this:
 
-```python main.py --data-path 'data/jpg_128_128_2fps/' --model 'convolutional_LSTM' --input-width 128 --input-height 128 --nb-labels 2 --nb-lstm-units 32 --kernel-size 5 --nb-epochs 100 --early-stopping 15 --optimizer 'adadelta' --lr 0.001 --round-to-batch 1 --train-subjects '[3,0,1,2]' --val-subjects '[4]' --test-subjects '[5]' --subjects-overview 'metadata/horse_subjects.csv' --image-identifier 'unique_name' --test-run 0 --seq-length 10 --seq-stride 10 --batch-size 16 --nb-input-dims 5 --val-fraction 0 --data-type 'rgb' --nb-lstm-layers 4 --aug-flip 1 --aug-crop 1 --aug-light 1 ```, where
+``` python main.py --config-file configs/config_2stream_local_test.py --test-run 1 --subjects-overview metadata/horse_subjects.csv --train-subjects 'horse_1/horse_2/horse_3/horse_4' --val-subjects 'horse_5' --test-subjects 'horse_6' --job-identifier test ```
 
-all flags are not applicable to all models, check `models.py`, `--lr` is the learning rate of the optimizer, `--round-to-batch` decides whether to discard the potential last batch if it has fewer samples than `--batch-size`, `train/val/test-subjects` designate the ID of which horse subjects to t/v/t on,  `--image-identifier` is a string to signify the results files that are saved after testing, to not overwrite results from different runs, `--test-run` is a binary variable deciding whether to just run a short test (just a few training steps instead of an entire epoch). `aug-flip`, `aug-crop` and `aug-light` are three different data augmentation methods that can be used at will.
+Detailed configs for a run are specified in the config file.
 
-*Note:* The batch size needs to be divisible with the number of augmentation techniques you use plus + 1. So if you use all three, i.e. flip+crop+light, the batch size needs to be a multiple of 4.
-
-`--val-fraction` set to 1 means that we will use a certain last specified fraction of the training set as validation set, instead of using an "entire horse" as validation set as specified in `--val-subjects` (applied otherwise).
-
-`--nb-input-dims` is 5 for sequences but 4 for single frames.
-In the sequence case the dimensions of an input tensor to the network are (batch size, seq length, r, g, b) vs. in the single-frame case (batch size, r, g, b). The corresponding dimensions for optical flow input will also be 5 or 4, using the magnitude of the two flow channels as a third channel.
-
-`--data-type` should be either of the strings `'rgb'` or `'of'` (optical flow).  
-
-`--seq-length` is the sequence length (number of frames to constitute a sequence that is processed at once, and `--seq-stride` is the stride of the sequence extraction. If you just want back-to-back sequences with no overlap these two should thus be the same. 
 
 ## Testing
 
-To only perform inference with an already trained Keras model, run
-
-```python test_with_saved_model.py```
-
-with the same argument flags as you trained the model with
-
-after adding the model path to the main function of `test_with_saved_model.py`.
+To only perform inference with an already trained Tensorflow model, specify a checkpoint path in the config file and set `'inference_only' = True` in the config. 
 
 ## Dataset
 
-The equine dataset has unfortunately as of yet not been possible to make public, but is further described in the article
+The equine datasets have unfortunately as of yet not been possible to make public.
+
+The "PF" dataset (used in both articles) is further described in the article
 
 `Karina Bech Gleerup, Björn Forkman, Casper Lindegaard and Pia Haubro Andersen
 "An Equine Pain Face"
 Veterinary Anaesthesia and Analgesia, 2015, 42, 103–114`.
+
+The "EOP(j)" dataset (used in the Sharing Pain-article) is further described in
+
+`Ask, Katrina; Rhodin, Marie; Tamminen, Lena-Mari; Hernlund, Elin; Haubro Andersen, Pia. 2020.
+"Identification of Body Behaviors and Facial Expressions Associated with Induced Orthopedic Pain in Four Equine Pain Scales" Animals 10, no. 11: 2155.`
 
 
 However, the code can and has previously been used on the human pain video dataset UNBC-McMaster shoulder pain expression archive database, which is publicly available and described [here](https://ieeexplore.ieee.org/document/5771462). Keep in mind that the total duration of the UNBC dataset is only 33 minutes assuming 25fps, and that pre-training on another dataset might be necessary in order to learn pain patterns with longer temporal extent for this one. Also, the pain behaviors of humans are arguably easier to catch in single frames since humans are more expressive than animals (more facial muscles, for instance), meaning that a two-stream recurrent network such as the one presented in this paper might not be the most efficient way to train on UNBC. I personally did not achieve competitive results on that one using the C-LSTM-2, but it was a few years back. If I would run on it today I would make sure to augment the minor pain class, to reduce the class imbalance, for instance, which might help. For this, it can perhaps be useful to look at the video buffer builder & resampler `get_sequences_from_frame_df(self, df)` inside `data_handler.py` on the master branch (not on the CVPR19 branch). (This paragraph was updated in Dec 2020)
@@ -64,14 +76,16 @@ To train and test the a model on your own data, no matter the species or affecti
 
 ### Data format
 
-A data folder such as the one in the execution line specified above, `data/jpg_128_128_2fps/`, (let's refer to this folder by X) should be organized as follows:
+This repository reads videos via extracted frames. See scripts for this purpose under `data_scripts`. A data folder such as the one in the execution line specified above, `data/jpg_128_128_2fps/`, (let's refer to this folder by X) should be organized as follows:
 
 X contains one subfolder per subject in the dataset (and once you have run, also their belonging `.csv`-files), like so:
- 
+
 ```
 ls X
-horse_1 horse 2 horse_3 horse_4 horse_5 horse_6
+horse_1 horse_1.csv horse 2 horse_2.csv horse_3 horse_3.csv horse_4 horse_4.csv horse_5 horse_5.csv horse_6 horse_6.csv 
 ```
+
+
 These per-subject folders in turn contain one folder per clip, as in for example:
 
 ```
@@ -80,13 +94,30 @@ ls horse_1
 ```
 
 The clip-folders in turn contain the extracted frames for each clip.
-
-and after the first run:
-
+ 
 ```
-ls X
-horse_1 horse_1.csv horse 2 horse_2.csv horse_3 horse_3.csv horse_4 horse_4.csv horse_5 horse_5.csv horse_6 horse_6.csv 
+data
+|--jpg_128_128_2fps
+|  |--horse_1.csv
+|  |--horse_1
+|     |--1_1a_1
+|        |--frame_000001.jpg
+|        |...
+|        |--frame_002638.jpg
+|     |--[more clips]
+|  |[more horses]
+|  |--horse_6.csv
+|  |--horse_6
+|     |--6_1a
+|     |   |--frame_000001.jpg
+|     |   |...
+|     |   |--frame_004500.jpg
+|     |--6_2a
+|     |   |--frame_000001.jpg
+|     |   |...
+|     |   |--frame_000353.jpg
 ```
+
 
 One `.csv`-file contains paths and label information for every frame of every clip for that particular horse. We use these to read the data.
 From the beginning, the global label information for every clip is gathered from the `metadata/videos_overview_missingremoved.csv` file.
