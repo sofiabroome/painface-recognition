@@ -1,18 +1,3 @@
-Code accompanying:
-
-#### Dynamics are Important for the Recognition of Equine Pain in Video (CVPR 2019)
-
-and
-
-#### Sharing Pain: Using Domain Transfer Between Pain Types for Recognition of Sparse Pain Expressions in Horses (arXiv 2021).
-
-
-*NOTE*:
-This repository has undergone many updates since 2019 (especially the data pipeline,
-adapting it to a new horse dataset), and I have transferred the code to tensorflow,
-tf.data and tf.keras. This means that the current state of the repo is better, and more readable.
-If you specifically want to look at the state of the code in 2019, please use the branch `CVPR19`. Note that all experiments from then are possible to conduct in this version as well.
-
 This repository contains the code for the following two papers on automatic pain recognition in horses.
 
 [CVPR 2019](http://openaccess.thecvf.com/content_CVPR_2019/html/Broome_Dynamics_Are_Important_for_the_Recognition_of_Equine_Pain_in_CVPR_2019_paper.html):
@@ -40,6 +25,12 @@ If you find the code useful for your research, please the paper that is most rel
 The best performing model for the task was the two-stream convolutional LSTM shown below, which is a fully recurrent deep network maintaining the spatial structure of the frames throughout the recurrences.
 
 <img src="images/CLSTM2.png" width="850">
+
+*NOTE*:
+This repository has undergone many updates since 2019 (especially the data pipeline,
+adapting it to a new horse dataset), and I have transferred the code to tensorflow,
+tf.data and tf.keras. This means that the current state of the repo is better, and more readable.
+If you specifically want to look at the state of the code in 2019, please use the branch `CVPR19`. Note that all experiments from then are possible to conduct in this version as well.
 
 
 ## Training
