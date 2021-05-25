@@ -77,7 +77,7 @@ To train and test the a model on your own data, no matter the species or affecti
 
 ### Data format
 
-This repository reads videos via extracted frames. See scripts for this purpose under `data_scripts`. A data folder such as the one in the execution line specified above, `data/jpg_128_128_2fps/`, (let's refer to this folder by X) should be organized as follows:
+This repository reads videos via extracted frames. See scripts for this purpose under `data_scripts`. A data folder, such as for example `data/jpg_128_128_2fps/`, (let's refer to this folder by X) should be organized as follows:
 
 X contains one subfolder per subject in the dataset (and once you have run, also their belonging `.csv`-files), like so:
 
