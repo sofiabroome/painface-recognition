@@ -1,10 +1,11 @@
 Code accompanying:
 
-## Dynamics are Important for the Recognition of Equine Pain in Video (CVPR 2019)
-### and
-## Sharing Pain: Using Domain Transfer Between Pain Types for Recognition of Sparse Pain Expressions in Horses (arXiv 2021)
+#### Dynamics are Important for the Recognition of Equine Pain in Video (CVPR 2019)
 
-for pain recognition in videos of horses.
+and
+
+#### Sharing Pain: Using Domain Transfer Between Pain Types for Recognition of Sparse Pain Expressions in Horses (arXiv 2021).
+
 
 *NOTE*:
 This repository has undergone many updates since 2019 (especially the data pipeline,
