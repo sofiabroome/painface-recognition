@@ -20,7 +20,7 @@ This repository contains the code for the following two papers on automatic pain
       primaryClass={cs.CV}
 }`
 
-If you find the code useful for your research, please the paper that is most relevant for you.
+If you find the code useful for your research, please cite the paper that is most relevant for you.
 
 The best performing model for the task was the two-stream convolutional LSTM shown below, which is a fully recurrent deep network maintaining the spatial structure of the frames throughout the recurrences.
 
