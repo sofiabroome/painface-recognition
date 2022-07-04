@@ -22,7 +22,7 @@ This repository contains the code for the following two papers on automatic pain
     volume = {17},
     url = {https://doi.org/10.1371/journal.pone.0263854},
     pages = {1-21},
-    number = {3},
+    number = {3}
 }`
 
 
