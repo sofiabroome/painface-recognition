@@ -9,16 +9,22 @@ This repository contains the code for the following two papers on automatic pain
     month = {June},
     year = {2019}}`
 
-[arXiv 2021](https://arxiv.org/abs/2105.10313):
+[PLoS ONE 2022](https://journals.plos.org/plosone/article/metrics?id=10.1371/journal.pone.0263854):
 
-`@misc{broomé2021sharing,
-      title={Sharing Pain: Using Domain Transfer Between Pain Types for Recognition of Sparse Pain Expressions in Horses}, 
-      author={Sofia Broomé and Katrina Ask and Maheen Rashid and Pia Haubro Andersen and Hedvig Kjellström},
-      year={2021},
-      eprint={2105.10313},
-      archivePrefix={arXiv},
-      primaryClass={cs.CV}
+`@article{10.1371/journal.pone.0263854,
+    doi = {10.1371/journal.pone.0263854},
+    author = {Broomé, Sofia AND Ask, Katrina AND Rashid-Engström, Maheen AND Haubro Andersen, Pia AND Kjellström, Hedvig},
+    journal = {{PLoS ONE}},
+    publisher = {Public Library of Science},
+    title = {{Sharing pain: Using pain domain transfer for video recognition of low grade orthopedic pain in horses}},
+    year = {2022},
+    month = {03},
+    volume = {17},
+    url = {https://doi.org/10.1371/journal.pone.0263854},
+    pages = {1-21},
+    number = {3},
 }`
+
 
 If you find the code useful for your research, please cite the paper that is most relevant for you.
 
